@@ -1,0 +1,307 @@
+import { useState, useMemo, useCallback } from 'react';
+import { AnimatePresence } from 'motion/react';
+import type { Track, Category, SortOption, Section } from './types';
+import { demoTracks } from './data/tracks';
+import { useCart } from './hooks/useCart';
+import { useAudioPlayer } from './hooks/useAudioPlayer';
+import { useAdmin } from './hooks/useAdmin';
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
+import FeaturedTracks from './components/FeaturedTracks';
+import CategoryFilter from './components/CategoryFilter';
+import TrackCard from './components/TrackCard';
+import TrackDetail from './components/TrackDetail';
+import AudioPlayer from './components/AudioPlayer';
+import CartDrawer from './components/CartDrawer';
+import CheckoutPanel from './components/CheckoutPanel';
+import AdminLogin from './components/AdminLogin';
+import AdminPanel from './components/AdminPanel';
+import Footer from './components/Footer';
+import { Search, ArrowUpDown } from 'lucide-react';
+
+const TRACKS_STORAGE_KEY = 'alex-selas-drops-tracks';
+
+function loadTracks(): Track[] {
+  try {
+    const raw = localStorage.getItem(TRACKS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : demoTracks;
+  } catch {
+    return demoTracks;
+  }
+}
+
+function saveTracks(tracks: Track[]) {
+  localStorage.setItem(TRACKS_STORAGE_KEY, JSON.stringify(tracks));
+}
+
+export default function App() {
+  // State
+  const [section, setSection] = useState<Section>('home');
+  const [tracks, setTracks] = useState<Track[]>(loadTracks);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  // Catalog filters
+  const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortOption>('newest');
+
+  // Hooks
+  const cart = useCart();
+  const player = useAudioPlayer();
+  const admin = useAdmin();
+
+  // Navigate
+  const navigate = useCallback((s: Section) => {
+    setSection(s);
+    setShowCheckout(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Filtered tracks for catalog
+  const filteredTracks = useMemo(() => {
+    let result = [...tracks];
+
+    // Category
+    if (categoryFilter !== 'all') {
+      result = result.filter(t => t.category === categoryFilter);
+    }
+
+    // Search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        t =>
+          t.title.toLowerCase().includes(q) ||
+          t.genre.toLowerCase().includes(q) ||
+          t.tags.some(tag => tag.toLowerCase().includes(q))
+      );
+    }
+
+    // Sort
+    switch (sort) {
+      case 'newest':
+        result.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime());
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime());
+        break;
+      case 'price-asc':
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case 'title':
+        result.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+    }
+
+    return result;
+  }, [tracks, categoryFilter, search, sort]);
+
+  // Track CRUD (admin)
+  const handleAddTrack = useCallback((data: Omit<Track, 'id'> & { id?: string }) => {
+    const newTrack: Track = {
+      ...data,
+      id: data.id || `track-${Date.now()}`,
+    } as Track;
+    setTracks(prev => {
+      const updated = [...prev, newTrack];
+      saveTracks(updated);
+      return updated;
+    });
+  }, []);
+
+  const handleUpdateTrack = useCallback((data: Omit<Track, 'id'> & { id?: string }) => {
+    if (!data.id) return;
+    setTracks(prev => {
+      const updated = prev.map(t => (t.id === data.id ? { ...t, ...data } as Track : t));
+      saveTracks(updated);
+      return updated;
+    });
+  }, []);
+
+  const handleDeleteTrack = useCallback((id: string) => {
+    setTracks(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      saveTracks(updated);
+      return updated;
+    });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-50">
+      {/* Navbar */}
+      <Navbar
+        currentSection={section}
+        onNavigate={navigate}
+        cartCount={cart.count}
+        onCartOpen={() => cart.setIsOpen(true)}
+      />
+
+      {/* Main content */}
+      <main className="pt-16">
+        {/* ============ HOME ============ */}
+        {section === 'home' && !showCheckout && (
+          <>
+            <Hero onNavigate={navigate} />
+            <FeaturedTracks
+              tracks={tracks}
+              currentTrackId={player.currentTrack?.id || null}
+              isPlaying={player.isPlaying}
+              isInCart={cart.isInCart}
+              onPlay={track => player.play(track)}
+              onAddToCart={track => cart.addItem(track)}
+              onDetail={track => setSelectedTrack(track)}
+            />
+            <Footer />
+          </>
+        )}
+
+        {/* ============ CATALOG ============ */}
+        {section === 'catalog' && !showCheckout && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <h1 className="text-3xl font-bold text-zinc-50 mb-8">Catálogo</h1>
+
+            {/* Filters bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+              <CategoryFilter selected={categoryFilter} onSelect={setCategoryFilter} />
+
+              <div className="flex items-center gap-3 sm:ml-auto w-full sm:w-auto">
+                {/* Search */}
+                <div className="relative flex-1 sm:flex-initial">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Buscar..."
+                    className="w-full sm:w-56 pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors"
+                  />
+                </div>
+
+                {/* Sort */}
+                <div className="relative">
+                  <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <select
+                    value={sort}
+                    onChange={e => setSort(e.target.value as SortOption)}
+                    className="pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors appearance-none cursor-pointer"
+                  >
+                    <option value="newest">Más recientes</option>
+                    <option value="oldest">Más antiguos</option>
+                    <option value="price-asc">Precio: menor</option>
+                    <option value="price-desc">Precio: mayor</option>
+                    <option value="title">A-Z</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid */}
+            {filteredTracks.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredTracks.map(track => (
+                  <TrackCard
+                    key={track.id}
+                    track={track}
+                    isPlaying={player.isPlaying}
+                    isCurrentTrack={player.currentTrack?.id === track.id}
+                    isInCart={cart.isInCart(track.id)}
+                    onPlay={() => player.play(track)}
+                    onAddToCart={() => cart.addItem(track)}
+                    onDetail={() => setSelectedTrack(track)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <p className="text-zinc-500 text-lg">No se encontraron tracks</p>
+                <p className="text-zinc-600 text-sm mt-1">Prueba con otros filtros o búsqueda</p>
+              </div>
+            )}
+
+            <div className="mt-16">
+              <Footer />
+            </div>
+          </div>
+        )}
+
+        {/* ============ CHECKOUT ============ */}
+        {showCheckout && (
+          <CheckoutPanel
+            items={cart.items}
+            total={cart.total}
+            onBack={() => setShowCheckout(false)}
+            onComplete={() => {
+              cart.clearCart();
+              setShowCheckout(false);
+              navigate('home');
+            }}
+          />
+        )}
+
+        {/* ============ ADMIN ============ */}
+        {section === 'admin' && !showCheckout && (
+          <>
+            {!admin.isAuthenticated ? (
+              <AdminLogin onLogin={admin.login} />
+            ) : (
+              <AdminPanel
+                tracks={tracks}
+                onAddTrack={handleAddTrack}
+                onUpdateTrack={handleUpdateTrack}
+                onDeleteTrack={handleDeleteTrack}
+                onLogout={admin.logout}
+              />
+            )}
+          </>
+        )}
+      </main>
+
+      {/* Track Detail Modal */}
+      <AnimatePresence>
+        {selectedTrack && (
+          <TrackDetail
+            track={selectedTrack}
+            isPlaying={player.isPlaying}
+            isCurrentTrack={player.currentTrack?.id === selectedTrack.id}
+            isInCart={cart.isInCart(selectedTrack.id)}
+            onClose={() => setSelectedTrack(null)}
+            onPlay={() => player.play(selectedTrack)}
+            onAddToCart={() => cart.addItem(selectedTrack)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Cart Drawer */}
+      <CartDrawer
+        isOpen={cart.isOpen}
+        items={cart.items}
+        total={cart.total}
+        onClose={() => cart.setIsOpen(false)}
+        onRemove={cart.removeItem}
+        onCheckout={() => {
+          cart.setIsOpen(false);
+          setShowCheckout(true);
+        }}
+      />
+
+      {/* Global Audio Player */}
+      <AudioPlayer
+        currentTrack={player.currentTrack}
+        isPlaying={player.isPlaying}
+        progress={player.progress}
+        currentTime={player.currentTime}
+        duration={player.duration}
+        onPlayPause={() => {
+          if (player.currentTrack) {
+            player.play(player.currentTrack);
+          }
+        }}
+        onSeek={player.seek}
+      />
+    </div>
+  );
+}
