@@ -87,7 +87,10 @@ export default function TrackDetail({
                   {categoryLabels[track.category]}
                 </span>
                 <h2 className="text-2xl font-bold text-zinc-50 mt-1">{track.title}</h2>
-                <p className="text-zinc-400 mt-1">{track.artist}</p>
+                <p className="text-zinc-400 mt-1">
+                  {track.artist}
+                  {track.authors && <span className="text-zinc-500"> &middot; Original: {track.authors}</span>}
+                </p>
               </div>
               <div className="text-right">
                 <span className="text-3xl font-bold gradient-text">{formatPrice(track.price)}</span>

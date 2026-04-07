@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, Image, FileAudio, Music, Trash2, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { X, Upload, Image, FileAudio, Music, Trash2, CheckCircle, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import type { Track, Category } from '../types';
 
 interface AdminTrackFormProps {
@@ -191,6 +191,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
   const [form, setForm] = useState({
     title: '',
     artist: 'Alex Selas',
+    authors: '',
     category: 'sesiones' as Category,
     price: 9.99,
     bpm: 128,
@@ -205,11 +206,14 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
     tags: '',
   });
 
+  const [aiLoading, setAiLoading] = useState(false);
+
   useEffect(() => {
     if (track) {
       setForm({
         title: track.title,
         artist: track.artist,
+        authors: track.authors || '',
         category: track.category,
         price: track.price,
         bpm: track.bpm,
@@ -226,12 +230,41 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
     }
   }, [track]);
 
+  const generateDescription = async () => {
+    if (!form.title) return;
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          artist: form.artist,
+          authors: form.authors,
+          category: form.category,
+          genre: form.genre,
+          bpm: form.bpm,
+          userDescription: form.description,
+        }),
+      });
+      const data = await res.json();
+      if (data.description) {
+        setForm(prev => ({ ...prev, description: data.description }));
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       ...(track ? { id: track.id } : {}),
       title: form.title,
       artist: form.artist,
+      authors: form.authors,
       category: form.category,
       price: Number(form.price),
       bpm: Number(form.bpm),
@@ -320,7 +353,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
         {/* === INFO BÁSICA === */}
         <div>
           <h4 className="text-sm font-semibold text-zinc-300 mb-3">Información básica</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs text-zinc-500 mb-1">Título *</label>
               <input
@@ -333,11 +366,21 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
               />
             </div>
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Artista</label>
+              <label className="block text-xs text-zinc-500 mb-1">Productor</label>
               <input
                 type="text"
                 value={form.artist}
                 onChange={e => setForm({ ...form, artist: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Autores originales</label>
+              <input
+                type="text"
+                value={form.authors}
+                onChange={e => setForm({ ...form, authors: e.target.value })}
+                placeholder="Drake, Bad Bunny..."
                 className={inputClass}
               />
             </div>
@@ -431,13 +474,35 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
 
         {/* === DESCRIPCIÓN === */}
         <div>
-          <label className="block text-xs text-zinc-500 mb-1">Descripción</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs text-zinc-500">Descripción</label>
+            <button
+              type="button"
+              onClick={generateDescription}
+              disabled={aiLoading || !form.title}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
+                aiLoading
+                  ? 'bg-yellow-400/10 text-yellow-400/50 cursor-wait'
+                  : !form.title
+                    ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                    : 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 active:scale-95'
+              }`}
+            >
+              {aiLoading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Sparkles className="w-3 h-3" />
+              )}
+              {aiLoading ? 'Generando...' : 'Generar con IA'}
+            </button>
+          </div>
           <textarea
             value={form.description}
             onChange={e => setForm({ ...form, description: e.target.value })}
-            placeholder="Describe el track, su estilo, para qué momentos es ideal..."
+            placeholder="Escribe unas notas y la IA creará una descripción profesional, o escríbela tú directamente..."
             className={`${inputClass} h-28 resize-none`}
           />
+          <p className="text-[10px] text-zinc-600 mt-1">Puedes escribir notas básicas y darle a "Generar con IA" para obtener una descripción profesional</p>
         </div>
 
         {/* === TAGS === */}

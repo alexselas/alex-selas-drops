@@ -4,6 +4,7 @@ export interface Track {
   id: string;
   title: string;
   artist: string;
+  authors: string; // Artistas originales (ej: "Drake, Bad Bunny")
   category: Category;
   price: number;
   bpm: number;

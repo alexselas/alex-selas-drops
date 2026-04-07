@@ -104,7 +104,10 @@ export default function TrackCard({
             {track.title}
           </h3>
         </button>
-        <p className="text-sm text-zinc-500 mt-0.5">{track.genre}</p>
+        <p className="text-sm text-zinc-500 mt-0.5">
+          {track.authors ? <><span className="text-zinc-400">{track.authors}</span> &middot; </> : null}
+          {track.genre}
+        </p>
 
         <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
           {track.bpm > 0 && <span>{track.bpm} BPM</span>}

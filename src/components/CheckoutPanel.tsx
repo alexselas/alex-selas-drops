@@ -64,12 +64,24 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
   // Load PayPal SDK
   useEffect(() => {
     if (paymentMethod !== 'paypal' || step !== 'review') return;
-    if (paypalScriptRef.current) return; // Already loaded
+    if (paypalScriptRef.current) {
+      // Script already added, check if paypal is on window
+      if ((window as any).paypal) setPaypalLoaded(true);
+      return;
+    }
+
+    // Remove old script if exists
+    const old = document.querySelector('script[src*="paypal.com/sdk"]');
+    if (old) old.remove();
 
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&intent=capture`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&intent=capture&components=buttons`;
     script.async = true;
     script.onload = () => setPaypalLoaded(true);
+    script.onerror = () => {
+      setErrorMsg('No se pudo cargar PayPal. Prueba con tarjeta.');
+      setPaymentMethod('stripe');
+    };
     document.body.appendChild(script);
     paypalScriptRef.current = script;
   }, [paymentMethod, step]);

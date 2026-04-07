@@ -63,7 +63,9 @@ export default function AudioPlayer({
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-zinc-200 truncate">{currentTrack.title}</p>
-                <p className="text-xs text-zinc-500 truncate">{currentTrack.artist}</p>
+                <p className="text-xs text-zinc-500 truncate">
+                  {currentTrack.artist}{currentTrack.authors ? ` · ${currentTrack.authors}` : ''}
+                </p>
               </div>
             </div>
 
