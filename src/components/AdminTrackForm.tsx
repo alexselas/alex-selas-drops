@@ -51,26 +51,36 @@ function FileDropZone({
     }
 
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'X-Filename': file.name,
-          'X-Folder': folder,
-          'Content-Type': file.type,
-        },
-        body: file,
+      // Try client-side upload to Vercel Blob (handles large files)
+      const { upload } = await import('@vercel/blob/client');
+      const blob = await upload(`${folder}/${Date.now()}-${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload-url',
       });
-
-      if (!res.ok) throw new Error('Upload failed');
-
-      const data = await res.json();
-      onUploaded(data.url);
+      onUploaded(blob.url);
       setStatus('done');
     } catch {
-      // Fallback: use local object URL (works in dev without Vercel Blob)
-      const localUrl = URL.createObjectURL(file);
-      onUploaded(localUrl);
-      setStatus('done');
+      try {
+        // Fallback: try server-side upload (for local dev)
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'X-Filename': file.name,
+            'X-Folder': folder,
+            'Content-Type': file.type,
+          },
+          body: file,
+        });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        onUploaded(data.url);
+        setStatus('done');
+      } catch {
+        // Last fallback: local object URL (temporary)
+        const localUrl = URL.createObjectURL(file);
+        onUploaded(localUrl);
+        setStatus('done');
+      }
     }
   };
 
