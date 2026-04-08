@@ -17,7 +17,7 @@ import CheckoutPanel from './components/CheckoutPanel';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
-import { Search, ArrowUpDown, LayoutGrid, List, Music, ShoppingCart } from 'lucide-react';
+import { Search, ArrowUpDown, LayoutGrid, List, Music, ShoppingCart, Play, Pause } from 'lucide-react';
 import { formatPrice } from './lib/utils';
 
 function getInitialSection(): Section {
@@ -278,40 +278,56 @@ export default function App() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredTracks.map(track => (
-                    <div
-                      key={track.id}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
-                      onClick={() => {
-                        setSelectedTrack(track);
-                        window.history.pushState({}, '', `/track/${track.id}`);
-                      }}
-                    >
-                      {track.coverUrl ? (
-                        <img src={track.coverUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                          <Music className="w-5 h-5 text-zinc-700" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
-                        <p className="text-xs text-zinc-500 truncate">
-                          {track.authors ? `${track.authors} · ` : ''}{track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
-                        </p>
-                      </div>
-                      <span className="text-sm font-bold gradient-text flex-shrink-0">{formatPrice(track.price)}</span>
-                      <button
-                        onClick={e => { e.stopPropagation(); cart.addItem(track); }}
-                        disabled={cart.isInCart(track.id)}
-                        className={`flex-shrink-0 p-2 rounded-lg transition-all ${
-                          cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
-                        }`}
+                  {filteredTracks.map(track => {
+                    const isCurrentTrack = player.currentTrack?.id === track.id;
+                    return (
+                      <div
+                        key={track.id}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedTrack(track);
+                          window.history.pushState({}, '', `/track/${track.id}`);
+                        }}
                       >
-                        <ShoppingCart className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        {/* Play button */}
+                        <button
+                          onClick={e => { e.stopPropagation(); player.play(track); }}
+                          className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
+                        >
+                          {isCurrentTrack && player.isPlaying ? (
+                            <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" />
+                          ) : (
+                            <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />
+                          )}
+                        </button>
+                        {/* Cover */}
+                        {track.coverUrl ? (
+                          <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                            <Music className="w-4 h-4 text-zinc-700" />
+                          </div>
+                        )}
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
+                          <p className="text-xs text-zinc-500 truncate">
+                            {track.authors ? `${track.authors} · ` : ''}{track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
+                          </p>
+                        </div>
+                        <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); cart.addItem(track); }}
+                          disabled={cart.isInCart(track.id)}
+                          className={`flex-shrink-0 p-2 rounded-lg transition-all ${
+                            cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
+                          }`}
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )
             ) : (

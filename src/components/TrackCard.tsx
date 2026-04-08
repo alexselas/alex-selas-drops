@@ -44,11 +44,11 @@ export default function TrackCard({
     >
       {/* Cover — smaller, 4:3 ratio */}
       <div
-        className="relative aspect-[4/3] bg-zinc-800 cursor-pointer overflow-hidden flex-shrink-0"
+        className="relative aspect-square bg-[#111] cursor-pointer overflow-hidden flex-shrink-0"
         onClick={onDetail}
       >
         {track.coverUrl ? (
-          <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
+          <img src={track.coverUrl} alt={track.title} className="w-full h-full object-contain" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1e1e1e] to-[#141414]">
             <Zap className="w-12 h-12 text-zinc-800" />
