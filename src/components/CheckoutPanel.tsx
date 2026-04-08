@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { CreditCard, ArrowLeft, Download, CheckCircle, Music, AlertCircle, Shield } from 'lucide-react';
+import { CreditCard, ArrowLeft, Download, CheckCircle, Music, AlertCircle, Shield, Loader2 } from 'lucide-react';
 import type { CartItem } from '../types';
 import { formatPrice } from '../lib/utils';
 
@@ -14,47 +14,74 @@ interface CheckoutPanelProps {
 type PaymentMethod = 'stripe' | 'paypal';
 type CheckoutStep = 'review' | 'processing' | 'success' | 'error';
 
-const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || '';
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb';
+const PURCHASED_KEY = 'alex-selas-drops-purchased';
+
+// Save items before payment so they survive page reloads (Stripe redirect)
+function savePurchasedItems(items: CartItem[]) {
+  localStorage.setItem(PURCHASED_KEY, JSON.stringify(items));
+}
+
+function loadPurchasedItems(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(PURCHASED_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function CheckoutPanel({ items, total, onBack, onComplete }: CheckoutPanelProps) {
   const [step, setStep] = useState<CheckoutStep>('review');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
   const [errorMsg, setErrorMsg] = useState('');
   const [paypalLoaded, setPaypalLoaded] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const paypalContainerRef = useRef<HTMLDivElement>(null);
   const paypalScriptRef = useRef<HTMLScriptElement | null>(null);
 
-  // Check if returning from Stripe success
+  // Use purchased items from localStorage if current items are empty (after redirect)
+  const [purchasedItems, setPurchasedItems] = useState<CartItem[]>([]);
+  const displayItems = step === 'success' && purchasedItems.length > 0 ? purchasedItems : items;
+
+  // Check if returning from Stripe/PayPal redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get('payment');
     const sessionId = params.get('session_id');
 
-    if (payment === 'success' && sessionId) {
-      setStep('processing');
-      // Verify payment with backend
-      fetch('/api/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.paid) {
-            setStep('success');
-            // Clean URL
-            window.history.replaceState({}, '', window.location.pathname);
-          } else {
-            setStep('error');
-            setErrorMsg('El pago no se ha completado');
-          }
+    if (payment === 'success') {
+      // Load items saved before redirect
+      setPurchasedItems(loadPurchasedItems());
+
+      if (sessionId) {
+        setStep('processing');
+        fetch('/api/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
         })
-        .catch(() => {
-          // If verify fails, still show success (Stripe already confirmed)
-          setStep('success');
-          window.history.replaceState({}, '', window.location.pathname);
-        });
+          .then(r => r.json())
+          .then(data => {
+            if (data.paid) {
+              setStep('success');
+            } else {
+              setStep('error');
+              setErrorMsg('El pago no se ha completado');
+            }
+          })
+          .catch(() => {
+            // If verify fails, still show success (Stripe already confirmed)
+            setStep('success');
+          })
+          .finally(() => {
+            window.history.replaceState({}, '', window.location.pathname);
+          });
+      } else {
+        // PayPal redirect return
+        setStep('success');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     } else if (payment === 'cancelled') {
       setErrorMsg('Pago cancelado');
       window.history.replaceState({}, '', window.location.pathname);
@@ -65,12 +92,10 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
   useEffect(() => {
     if (paymentMethod !== 'paypal' || step !== 'review') return;
     if (paypalScriptRef.current) {
-      // Script already added, check if paypal is on window
       if ((window as any).paypal) setPaypalLoaded(true);
       return;
     }
 
-    // Remove old script if exists
     const old = document.querySelector('script[src*="paypal.com/sdk"]');
     if (old) old.remove();
 
@@ -106,6 +131,8 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
         height: 50,
       },
       createOrder: (_data: any, actions: any) => {
+        // Save items before PayPal flow (in case of full redirect)
+        savePurchasedItems(items);
         return actions.order.create({
           purchase_units: [{
             description: `Alex Selas Drops — ${items.length} track${items.length > 1 ? 's' : ''}`,
@@ -135,6 +162,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
         setStep('processing');
         try {
           await actions.order.capture();
+          setPurchasedItems(items);
           setStep('success');
         } catch {
           setStep('error');
@@ -157,6 +185,9 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
     setStep('processing');
     setErrorMsg('');
 
+    // Save items before redirect so they survive the page reload
+    savePurchasedItems(items);
+
     try {
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
@@ -174,7 +205,6 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
       const data = await response.json();
 
       if (data.url) {
-        // Redirect to Stripe Checkout
         window.location.href = data.url;
       } else {
         throw new Error(data.error || 'No se pudo crear la sesión de pago');
@@ -184,6 +214,30 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
       setErrorMsg(err.message || 'Error al conectar con Stripe');
     }
   };
+
+  // Download file (works with cross-origin Vercel Blob URLs)
+  const handleDownload = useCallback(async (fileUrl: string, title: string) => {
+    setDownloadingId(title);
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Extract extension from URL or default to mp3
+      const ext = fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
+      a.download = `${title}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback: open in new tab
+      window.open(fileUrl, '_blank');
+    } finally {
+      setDownloadingId(null);
+    }
+  }, []);
 
   // ============ SUCCESS ============
   if (step === 'success') {
@@ -207,25 +261,33 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
             Tus descargas están listas. Gracias por tu compra.
           </p>
           <div className="space-y-3 mb-8">
-            {items.map(item => (
+            {displayItems.map(item => (
               <div
                 key={item.track.id}
                 className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/30"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center">
-                    <Music className="w-5 h-5 text-zinc-600" />
-                  </div>
-                  <span className="text-sm text-zinc-300">{item.track.title}</span>
+                  {item.track.coverUrl ? (
+                    <img src={item.track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center">
+                      <Music className="w-5 h-5 text-zinc-600" />
+                    </div>
+                  )}
+                  <span className="text-sm text-zinc-300 text-left">{item.track.title}</span>
                 </div>
-                <a
-                  href={item.track.fileUrl}
-                  download
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-400/20 text-yellow-400 text-sm font-medium hover:bg-yellow-400/30 transition-colors"
+                <button
+                  onClick={() => handleDownload(item.track.fileUrl, item.track.title)}
+                  disabled={downloadingId === item.track.title}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-400/20 text-yellow-400 text-sm font-medium hover:bg-yellow-400/30 transition-colors disabled:opacity-50"
                 >
-                  <Download className="w-4 h-4" />
+                  {downloadingId === item.track.title ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
                   MP3
-                </a>
+                </button>
               </div>
             ))}
           </div>

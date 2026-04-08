@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
 import type { Track, Category, SortOption, Section } from './types';
 import { demoTracks } from './data/tracks';
@@ -39,7 +39,10 @@ export default function App() {
   const [section, setSection] = useState<Section>('home');
   const [tracks, setTracks] = useState<Track[]>(loadTracks);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.has('payment');
+  });
 
   // Catalog filters
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
