@@ -158,29 +158,28 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
           }],
         });
       },
-      onApprove: async (data: any, actions: any) => {
+      onApprove: async (data: any) => {
         setStep('processing');
         try {
-          // First check order status
-          const orderDetails = await actions.order.get();
-          console.log('PayPal order status:', orderDetails.status, orderDetails);
+          // Server-side capture (more reliable than client-side)
+          const res = await fetch('/api/paypal-capture', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderID: data.orderID }),
+          });
+          const result = await res.json();
 
-          if (orderDetails.status === 'COMPLETED') {
-            // Already captured
+          if (result.success) {
             setPurchasedItems(items);
             setStep('success');
-            return;
+          } else {
+            setStep('error');
+            setErrorMsg(result.error || 'Error al capturar el pago con PayPal');
           }
-
-          const details = await actions.order.capture();
-          console.log('PayPal capture success:', details);
-          setPurchasedItems(items);
-          setStep('success');
         } catch (err: any) {
-          console.error('PayPal capture error:', JSON.stringify(err, null, 2), err);
-          const errorDetail = err?.details?.[0]?.description || err?.message || '';
+          console.error('PayPal capture error:', err);
           setStep('error');
-          setErrorMsg(`PayPal: ${errorDetail || 'Error desconocido'}. OrderID: ${data?.orderID || 'N/A'}`);
+          setErrorMsg(err?.message || 'Error de conexión al procesar el pago');
         }
       },
       onCancel: () => {
