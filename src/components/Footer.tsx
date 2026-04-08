@@ -1,5 +1,3 @@
-import { Instagram, Youtube, Headphones } from 'lucide-react';
-
 export default function Footer() {
   return (
     <footer className="border-t border-zinc-800/50 bg-[#0a0a0a]">
@@ -20,18 +18,6 @@ export default function Footer() {
             <span>Mashups</span>
             <span className="w-1 h-1 rounded-full bg-zinc-700" />
             <span>Librerías</span>
-          </div>
-
-          {/* Socials */}
-          <div className="flex items-center gap-3">
-            {[Instagram, Youtube, Headphones].map((Icon, i) => (
-              <button
-                key={i}
-                className="p-2.5 rounded-xl text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
-              >
-                <Icon className="w-5 h-5" />
-              </button>
-            ))}
           </div>
         </div>
 
