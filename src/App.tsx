@@ -179,15 +179,6 @@ export default function App() {
         onCartOpen={() => cart.setIsOpen(true)}
       />
 
-      {/* Promo banner */}
-      <div className="bg-gradient-to-r from-yellow-400/10 via-amber-400/10 to-yellow-400/10 border-b border-yellow-400/20">
-        <div className="max-w-7xl mx-auto px-4 py-2 text-center">
-          <p className="text-xs sm:text-sm text-yellow-400 font-medium">
-            Usa el código <span className="font-bold bg-yellow-400/20 px-1.5 py-0.5 rounded">WELCOME20</span> y obtén un descuento en tu primera compra
-          </p>
-        </div>
-      </div>
-
       {/* Main content */}
       <main className="pt-16">
         {/* ============ HOME ============ */}
@@ -213,6 +204,13 @@ export default function App() {
         {/* ============ CATALOG ============ */}
         {section === 'catalog' && !showCheckout && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            {/* Promo banner */}
+            <div className="bg-gradient-to-r from-yellow-400/10 via-amber-400/10 to-yellow-400/10 border border-yellow-400/20 rounded-2xl px-4 py-3 mb-6 text-center">
+              <p className="text-xs sm:text-sm text-yellow-400 font-medium">
+                Usa el código <span className="font-bold bg-yellow-400/20 px-1.5 py-0.5 rounded">WELCOME20</span> y obtén un descuento en tu primera compra
+              </p>
+            </div>
+
             <h1 className="text-3xl font-bold text-zinc-50 mb-8">Catálogo</h1>
 
             {/* Filters bar */}
