@@ -164,10 +164,47 @@ export default function TrackDetail({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3 mt-8">
+            <div className="flex flex-col gap-3 mt-8">
+              {/* Buy + Share row */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={onAddToCart}
+                  disabled={isInCart}
+                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-semibold transition-all ${
+                    isInCart
+                      ? 'bg-green-500/20 text-green-400 cursor-default'
+                      : 'gradient-bg text-black shadow-lg glow hover:scale-[1.02] active:scale-95'
+                  }`}
+                >
+                  {isInCart ? (
+                    <>
+                      <Check className="w-5 h-5" />
+                      En el carrito
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      Comprar — {formatPrice(track.price)}
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleShare}
+                  className={`flex items-center justify-center w-12 h-12 rounded-2xl border transition-all flex-shrink-0 ${
+                    copied
+                      ? 'border-green-500/40 text-green-400 bg-green-500/10'
+                      : 'border-zinc-700 text-zinc-400 hover:border-yellow-400/40 hover:text-white'
+                  }`}
+                >
+                  {copied ? <CheckCircle className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
+                </button>
+              </div>
+
+              {/* Preview button */}
               <button
                 onClick={onPlay}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl border border-zinc-700 text-zinc-300 font-medium hover:border-yellow-400/40 hover:text-white transition-all"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border border-zinc-700 text-zinc-300 font-medium hover:border-yellow-400/40 hover:text-white transition-all"
               >
                 {isCurrentTrack && isPlaying ? (
                   <Pause className="w-5 h-5" />
@@ -175,39 +212,6 @@ export default function TrackDetail({
                   <Play className="w-5 h-5" />
                 )}
                 {isCurrentTrack && isPlaying ? 'Pausar Preview' : 'Escuchar Preview'}
-              </button>
-
-              <button
-                onClick={onAddToCart}
-                disabled={isInCart}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all ${
-                  isInCart
-                    ? 'bg-green-500/20 text-green-400 cursor-default'
-                    : 'gradient-bg text-black shadow-lg glow hover:scale-[1.02] active:scale-95'
-                }`}
-              >
-                {isInCart ? (
-                  <>
-                    <Check className="w-5 h-5" />
-                    En el carrito
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-5 h-5" />
-                    Añadir al Carrito — {formatPrice(track.price)}
-                  </>
-                )}
-              </button>
-
-              <button
-                onClick={handleShare}
-                className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all ${
-                  copied
-                    ? 'border-green-500/40 text-green-400 bg-green-500/10'
-                    : 'border-zinc-700 text-zinc-400 hover:border-yellow-400/40 hover:text-white'
-                }`}
-              >
-                {copied ? <CheckCircle className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
               </button>
             </div>
 
