@@ -161,12 +161,14 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
       onApprove: async (_data: any, actions: any) => {
         setStep('processing');
         try {
-          await actions.order.capture();
+          const details = await actions.order.capture();
+          console.log('PayPal capture success:', details);
           setPurchasedItems(items);
           setStep('success');
-        } catch {
+        } catch (err: any) {
+          console.error('PayPal capture error:', err);
           setStep('error');
-          setErrorMsg('Error al procesar el pago con PayPal');
+          setErrorMsg(err?.message || 'Error al procesar el pago con PayPal. Verifica que PayPal no esté en modo Sandbox.');
         }
       },
       onCancel: () => {
