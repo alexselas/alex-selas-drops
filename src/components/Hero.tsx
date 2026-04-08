@@ -8,7 +8,7 @@ interface HeroProps {
 
 export default function Hero({ onNavigate }: HeroProps) {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[50vh] sm:min-h-[60vh] flex items-center justify-center overflow-hidden py-10">
       {/* Background effects */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-yellow-400/8 rounded-full blur-[150px]" />
@@ -31,7 +31,7 @@ export default function Hero({ onNavigate }: HeroProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-yellow-400/30 bg-yellow-400/5 mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-yellow-400/30 bg-yellow-400/5 mb-4 sm:mb-6">
             <Headphones className="w-4 h-4 text-yellow-400" />
             <span className="text-sm text-yellow-400 font-medium">Música exclusiva en alta calidad</span>
           </div>
@@ -41,10 +41,10 @@ export default function Hero({ onNavigate }: HeroProps) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="flex flex-col items-center mb-10"
+          className="flex flex-col items-center mb-6"
         >
-          <img src="/logo.png" alt="Alex Selas" className="h-28 sm:h-40 md:h-52 w-auto" />
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[0.25em] gradient-text -mt-1">
+          <img src="/logo.png" alt="Alex Selas" className="h-20 sm:h-32 md:h-44 w-auto" />
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-[0.25em] gradient-text -mt-1">
             DROPS
           </h1>
           <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-[0.3em] uppercase mt-3">
