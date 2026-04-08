@@ -79,24 +79,6 @@ export default function Hero({ onNavigate }: HeroProps) {
           </button>
         </motion.div>
 
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.6 }}
-          className="flex items-center justify-center gap-8 sm:gap-16 mt-20"
-        >
-          {[
-            { value: '320', label: 'kbps' },
-            { value: '12+', label: 'Tracks' },
-            { value: '100%', label: 'Exclusivo' },
-          ].map(stat => (
-            <div key={stat.label} className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold gradient-text">{stat.value}</div>
-              <div className="text-xs sm:text-sm text-zinc-500 mt-1">{stat.label}</div>
-            </div>
-          ))}
-        </motion.div>
       </div>
     </section>
   );
