@@ -50,38 +50,63 @@ function FileDropZone({
       setLocalPreview(URL.createObjectURL(file));
     }
 
+    // Try client-side upload to Vercel Blob
     try {
-      // Try client-side upload to Vercel Blob (handles large files)
       const { upload } = await import('@vercel/blob/client');
-      const blob = await upload(`${folder}/${Date.now()}-${file.name}`, file, {
-        access: 'public',
-        handleUploadUrl: '/api/upload-url',
-      });
-      onUploaded(blob.url);
-      setStatus('done');
-    } catch {
-      try {
-        // Fallback: try server-side upload (for local dev)
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            'X-Filename': file.name,
-            'X-Folder': folder,
-            'Content-Type': file.type,
-          },
-          body: file,
-        });
-        if (!res.ok) throw new Error('Upload failed');
-        const data = await res.json();
-        onUploaded(data.url);
+      const blob = await upload(
+        `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
+        file,
+        { access: 'public', handleUploadUrl: '/api/upload-url' },
+      );
+      if (blob.url) {
+        onUploaded(blob.url);
         setStatus('done');
-      } catch {
-        // Last fallback: local object URL (temporary)
-        const localUrl = URL.createObjectURL(file);
-        onUploaded(localUrl);
-        setStatus('done');
+        return;
       }
+    } catch (e) {
+      console.log('Blob client upload failed, trying server:', e);
     }
+
+    // Fallback: server-side upload (local dev)
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'X-Filename': file.name,
+          'X-Folder': folder,
+          'Content-Type': file.type,
+        },
+        body: file,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          onUploaded(data.url);
+          setStatus('done');
+          return;
+        }
+      }
+    } catch (e) {
+      console.log('Server upload failed:', e);
+    }
+
+    // Last fallback: convert to persistent data URL (base64) for images,
+    // or temporary blob URL for non-images
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        onUploaded(reader.result as string);
+        setStatus('done');
+      };
+      reader.onerror = () => {
+        onUploaded(URL.createObjectURL(file));
+        setStatus('done');
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    onUploaded(URL.createObjectURL(file));
+    setStatus('done');
   };
 
   const handleDrop = (e: React.DragEvent) => {
