@@ -29,8 +29,8 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
             <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
           </button>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
+          {/* Desktop nav — centered */}
+          <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
             {navItems.map(item => (
               <button
                 key={item.section}
