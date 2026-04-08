@@ -267,8 +267,8 @@ export default function App() {
               <h1 className="text-3xl font-bold text-zinc-50 mb-3">Colaboradores</h1>
               <p className="text-zinc-500 mb-8">Tracks de artistas que colaboran con Alex Selas</p>
 
-              {colabTracks.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {colabTracks.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
                   {colabTracks.map(track => (
                     <TrackCard
                       key={track.id}
@@ -285,12 +285,21 @@ export default function App() {
                     />
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-20">
-                  <p className="text-zinc-500 text-lg">Próximamente</p>
-                  <p className="text-zinc-600 text-sm mt-1">Pronto habrá tracks de colaboradores disponibles</p>
-                </div>
               )}
+
+              {/* Contact CTA */}
+              <div className="bg-[#141414] rounded-[22px] border border-zinc-800/50 p-8 sm:p-12 text-center">
+                <h2 className="text-2xl font-bold text-zinc-50 mb-3">¿Quieres colaborar?</h2>
+                <p className="text-zinc-500 mb-6 max-w-md mx-auto">
+                  Si eres DJ o productor y quieres vender tus tracks en Alex Selas Drops, cuéntanos tu propuesta.
+                </p>
+                <a
+                  href="mailto:alex-selas92@hotmail.com?subject=Solicitud de colaboración — Alex Selas Drops&body=Hola Alex,%0A%0AMe gustaría colaborar contigo en Alex Selas Drops.%0A%0AMi nombre artístico:%0AGénero(s):%0ALinks a mi música:%0A%0A"
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-105 active:scale-95 transition-transform"
+                >
+                  Enviar solicitud
+                </a>
+              </div>
 
               <div className="mt-16">
                 <Footer />
