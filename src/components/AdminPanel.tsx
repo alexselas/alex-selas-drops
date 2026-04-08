@@ -40,10 +40,12 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersRevenue, setOrdersRevenue] = useState(0);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersPeriod, setOrdersPeriod] = useState('all');
 
-  useEffect(() => {
+  const fetchOrders = (period: string) => {
     setOrdersLoading(true);
-    fetch('/api/orders')
+    setOrdersPeriod(period);
+    fetch(`/api/orders?period=${period}`)
       .then(r => r.json())
       .then(data => {
         if (data.orders) {
@@ -53,7 +55,9 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
       })
       .catch(() => {})
       .finally(() => setOrdersLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { fetchOrders('all'); }, []);
 
   // Stats
   const stats = {
@@ -490,6 +494,29 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
               <div className="text-2xl font-bold text-zinc-50">{orders.length > 0 ? formatPrice(ordersRevenue / orders.length) : '0,00 €'}</div>
               <div className="text-xs text-zinc-500">Promedio por pedido</div>
             </div>
+          </div>
+
+          {/* Period filter */}
+          <div className="flex flex-wrap gap-2">
+            {([
+              { value: 'today', label: 'Hoy' },
+              { value: 'week', label: 'Semana' },
+              { value: 'month', label: 'Mes' },
+              { value: 'year', label: 'Año' },
+              { value: 'all', label: 'Todo' },
+            ] as const).map(p => (
+              <button
+                key={p.value}
+                onClick={() => fetchOrders(p.value)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  ordersPeriod === p.value
+                    ? 'gradient-bg text-black shadow-lg'
+                    : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
 
           {/* Order list */}
