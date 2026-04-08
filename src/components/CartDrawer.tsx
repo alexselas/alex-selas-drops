@@ -6,8 +6,8 @@ import CartItem from './CartItem';
 import { formatPrice } from '../lib/utils';
 
 const DISCOUNT_CODES: Record<string, number> = {
-  'DROPS15': 0.15,
-  'WELCOME15': 0.15,
+  'DROPS20': 0.20,
+  'WELCOME20': 0.20,
 };
 
 interface CartDrawerProps {
