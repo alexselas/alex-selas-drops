@@ -179,6 +179,15 @@ export default function App() {
         onCartOpen={() => cart.setIsOpen(true)}
       />
 
+      {/* Promo banner */}
+      <div className="bg-gradient-to-r from-yellow-400/10 via-amber-400/10 to-yellow-400/10 border-b border-yellow-400/20">
+        <div className="max-w-7xl mx-auto px-4 py-2 text-center">
+          <p className="text-xs sm:text-sm text-yellow-400 font-medium">
+            Usa el código <span className="font-bold bg-yellow-400/20 px-1.5 py-0.5 rounded">WELCOME20</span> y obtén un descuento en tu primera compra
+          </p>
+        </div>
+      </div>
+
       {/* Main content */}
       <main className="pt-16">
         {/* ============ HOME ============ */}
