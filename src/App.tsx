@@ -205,10 +205,20 @@ export default function App() {
         {section === 'catalog' && !showCheckout && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             {/* Promo banner */}
-            <div className="bg-gradient-to-r from-yellow-400/10 via-amber-400/10 to-yellow-400/10 border border-yellow-400/20 rounded-2xl px-4 py-3 mb-6 text-center">
-              <p className="text-xs sm:text-sm text-yellow-400 font-medium">
-                Usa el código <span className="font-bold bg-yellow-400/20 px-1.5 py-0.5 rounded">WELCOME20</span> y obtén un descuento en tu primera compra
-              </p>
+            <div className="relative overflow-hidden rounded-2xl mb-8">
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500" />
+              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
+              <div className="relative px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+                <div className="text-center sm:text-left">
+                  <p className="text-black/90 font-bold text-lg sm:text-xl">Descuento en tu primera compra</p>
+                  <p className="text-black/60 text-sm mt-0.5">Introduce este código en el carrito</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg">
+                    WELCOME20
+                  </span>
+                </div>
+              </div>
             </div>
 
             <h1 className="text-3xl font-bold text-zinc-50 mb-8">Catálogo</h1>
