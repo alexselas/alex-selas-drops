@@ -8,9 +8,9 @@ interface CategoryFilterProps {
 
 const categories: { value: Category | 'all'; label: string; icon: typeof Disc3 }[] = [
   { value: 'all', label: 'Todos', icon: Disc3 },
-  { value: 'sesiones', label: 'Sesiones', icon: Radio },
   { value: 'remixes', label: 'Remixes', icon: Repeat },
   { value: 'mashups', label: 'Mashups', icon: Layers },
+  { value: 'sesiones', label: 'Sesiones', icon: Radio },
   { value: 'librerias', label: 'Librerías', icon: Library },
 ];
 

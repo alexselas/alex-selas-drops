@@ -125,7 +125,10 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
   };
 
   // Download file (works with cross-origin Vercel Blob URLs)
-  const handleDownload = useCallback(async (fileUrl: string, title: string) => {
+  const handleDownload = useCallback(async (fileUrl: string, title: string, authors: string, bpm: number) => {
+    const fileName = authors
+      ? `${authors} - ${title}${bpm ? ` ${bpm}Bpm` : ''}`
+      : `${title}${bpm ? ` ${bpm}Bpm` : ''}`;
     setDownloadingId(title);
     try {
       const response = await fetch(fileUrl);
@@ -134,7 +137,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
       const a = document.createElement('a');
       a.href = url;
       const ext = fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
-      a.download = `${title}.${ext}`;
+      a.download = `${fileName}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -184,7 +187,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
                   <span className="text-sm text-zinc-300 text-left">{item.track.title}</span>
                 </div>
                 <button
-                  onClick={() => handleDownload(item.track.fileUrl, item.track.title)}
+                  onClick={() => handleDownload(item.track.fileUrl, item.track.title, item.track.authors, item.track.bpm)}
                   disabled={downloadingId === item.track.title}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-400/20 text-yellow-400 text-sm font-medium hover:bg-yellow-400/30 transition-colors disabled:opacity-50"
                 >

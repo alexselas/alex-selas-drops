@@ -1,4 +1,5 @@
-import { X, Play, Pause, ShoppingCart, Check, Clock, Tag, Calendar, Music } from 'lucide-react';
+import { useState } from 'react';
+import { X, Play, Pause, ShoppingCart, Check, Clock, Tag, Calendar, Music, Share2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Track } from '../types';
 import { formatPrice, formatDuration } from '../lib/utils';
@@ -22,7 +23,29 @@ export default function TrackDetail({
   onPlay,
   onAddToCart,
 }: TrackDetailProps) {
+  const [copied, setCopied] = useState(false);
+
   if (!track) return null;
+
+  const shareUrl = `${window.location.origin}/track/${track.id}`;
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for mobile
+      const input = document.createElement('input');
+      input.value = shareUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const categoryLabels: Record<string, string> = {
     sesiones: 'Sesión',
@@ -174,6 +197,17 @@ export default function TrackDetail({
                     Añadir al Carrito — {formatPrice(track.price)}
                   </>
                 )}
+              </button>
+
+              <button
+                onClick={handleShare}
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all ${
+                  copied
+                    ? 'border-green-500/40 text-green-400 bg-green-500/10'
+                    : 'border-zinc-700 text-zinc-400 hover:border-yellow-400/40 hover:text-white'
+                }`}
+              >
+                {copied ? <CheckCircle className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
               </button>
             </div>
 

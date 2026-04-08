@@ -40,13 +40,25 @@ export default function App() {
   const player = useAudioPlayer();
   const admin = useAdmin();
 
-  // Load tracks from API
+  // Load tracks from API + handle /track/:id URLs
   useEffect(() => {
     fetch('/api/tracks')
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data)) setTracks(data);
-        else setTracks(demoTracks);
+        if (Array.isArray(data)) {
+          setTracks(data);
+          // Check if URL points to a specific track (e.g. /track/track-001)
+          const match = window.location.pathname.match(/^\/track\/(.+)$/);
+          if (match) {
+            const found = data.find((t: Track) => t.id === match[1]);
+            if (found) {
+              setSelectedTrack(found);
+              setSection('catalog');
+            }
+          }
+        } else {
+          setTracks(demoTracks);
+        }
       })
       .catch(() => setTracks(demoTracks))
       .finally(() => setLoading(false));
@@ -160,7 +172,10 @@ export default function App() {
               isInCart={cart.isInCart}
               onPlay={track => player.play(track)}
               onAddToCart={track => cart.addItem(track)}
-              onDetail={track => setSelectedTrack(track)}
+              onDetail={track => {
+                setSelectedTrack(track);
+                window.history.pushState({}, '', `/track/${track.id}`);
+              }}
             />
             <Footer />
           </>
@@ -218,7 +233,10 @@ export default function App() {
                     isInCart={cart.isInCart(track.id)}
                     onPlay={() => player.play(track)}
                     onAddToCart={() => cart.addItem(track)}
-                    onDetail={() => setSelectedTrack(track)}
+                    onDetail={() => {
+                      setSelectedTrack(track);
+                      window.history.pushState({}, '', `/track/${track.id}`);
+                    }}
                   />
                 ))}
               </div>
@@ -275,7 +293,13 @@ export default function App() {
             isPlaying={player.isPlaying}
             isCurrentTrack={player.currentTrack?.id === selectedTrack.id}
             isInCart={cart.isInCart(selectedTrack.id)}
-            onClose={() => setSelectedTrack(null)}
+            onClose={() => {
+              setSelectedTrack(null);
+              // Restore clean URL
+              if (window.location.pathname.startsWith('/track/')) {
+                window.history.replaceState({}, '', '/');
+              }
+            }}
             onPlay={() => player.play(selectedTrack)}
             onAddToCart={() => cart.addItem(selectedTrack)}
           />
