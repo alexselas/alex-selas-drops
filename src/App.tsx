@@ -293,23 +293,14 @@ export default function App() {
                 <p className="text-zinc-500 mb-6 max-w-md mx-auto">
                   Si eres DJ o productor y quieres vender tus tracks en Alex Selas Drops, escríbenos con tu propuesta.
                 </p>
-                <button
-                  onClick={() => {
-                    const email = 'alex-selas92@hotmail.com';
-                    const subject = 'Solicitud de colaboración — Alex Selas Drops';
-                    const body = 'Hola Alex,\n\nMe gustaría colaborar contigo en Alex Selas Drops.\n\nMi nombre artístico:\nGénero(s):\nLinks a mi música:\n\n';
-                    const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    window.open(mailto, '_blank');
-                    // Also copy email as fallback
-                    navigator.clipboard.writeText(email).catch(() => {});
-                  }}
+                <a
+                  href="https://www.instagram.com/alexselas"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-105 active:scale-95 transition-transform"
                 >
-                  Enviar solicitud
-                </button>
-                <p className="text-zinc-600 text-xs mt-4">
-                  o escríbenos a <span className="text-zinc-400">alex-selas92@hotmail.com</span>
-                </p>
+                  Contactar por Instagram
+                </a>
               </div>
 
               <div className="mt-16">
