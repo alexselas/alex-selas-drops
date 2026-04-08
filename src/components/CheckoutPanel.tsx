@@ -9,6 +9,7 @@ interface CheckoutPanelProps {
   total: number;
   onBack: () => void;
   onComplete: () => void;
+  onClearCart: () => void;
 }
 
 type CheckoutStep = 'review' | 'processing' | 'success' | 'error';
@@ -28,7 +29,7 @@ function loadPurchasedItems(): CartItem[] {
   }
 }
 
-export default function CheckoutPanel({ items, total, onBack, onComplete }: CheckoutPanelProps) {
+export default function CheckoutPanel({ items, total, onBack, onComplete, onClearCart }: CheckoutPanelProps) {
   const [step, setStep] = useState<CheckoutStep>('review');
   const [errorMsg, setErrorMsg] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
           .then(data => {
             if (data.paid) {
               setStep('success');
+              onClearCart();
               // Send download email in background
               if (data.email && saved.length > 0) {
                 fetch('/api/send-download-email', {
@@ -76,6 +78,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
           })
           .catch(() => {
             setStep('success');
+            onClearCart();
           })
           .finally(() => {
             window.history.replaceState({}, '', window.location.pathname);

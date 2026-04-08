@@ -305,8 +305,8 @@ export default function App() {
             items={cart.items}
             total={cart.total}
             onBack={() => setShowCheckout(false)}
+            onClearCart={cart.clearCart}
             onComplete={() => {
-              cart.clearCart();
               setShowCheckout(false);
               navigate('home');
             }}
