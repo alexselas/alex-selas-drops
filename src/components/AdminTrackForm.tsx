@@ -238,6 +238,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
     previewUrl: '',
     fileUrl: '',
     featured: false,
+    collaborator: false,
     tags: '',
   });
 
@@ -260,6 +261,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
         previewUrl: track.previewUrl,
         fileUrl: track.fileUrl,
         featured: track.featured,
+        collaborator: track.collaborator || false,
         tags: track.tags.join(', '),
       });
     }
@@ -311,6 +313,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
       previewUrl: form.previewUrl,
       fileUrl: form.fileUrl,
       featured: form.featured,
+      collaborator: form.collaborator,
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
     });
   };
@@ -493,7 +496,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
                 className={inputClass}
               />
             </div>
-            <div className="flex items-end pb-1">
+            <div className="flex items-end pb-1 gap-6">
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -501,7 +504,16 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
                   onChange={e => setForm({ ...form, featured: e.target.checked })}
                   className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-yellow-400 focus:ring-yellow-400/25 cursor-pointer"
                 />
-                <span className="text-sm text-zinc-400">Destacado en portada</span>
+                <span className="text-sm text-zinc-400">Destacado</span>
+              </label>
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.collaborator}
+                  onChange={e => setForm({ ...form, collaborator: e.target.checked })}
+                  className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-violet-400 focus:ring-violet-400/25 cursor-pointer"
+                />
+                <span className="text-sm text-zinc-400">Colaborador</span>
               </label>
             </div>
           </div>

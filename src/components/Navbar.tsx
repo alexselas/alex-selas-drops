@@ -16,7 +16,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
   const navItems: { label: string; section: Section }[] = [
     { label: 'Home', section: 'home' },
     { label: 'Catálogo', section: 'catalog' },
-    { label: 'Admin', section: 'admin' },
+    { label: 'Colaboradores', section: 'colabs' },
   ];
 
   return (

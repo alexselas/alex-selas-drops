@@ -19,9 +19,15 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import { Search, ArrowUpDown } from 'lucide-react';
 
+function getInitialSection(): Section {
+  const path = window.location.pathname;
+  if (path === '/admin') return 'admin';
+  return 'home';
+}
+
 export default function App() {
   // State
-  const [section, setSection] = useState<Section>('home');
+  const [section, setSection] = useState<Section>(getInitialSection);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
@@ -71,9 +77,9 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Filtered tracks for catalog
+  // Filtered tracks for catalog (exclude collaborator tracks)
   const filteredTracks = useMemo(() => {
-    let result = [...tracks];
+    let result = tracks.filter(t => !t.collaborator);
 
     // Category
     if (categoryFilter !== 'all') {
@@ -252,6 +258,46 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* ============ COLABORADORES ============ */}
+        {section === 'colabs' && !showCheckout && (() => {
+          const colabTracks = tracks.filter(t => t.collaborator);
+          return (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+              <h1 className="text-3xl font-bold text-zinc-50 mb-3">Colaboradores</h1>
+              <p className="text-zinc-500 mb-8">Tracks de artistas que colaboran con Alex Selas</p>
+
+              {colabTracks.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {colabTracks.map(track => (
+                    <TrackCard
+                      key={track.id}
+                      track={track}
+                      isPlaying={player.isPlaying}
+                      isCurrentTrack={player.currentTrack?.id === track.id}
+                      isInCart={cart.isInCart(track.id)}
+                      onPlay={() => player.play(track)}
+                      onAddToCart={() => cart.addItem(track)}
+                      onDetail={() => {
+                        setSelectedTrack(track);
+                        window.history.pushState({}, '', `/track/${track.id}`);
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20">
+                  <p className="text-zinc-500 text-lg">Próximamente</p>
+                  <p className="text-zinc-600 text-sm mt-1">Pronto habrá tracks de colaboradores disponibles</p>
+                </div>
+              )}
+
+              <div className="mt-16">
+                <Footer />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ============ CHECKOUT ============ */}
         {showCheckout && (

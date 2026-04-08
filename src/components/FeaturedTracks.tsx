@@ -21,7 +21,7 @@ export default function FeaturedTracks({
   onAddToCart,
   onDetail,
 }: FeaturedTracksProps) {
-  const featured = tracks.filter(t => t.featured);
+  const featured = tracks.filter(t => t.featured && !t.collaborator);
 
   return (
     <section id="featured" className="py-20">

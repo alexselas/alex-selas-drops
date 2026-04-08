@@ -17,6 +17,7 @@ export interface Track {
   fileUrl: string; // full quality — protected in production
   featured: boolean;
   tags: string[];
+  collaborator?: boolean;
 }
 
 export interface CartItem {
@@ -35,4 +36,4 @@ export interface Order {
 
 export type SortOption = 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'title';
 
-export type Section = 'home' | 'catalog' | 'admin';
+export type Section = 'home' | 'catalog' | 'colabs' | 'admin';
