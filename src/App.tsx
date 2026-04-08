@@ -42,6 +42,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [discount, setDiscount] = useState(0);
 
   // Hooks
   const cart = useCart();
@@ -399,9 +400,11 @@ export default function App() {
           <CheckoutPanel
             items={cart.items}
             total={cart.total}
+            discount={discount}
             onBack={() => setShowCheckout(false)}
             onClearCart={cart.clearCart}
             onComplete={() => {
+              setDiscount(0);
               setShowCheckout(false);
               navigate('home');
             }}
@@ -455,7 +458,8 @@ export default function App() {
         total={cart.total}
         onClose={() => cart.setIsOpen(false)}
         onRemove={cart.removeItem}
-        onCheckout={() => {
+        onCheckout={(d) => {
+          setDiscount(d);
           cart.setIsOpen(false);
           setShowCheckout(true);
         }}

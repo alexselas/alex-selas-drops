@@ -1,8 +1,14 @@
-import { X, ShoppingBag } from 'lucide-react';
+import { useState } from 'react';
+import { X, ShoppingBag, Tag, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { CartItem as CartItemType } from '../types';
 import CartItem from './CartItem';
 import { formatPrice } from '../lib/utils';
+
+const DISCOUNT_CODES: Record<string, number> = {
+  'DROPS15': 0.15,
+  'WELCOME15': 0.15,
+};
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -10,10 +16,29 @@ interface CartDrawerProps {
   total: number;
   onClose: () => void;
   onRemove: (trackId: string) => void;
-  onCheckout: () => void;
+  onCheckout: (discount: number) => void;
 }
 
 export default function CartDrawer({ isOpen, items, total, onClose, onRemove, onCheckout }: CartDrawerProps) {
+  const [code, setCode] = useState('');
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
+  const [codeError, setCodeError] = useState(false);
+
+  const discount = appliedCode ? (DISCOUNT_CODES[appliedCode] || 0) : 0;
+  const discountAmount = total * discount;
+  const finalTotal = total - discountAmount;
+
+  const handleApplyCode = () => {
+    const upper = code.trim().toUpperCase();
+    if (DISCOUNT_CODES[upper]) {
+      setAppliedCode(upper);
+      setCodeError(false);
+    } else {
+      setCodeError(true);
+      setAppliedCode(null);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -72,13 +97,69 @@ export default function CartDrawer({ isOpen, items, total, onClose, onRemove, on
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="p-4 border-t border-zinc-800/50 space-y-4">
+              <div className="p-4 border-t border-zinc-800/50 space-y-3">
+                {/* Discount code */}
+                {!appliedCode ? (
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                        <input
+                          type="text"
+                          value={code}
+                          onChange={e => { setCode(e.target.value); setCodeError(false); }}
+                          onKeyDown={e => e.key === 'Enter' && handleApplyCode()}
+                          placeholder="Código de descuento"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-600 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors"
+                        />
+                      </div>
+                      <button
+                        onClick={handleApplyCode}
+                        disabled={!code.trim()}
+                        className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-medium hover:bg-zinc-700 disabled:opacity-30 transition-all"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                    {codeError && (
+                      <p className="text-red-400 text-xs mt-1.5 ml-1">Código no válido</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span className="text-sm text-green-400 font-medium">{appliedCode}</span>
+                    </div>
+                    <button
+                      onClick={() => { setAppliedCode(null); setCode(''); }}
+                      className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                )}
+
+                {/* Totals */}
+                {appliedCode && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-zinc-500">Subtotal</span>
+                      <span className="text-zinc-400">{formatPrice(total)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-green-400">Descuento</span>
+                      <span className="text-green-400">-{formatPrice(discountAmount)}</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-400">Total</span>
-                  <span className="text-2xl font-bold gradient-text">{formatPrice(total)}</span>
+                  <span className="text-2xl font-bold gradient-text">{formatPrice(finalTotal)}</span>
                 </div>
                 <button
-                  onClick={onCheckout}
+                  onClick={() => onCheckout(discount)}
                   className="w-full py-3.5 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-[1.02] active:scale-95 transition-transform"
                 >
                   Ir al Pago

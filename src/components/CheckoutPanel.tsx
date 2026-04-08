@@ -7,6 +7,7 @@ import { formatPrice } from '../lib/utils';
 interface CheckoutPanelProps {
   items: CartItem[];
   total: number;
+  discount?: number; // 0-1 (e.g. 0.15 = 15%)
   onBack: () => void;
   onComplete: () => void;
   onClearCart: () => void;
@@ -29,7 +30,9 @@ function loadPurchasedItems(): CartItem[] {
   }
 }
 
-export default function CheckoutPanel({ items, total, onBack, onComplete, onClearCart }: CheckoutPanelProps) {
+export default function CheckoutPanel({ items, total, discount = 0, onBack, onComplete, onClearCart }: CheckoutPanelProps) {
+  const discountAmount = total * discount;
+  const finalTotal = total - discountAmount;
   const [step, setStep] = useState<CheckoutStep>('review');
   const [errorMsg, setErrorMsg] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -108,7 +111,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete, onClea
           items: items.map(i => ({
             id: i.track.id,
             title: i.track.title,
-            price: i.track.price,
+            price: Math.round((i.track.price * (1 - discount)) * 100) / 100,
           })),
           origin: window.location.origin,
         }),
@@ -316,9 +319,23 @@ export default function CheckoutPanel({ items, total, onBack, onComplete, onClea
             </div>
           ))}
         </div>
-        <div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center justify-between">
-          <span className="text-zinc-300 font-semibold">Total</span>
-          <span className="text-2xl font-bold gradient-text">{formatPrice(total)}</span>
+        <div className="mt-4 pt-4 border-t border-zinc-800/50 space-y-1">
+          {discount > 0 && (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-500">Subtotal</span>
+                <span className="text-zinc-400">{formatPrice(total)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-green-400">Descuento</span>
+                <span className="text-green-400">-{formatPrice(discountAmount)}</span>
+              </div>
+            </>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-300 font-semibold">Total</span>
+            <span className="text-2xl font-bold gradient-text">{formatPrice(finalTotal)}</span>
+          </div>
         </div>
       </div>
 
@@ -338,7 +355,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete, onClea
         onClick={handleStripeCheckout}
         className="w-full py-4 rounded-xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-[1.02] transition-transform mb-4"
       >
-        Pagar {formatPrice(total)}
+        Pagar {formatPrice(finalTotal)}
       </button>
 
       {/* Security note */}
