@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const data = req.body;
       const tracks = await getTracks();
       const newTrack = { ...data, id: data.id || `track-${Date.now()}` };
-      tracks.push(newTrack);
+      tracks.unshift(newTrack);
       await redis.set(KV_KEY, tracks);
       return res.status(200).json(newTrack);
     }

@@ -131,11 +131,11 @@ export default function App() {
         body: JSON.stringify(data),
       });
       const newTrack = await res.json();
-      setTracks(prev => [...prev, newTrack]);
+      setTracks(prev => [newTrack, ...prev]);
     } catch {
       // Fallback local
       const newTrack = { ...data, id: data.id || `track-${Date.now()}` } as Track;
-      setTracks(prev => [...prev, newTrack]);
+      setTracks(prev => [newTrack, ...prev]);
     }
   }, []);
 
