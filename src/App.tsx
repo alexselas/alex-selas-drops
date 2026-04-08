@@ -291,14 +291,25 @@ export default function App() {
               <div className="bg-[#141414] rounded-[22px] border border-zinc-800/50 p-8 sm:p-12 text-center">
                 <h2 className="text-2xl font-bold text-zinc-50 mb-3">¿Quieres colaborar?</h2>
                 <p className="text-zinc-500 mb-6 max-w-md mx-auto">
-                  Si eres DJ o productor y quieres vender tus tracks en Alex Selas Drops, cuéntanos tu propuesta.
+                  Si eres DJ o productor y quieres vender tus tracks en Alex Selas Drops, escríbenos con tu propuesta.
                 </p>
-                <a
-                  href="mailto:alex-selas92@hotmail.com?subject=Solicitud de colaboración — Alex Selas Drops&body=Hola Alex,%0A%0AMe gustaría colaborar contigo en Alex Selas Drops.%0A%0AMi nombre artístico:%0AGénero(s):%0ALinks a mi música:%0A%0A"
+                <button
+                  onClick={() => {
+                    const email = 'alex-selas92@hotmail.com';
+                    const subject = 'Solicitud de colaboración — Alex Selas Drops';
+                    const body = 'Hola Alex,\n\nMe gustaría colaborar contigo en Alex Selas Drops.\n\nMi nombre artístico:\nGénero(s):\nLinks a mi música:\n\n';
+                    const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.open(mailto, '_blank');
+                    // Also copy email as fallback
+                    navigator.clipboard.writeText(email).catch(() => {});
+                  }}
                   className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-105 active:scale-95 transition-transform"
                 >
                   Enviar solicitud
-                </a>
+                </button>
+                <p className="text-zinc-600 text-xs mt-4">
+                  o escríbenos a <span className="text-zinc-400">alex-selas92@hotmail.com</span>
+                </p>
               </div>
 
               <div className="mt-16">
