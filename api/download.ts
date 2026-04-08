@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const tags: NodeID3.Tags = {
         title: title || '',
         artist: authors ? `${authors}` : (artist || ''),
-        albumArtist: artist || '',
+        performerInfo: artist || '',
         album: 'Alex Selas Drops',
         genre: genre || '',
         year: new Date().getFullYear().toString(),
