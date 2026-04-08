@@ -158,17 +158,29 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
           }],
         });
       },
-      onApprove: async (_data: any, actions: any) => {
+      onApprove: async (data: any, actions: any) => {
         setStep('processing');
         try {
+          // First check order status
+          const orderDetails = await actions.order.get();
+          console.log('PayPal order status:', orderDetails.status, orderDetails);
+
+          if (orderDetails.status === 'COMPLETED') {
+            // Already captured
+            setPurchasedItems(items);
+            setStep('success');
+            return;
+          }
+
           const details = await actions.order.capture();
           console.log('PayPal capture success:', details);
           setPurchasedItems(items);
           setStep('success');
         } catch (err: any) {
-          console.error('PayPal capture error:', err);
+          console.error('PayPal capture error:', JSON.stringify(err, null, 2), err);
+          const errorDetail = err?.details?.[0]?.description || err?.message || '';
           setStep('error');
-          setErrorMsg(err?.message || 'Error al procesar el pago con PayPal. Verifica que PayPal no esté en modo Sandbox.');
+          setErrorMsg(`PayPal: ${errorDetail || 'Error desconocido'}. OrderID: ${data?.orderID || 'N/A'}`);
         }
       },
       onCancel: () => {
