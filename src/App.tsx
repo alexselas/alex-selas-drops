@@ -17,7 +17,8 @@ import CheckoutPanel from './components/CheckoutPanel';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
-import { Search, ArrowUpDown } from 'lucide-react';
+import { Search, ArrowUpDown, LayoutGrid, List, Music, ShoppingCart } from 'lucide-react';
+import { formatPrice } from './lib/utils';
 
 function getInitialSection(): Section {
   const path = window.location.pathname;
@@ -40,6 +41,7 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Hooks
   const cart = useCart();
@@ -155,6 +157,17 @@ export default function App() {
     setTracks(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  const handleReorderTracks = useCallback(async (reordered: Track[]) => {
+    setTracks(reordered);
+    try {
+      await fetch('/api/tracks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reordered),
+      });
+    } catch {}
+  }, []);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50">
       {/* Navbar */}
@@ -224,28 +237,83 @@ export default function App() {
                     <option value="title">A-Z</option>
                   </select>
                 </div>
+
+                {/* View toggle */}
+                <div className="flex items-center bg-zinc-800/50 border border-zinc-700 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-yellow-400/10 text-yellow-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 transition-colors ${viewMode === 'list' ? 'bg-yellow-400/10 text-yellow-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Grid */}
+            {/* Tracks */}
             {filteredTracks.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredTracks.map(track => (
-                  <TrackCard
-                    key={track.id}
-                    track={track}
-                    isPlaying={player.isPlaying}
-                    isCurrentTrack={player.currentTrack?.id === track.id}
-                    isInCart={cart.isInCart(track.id)}
-                    onPlay={() => player.play(track)}
-                    onAddToCart={() => cart.addItem(track)}
-                    onDetail={() => {
-                      setSelectedTrack(track);
-                      window.history.pushState({}, '', `/track/${track.id}`);
-                    }}
-                  />
-                ))}
-              </div>
+              viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {filteredTracks.map(track => (
+                    <TrackCard
+                      key={track.id}
+                      track={track}
+                      isPlaying={player.isPlaying}
+                      isCurrentTrack={player.currentTrack?.id === track.id}
+                      isInCart={cart.isInCart(track.id)}
+                      onPlay={() => player.play(track)}
+                      onAddToCart={() => cart.addItem(track)}
+                      onDetail={() => {
+                        setSelectedTrack(track);
+                        window.history.pushState({}, '', `/track/${track.id}`);
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredTracks.map(track => (
+                    <div
+                      key={track.id}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedTrack(track);
+                        window.history.pushState({}, '', `/track/${track.id}`);
+                      }}
+                    >
+                      {track.coverUrl ? (
+                        <img src={track.coverUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                          <Music className="w-5 h-5 text-zinc-700" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
+                        <p className="text-xs text-zinc-500 truncate">
+                          {track.authors ? `${track.authors} · ` : ''}{track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold gradient-text flex-shrink-0">{formatPrice(track.price)}</span>
+                      <button
+                        onClick={e => { e.stopPropagation(); cart.addItem(track); }}
+                        disabled={cart.isInCart(track.id)}
+                        className={`flex-shrink-0 p-2 rounded-lg transition-all ${
+                          cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
+                        }`}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )
             ) : (
               <div className="text-center py-20">
                 <p className="text-zinc-500 text-lg">No se encontraron tracks</p>
@@ -335,6 +403,7 @@ export default function App() {
                 onAddTrack={handleAddTrack}
                 onUpdateTrack={handleUpdateTrack}
                 onDeleteTrack={handleDeleteTrack}
+                onReorderTracks={handleReorderTracks}
                 onLogout={admin.logout}
               />
             )}

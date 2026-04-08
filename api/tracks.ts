@@ -36,7 +36,7 @@ async function getTracks() {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -68,6 +68,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tracks[idx] = { ...tracks[idx], ...data };
       await redis.set(KV_KEY, tracks);
       return res.status(200).json(tracks[idx]);
+    }
+
+    // PATCH — replace full array (reorder)
+    if (req.method === 'PATCH') {
+      const data = req.body;
+      if (!Array.isArray(data)) return res.status(400).json({ error: 'Se esperaba un array' });
+      await redis.set(KV_KEY, data);
+      return res.status(200).json({ success: true });
     }
 
     // DELETE — remove track

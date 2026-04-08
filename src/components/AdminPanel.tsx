@@ -4,7 +4,7 @@ import {
   Plus, Edit2, Trash2, LogOut, Music, Package, Tag, Clock,
   LayoutDashboard, ListMusic, ShoppingBag, Settings,
   TrendingUp, DollarSign, Eye, Play, Radio, Layers, Library,
-  Search, ChevronDown, Star,
+  Search, ChevronDown, Star, ChevronUp, GripVertical,
 } from 'lucide-react';
 import type { Track, Category } from '../types';
 import { formatPrice, formatDuration } from '../lib/utils';
@@ -17,6 +17,7 @@ interface AdminPanelProps {
   onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
   onDeleteTrack: (id: string) => void;
+  onReorderTracks: (tracks: Track[]) => void;
   onLogout: () => void;
 }
 
@@ -29,7 +30,7 @@ const mockOrders = [
   { id: 'ORD-005', track: 'Warehouse Sessions', buyer: 'anna.beats@gmail.com', price: 9.99, date: '2026-04-01', method: 'Stripe' },
 ];
 
-export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDeleteTrack, onLogout }: AdminPanelProps) {
+export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDeleteTrack, onReorderTracks, onLogout }: AdminPanelProps) {
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -370,7 +371,40 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                       </span>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
+                        {/* Reorder */}
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => {
+                              const idx = tracks.findIndex(t => t.id === track.id);
+                              if (idx > 0) {
+                                const reordered = [...tracks];
+                                [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
+                                onReorderTracks(reordered);
+                              }
+                            }}
+                            disabled={tracks.findIndex(t => t.id === track.id) === 0}
+                            className="p-1 rounded text-zinc-600 hover:text-yellow-400 disabled:opacity-20 transition-colors"
+                            title="Subir"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const idx = tracks.findIndex(t => t.id === track.id);
+                              if (idx < tracks.length - 1) {
+                                const reordered = [...tracks];
+                                [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
+                                onReorderTracks(reordered);
+                              }
+                            }}
+                            disabled={tracks.findIndex(t => t.id === track.id) === tracks.length - 1}
+                            className="p-1 rounded text-zinc-600 hover:text-yellow-400 disabled:opacity-20 transition-colors"
+                            title="Bajar"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                         <button
                           onClick={() => {
                             setEditingTrack(track);
