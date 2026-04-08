@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   Plus, Edit2, Trash2, LogOut, Music, Package, Tag, Clock,
@@ -21,14 +21,13 @@ interface AdminPanelProps {
   onLogout: () => void;
 }
 
-// Mock orders for demo
-const mockOrders = [
-  { id: 'ORD-001', track: 'Midnight Circuit Live', buyer: 'carlos@gmail.com', price: 9.99, date: '2026-04-05', method: 'Stripe' },
-  { id: 'ORD-002', track: 'Frequency Shift (Remix)', buyer: 'laura.dj@outlook.com', price: 4.99, date: '2026-04-04', method: 'PayPal' },
-  { id: 'ORD-003', track: 'Drums & Textures Vol.1', buyer: 'producer88@gmail.com', price: 14.99, date: '2026-04-03', method: 'Stripe' },
-  { id: 'ORD-004', track: 'Neon Pulse vs. Midnight', buyer: 'djmark@hotmail.com', price: 3.99, date: '2026-04-02', method: 'PayPal' },
-  { id: 'ORD-005', track: 'Warehouse Sessions', buyer: 'anna.beats@gmail.com', price: 9.99, date: '2026-04-01', method: 'Stripe' },
-];
+interface Order {
+  id: string;
+  tracks: string[];
+  email: string;
+  amount: number;
+  date: string;
+}
 
 export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDeleteTrack, onReorderTracks, onLogout }: AdminPanelProps) {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -36,6 +35,25 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
   const [isAdding, setIsAdding] = useState(false);
   const [trackSearch, setTrackSearch] = useState('');
   const [trackFilter, setTrackFilter] = useState<Category | 'all'>('all');
+
+  // Orders from Stripe
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersRevenue, setOrdersRevenue] = useState(0);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  useEffect(() => {
+    setOrdersLoading(true);
+    fetch('/api/orders')
+      .then(r => r.json())
+      .then(data => {
+        if (data.orders) {
+          setOrders(data.orders);
+          setOrdersRevenue(data.revenue || 0);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setOrdersLoading(false));
+  }, []);
 
   // Stats
   const stats = {
@@ -45,8 +63,8 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
     mashups: tracks.filter(t => t.category === 'mashups').length,
     librerias: tracks.filter(t => t.category === 'librerias').length,
     featured: tracks.filter(t => t.featured).length,
-    revenue: mockOrders.reduce((s, o) => s + o.price, 0),
-    orders: mockOrders.length,
+    revenue: ordersRevenue,
+    orders: orders.length,
   };
 
   const categoryLabels: Record<string, string> = {
@@ -183,14 +201,17 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
               </button>
             </div>
             <div className="space-y-2">
-              {mockOrders.slice(0, 3).map(order => (
+              {orders.length === 0 && !ordersLoading && (
+                <p className="text-sm text-zinc-600 text-center py-4">Sin pedidos aún</p>
+              )}
+              {orders.slice(0, 3).map(order => (
                 <div key={order.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/30">
                   <div className="min-w-0">
-                    <p className="text-sm text-zinc-300 truncate">{order.track}</p>
-                    <p className="text-xs text-zinc-500">{order.buyer}</p>
+                    <p className="text-sm text-zinc-300 truncate">{order.tracks.join(', ') || 'Track'}</p>
+                    <p className="text-xs text-zinc-500">{order.email}</p>
                   </div>
                   <div className="text-right flex-shrink-0 ml-4">
-                    <p className="text-sm font-semibold text-yellow-400">{formatPrice(order.price)}</p>
+                    <p className="text-sm font-semibold text-yellow-400">{formatPrice(order.amount)}</p>
                     <p className="text-xs text-zinc-600">{order.date}</p>
                   </div>
                 </div>
@@ -452,21 +473,21 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
               <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-2">
                 <ShoppingBag className="w-5 h-5 text-emerald-400" />
               </div>
-              <div className="text-2xl font-bold text-zinc-50">{mockOrders.length}</div>
+              <div className="text-2xl font-bold text-zinc-50">{orders.length}</div>
               <div className="text-xs text-zinc-500">Total pedidos</div>
             </div>
             <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
               <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center mb-2">
                 <DollarSign className="w-5 h-5 text-violet-400" />
               </div>
-              <div className="text-2xl font-bold text-zinc-50">{formatPrice(stats.revenue)}</div>
+              <div className="text-2xl font-bold text-zinc-50">{formatPrice(ordersRevenue)}</div>
               <div className="text-xs text-zinc-500">Ingresos totales</div>
             </div>
             <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
               <div className="w-9 h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center mb-2">
                 <TrendingUp className="w-5 h-5 text-yellow-400" />
               </div>
-              <div className="text-2xl font-bold text-zinc-50">{formatPrice(stats.revenue / mockOrders.length)}</div>
+              <div className="text-2xl font-bold text-zinc-50">{orders.length > 0 ? formatPrice(ordersRevenue / orders.length) : '0,00 €'}</div>
               <div className="text-xs text-zinc-500">Promedio por pedido</div>
             </div>
           </div>
@@ -479,37 +500,34 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
 
             {/* Table header */}
             <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 text-xs text-zinc-500 font-medium border-b border-zinc-800/30">
-              <div className="col-span-2">ID</div>
-              <div className="col-span-3">Track</div>
+              <div className="col-span-1">ID</div>
+              <div className="col-span-4">Tracks</div>
               <div className="col-span-3">Comprador</div>
-              <div className="col-span-1">Método</div>
-              <div className="col-span-1 text-right">Precio</div>
+              <div className="col-span-2 text-right">Precio</div>
               <div className="col-span-2 text-right">Fecha</div>
             </div>
 
-            {/* Rows */}
-            <div className="divide-y divide-zinc-800/30">
-              {mockOrders.map(order => (
-                <div key={order.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
-                  <div className="sm:col-span-2 text-xs text-zinc-500 font-mono">{order.id}</div>
-                  <div className="sm:col-span-3 text-sm text-zinc-300 truncate">{order.track}</div>
-                  <div className="sm:col-span-3 text-sm text-zinc-400 truncate">{order.buyer}</div>
-                  <div className="sm:col-span-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      order.method === 'Stripe' ? 'bg-violet-500/10 text-violet-400' : 'bg-yellow-400/10 text-yellow-400'
-                    }`}>
-                      {order.method}
-                    </span>
+            {ordersLoading ? (
+              <div className="text-center py-8 text-zinc-500 text-sm">Cargando pedidos...</div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-8 text-zinc-600 text-sm">Sin pedidos aún</div>
+            ) : (
+              <div className="divide-y divide-zinc-800/30">
+                {orders.map(order => (
+                  <div key={order.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
+                    <div className="sm:col-span-1 text-xs text-zinc-500 font-mono">{order.id}</div>
+                    <div className="sm:col-span-4 text-sm text-zinc-300 truncate">{order.tracks.join(', ')}</div>
+                    <div className="sm:col-span-3 text-sm text-zinc-400 truncate">{order.email}</div>
+                    <div className="sm:col-span-2 text-sm font-semibold text-emerald-400 sm:text-right">{formatPrice(order.amount)}</div>
+                    <div className="sm:col-span-2 text-xs text-zinc-500 sm:text-right">{order.date}</div>
                   </div>
-                  <div className="sm:col-span-1 text-sm font-semibold text-emerald-400 sm:text-right">{formatPrice(order.price)}</div>
-                  <div className="sm:col-span-2 text-xs text-zinc-500 sm:text-right">{order.date}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <p className="text-xs text-zinc-600 text-center">
-            MVP Demo — Los pedidos se conectarán a Stripe y PayPal en producción
+            Datos en tiempo real desde Stripe
           </p>
         </motion.div>
       )}
