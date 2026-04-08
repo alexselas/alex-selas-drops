@@ -19,25 +19,11 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import { Search, ArrowUpDown } from 'lucide-react';
 
-const TRACKS_STORAGE_KEY = 'alex-selas-drops-tracks';
-
-function loadTracks(): Track[] {
-  try {
-    const raw = localStorage.getItem(TRACKS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : demoTracks;
-  } catch {
-    return demoTracks;
-  }
-}
-
-function saveTracks(tracks: Track[]) {
-  localStorage.setItem(TRACKS_STORAGE_KEY, JSON.stringify(tracks));
-}
-
 export default function App() {
   // State
   const [section, setSection] = useState<Section>('home');
-  const [tracks, setTracks] = useState<Track[]>(loadTracks);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [showCheckout, setShowCheckout] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -53,6 +39,18 @@ export default function App() {
   const cart = useCart();
   const player = useAudioPlayer();
   const admin = useAdmin();
+
+  // Load tracks from API
+  useEffect(() => {
+    fetch('/api/tracks')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setTracks(data);
+        else setTracks(demoTracks);
+      })
+      .catch(() => setTracks(demoTracks))
+      .finally(() => setLoading(false));
+  }, []);
 
   // Navigate
   const navigate = useCallback((s: Section) => {
@@ -103,34 +101,40 @@ export default function App() {
     return result;
   }, [tracks, categoryFilter, search, sort]);
 
-  // Track CRUD (admin)
-  const handleAddTrack = useCallback((data: Omit<Track, 'id'> & { id?: string }) => {
-    const newTrack: Track = {
-      ...data,
-      id: data.id || `track-${Date.now()}`,
-    } as Track;
-    setTracks(prev => {
-      const updated = [...prev, newTrack];
-      saveTracks(updated);
-      return updated;
-    });
+  // Track CRUD (admin) — syncs with server
+  const handleAddTrack = useCallback(async (data: Omit<Track, 'id'> & { id?: string }) => {
+    try {
+      const res = await fetch('/api/tracks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const newTrack = await res.json();
+      setTracks(prev => [...prev, newTrack]);
+    } catch {
+      // Fallback local
+      const newTrack = { ...data, id: data.id || `track-${Date.now()}` } as Track;
+      setTracks(prev => [...prev, newTrack]);
+    }
   }, []);
 
-  const handleUpdateTrack = useCallback((data: Omit<Track, 'id'> & { id?: string }) => {
+  const handleUpdateTrack = useCallback(async (data: Omit<Track, 'id'> & { id?: string }) => {
     if (!data.id) return;
-    setTracks(prev => {
-      const updated = prev.map(t => (t.id === data.id ? { ...t, ...data } as Track : t));
-      saveTracks(updated);
-      return updated;
-    });
+    try {
+      await fetch('/api/tracks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    } catch {}
+    setTracks(prev => prev.map(t => (t.id === data.id ? { ...t, ...data } as Track : t)));
   }, []);
 
-  const handleDeleteTrack = useCallback((id: string) => {
-    setTracks(prev => {
-      const updated = prev.filter(t => t.id !== id);
-      saveTracks(updated);
-      return updated;
-    });
+  const handleDeleteTrack = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/tracks?id=${id}`, { method: 'DELETE' });
+    } catch {}
+    setTracks(prev => prev.filter(t => t.id !== id));
   }, []);
 
   return (
