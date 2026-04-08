@@ -140,7 +140,7 @@ export default function TrackCard({
             ) : (
               <>
                 <ShoppingCart className="w-3 h-3" />
-                Comprar
+                Añadir
               </>
             )}
           </button>
