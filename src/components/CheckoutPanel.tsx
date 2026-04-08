@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { CreditCard, ArrowLeft, Download, CheckCircle, Music, AlertCircle, Shield, Loader2 } from 'lucide-react';
 import type { CartItem } from '../types';
@@ -11,13 +11,10 @@ interface CheckoutPanelProps {
   onComplete: () => void;
 }
 
-type PaymentMethod = 'stripe' | 'paypal';
 type CheckoutStep = 'review' | 'processing' | 'success' | 'error';
 
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb';
 const PURCHASED_KEY = 'alex-selas-drops-purchased';
 
-// Save items before payment so they survive page reloads (Stripe redirect)
 function savePurchasedItems(items: CartItem[]) {
   localStorage.setItem(PURCHASED_KEY, JSON.stringify(items));
 }
@@ -33,25 +30,20 @@ function loadPurchasedItems(): CartItem[] {
 
 export default function CheckoutPanel({ items, total, onBack, onComplete }: CheckoutPanelProps) {
   const [step, setStep] = useState<CheckoutStep>('review');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
   const [errorMsg, setErrorMsg] = useState('');
-  const [paypalLoaded, setPaypalLoaded] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const paypalContainerRef = useRef<HTMLDivElement>(null);
-  const paypalScriptRef = useRef<HTMLScriptElement | null>(null);
 
   // Use purchased items from localStorage if current items are empty (after redirect)
   const [purchasedItems, setPurchasedItems] = useState<CartItem[]>([]);
   const displayItems = step === 'success' && purchasedItems.length > 0 ? purchasedItems : items;
 
-  // Check if returning from Stripe/PayPal redirect
+  // Check if returning from Stripe redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get('payment');
     const sessionId = params.get('session_id');
 
     if (payment === 'success') {
-      // Load items saved before redirect
       setPurchasedItems(loadPurchasedItems());
 
       if (sessionId) {
@@ -71,14 +63,12 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
             }
           })
           .catch(() => {
-            // If verify fails, still show success (Stripe already confirmed)
             setStep('success');
           })
           .finally(() => {
             window.history.replaceState({}, '', window.location.pathname);
           });
       } else {
-        // PayPal redirect return
         setStep('success');
         window.history.replaceState({}, '', window.location.pathname);
       }
@@ -88,117 +78,11 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
     }
   }, []);
 
-  // Load PayPal SDK
-  useEffect(() => {
-    if (paymentMethod !== 'paypal' || step !== 'review') return;
-    if (paypalScriptRef.current) {
-      if ((window as any).paypal) setPaypalLoaded(true);
-      return;
-    }
-
-    const old = document.querySelector('script[src*="paypal.com/sdk"]');
-    if (old) old.remove();
-
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&intent=capture&components=buttons`;
-    script.async = true;
-    script.onload = () => setPaypalLoaded(true);
-    script.onerror = () => {
-      setErrorMsg('No se pudo cargar PayPal. Prueba con tarjeta.');
-      setPaymentMethod('stripe');
-    };
-    document.body.appendChild(script);
-    paypalScriptRef.current = script;
-  }, [paymentMethod, step]);
-
-  // Render PayPal buttons
-  useEffect(() => {
-    if (!paypalLoaded || paymentMethod !== 'paypal' || step !== 'review') return;
-    if (!paypalContainerRef.current) return;
-
-    const container = paypalContainerRef.current;
-    container.innerHTML = '';
-
-    const paypal = (window as any).paypal;
-    if (!paypal) return;
-
-    paypal.Buttons({
-      style: {
-        layout: 'vertical',
-        color: 'black',
-        shape: 'pill',
-        label: 'pay',
-        height: 50,
-      },
-      createOrder: (_data: any, actions: any) => {
-        // Save items before PayPal flow (in case of full redirect)
-        savePurchasedItems(items);
-        return actions.order.create({
-          purchase_units: [{
-            description: `Alex Selas Drops — ${items.length} track${items.length > 1 ? 's' : ''}`,
-            amount: {
-              currency_code: 'EUR',
-              value: total.toFixed(2),
-              breakdown: {
-                item_total: {
-                  currency_code: 'EUR',
-                  value: total.toFixed(2),
-                },
-              },
-            },
-            items: items.map(item => ({
-              name: item.track.title,
-              unit_amount: {
-                currency_code: 'EUR',
-                value: item.track.price.toFixed(2),
-              },
-              quantity: '1',
-              category: 'DIGITAL_GOODS',
-            })),
-          }],
-        });
-      },
-      onApprove: async (data: any) => {
-        setStep('processing');
-        try {
-          // Server-side capture (more reliable than client-side)
-          const res = await fetch('/api/paypal-capture', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderID: data.orderID }),
-          });
-          const result = await res.json();
-
-          if (result.success) {
-            setPurchasedItems(items);
-            setStep('success');
-          } else {
-            setStep('error');
-            setErrorMsg(result.error || 'Error al capturar el pago con PayPal');
-          }
-        } catch (err: any) {
-          console.error('PayPal capture error:', err);
-          setStep('error');
-          setErrorMsg(err?.message || 'Error de conexión al procesar el pago');
-        }
-      },
-      onCancel: () => {
-        setErrorMsg('Pago cancelado');
-      },
-      onError: (err: any) => {
-        console.error('PayPal error:', err);
-        setStep('error');
-        setErrorMsg('Error de conexión con PayPal');
-      },
-    }).render(container);
-  }, [paypalLoaded, paymentMethod, step, items, total]);
-
   // Stripe checkout
   const handleStripeCheckout = async () => {
     setStep('processing');
     setErrorMsg('');
 
-    // Save items before redirect so they survive the page reload
     savePurchasedItems(items);
 
     try {
@@ -237,7 +121,6 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      // Extract extension from URL or default to mp3
       const ext = fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
       a.download = `${title}.${ext}`;
       document.body.appendChild(a);
@@ -245,7 +128,6 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      // Fallback: open in new tab
       window.open(fileUrl, '_blank');
     } finally {
       setDownloadingId(null);
@@ -326,9 +208,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
             className="w-16 h-16 rounded-full border-4 border-zinc-700 border-t-yellow-400 mx-auto mb-6"
           />
           <h2 className="text-xl font-bold text-zinc-50 mb-2">Procesando pago...</h2>
-          <p className="text-zinc-500 text-sm">
-            {paymentMethod === 'stripe' ? 'Conectando con Stripe' : 'Procesando con PayPal'}
-          </p>
+          <p className="text-zinc-500 text-sm">Conectando con Stripe</p>
         </motion.div>
       </div>
     );
@@ -396,9 +276,13 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
           {items.map(item => (
             <div key={item.track.id} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
-                  <Music className="w-4 h-4 text-zinc-600" />
-                </div>
+                {item.track.coverUrl ? (
+                  <img src={item.track.coverUrl} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <Music className="w-4 h-4 text-zinc-600" />
+                  </div>
+                )}
                 <span className="text-zinc-400">{item.track.title}</span>
               </div>
               <span className="text-zinc-300 font-medium">{formatPrice(item.track.price)}</span>
@@ -411,63 +295,24 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
         </div>
       </div>
 
-      {/* Payment method selector */}
+      {/* Payment */}
       <div className="bg-zinc-900/50 rounded-2xl border border-zinc-800/50 p-6 mb-6">
         <h3 className="text-lg font-semibold text-zinc-200 mb-4">Método de pago</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setPaymentMethod('stripe')}
-            className={`p-4 rounded-xl border text-center transition-all ${
-              paymentMethod === 'stripe'
-                ? 'border-yellow-400/50 bg-yellow-400/5 text-yellow-400'
-                : 'border-zinc-800 text-zinc-400 hover:border-zinc-600'
-            }`}
-          >
-            <CreditCard className="w-7 h-7 mx-auto mb-2" />
-            <span className="text-sm font-semibold block">Tarjeta</span>
-            <span className="text-xs text-zinc-500">Visa, Mastercard...</span>
-          </button>
-          <button
-            onClick={() => setPaymentMethod('paypal')}
-            className={`p-4 rounded-xl border text-center transition-all ${
-              paymentMethod === 'paypal'
-                ? 'border-yellow-400/50 bg-yellow-400/5 text-yellow-400'
-                : 'border-zinc-800 text-zinc-400 hover:border-zinc-600'
-            }`}
-          >
-            <span className="text-3xl font-bold block mb-1 leading-none">P</span>
-            <span className="text-sm font-semibold block">PayPal</span>
-            <span className="text-xs text-zinc-500">Pago directo</span>
-          </button>
+        <div className="flex items-center gap-3 p-4 rounded-xl border border-yellow-400/50 bg-yellow-400/5 text-yellow-400">
+          <CreditCard className="w-7 h-7" />
+          <div>
+            <span className="text-sm font-semibold block">Tarjeta de crédito / débito</span>
+            <span className="text-xs text-zinc-500">Visa, Mastercard, American Express...</span>
+          </div>
         </div>
       </div>
 
-      {/* Stripe button */}
-      {paymentMethod === 'stripe' && (
-        <button
-          onClick={handleStripeCheckout}
-          className="w-full py-4 rounded-xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-[1.02] transition-transform mb-4"
-        >
-          Pagar {formatPrice(total)} con Tarjeta
-        </button>
-      )}
-
-      {/* PayPal buttons container */}
-      {paymentMethod === 'paypal' && (
-        <div className="mb-4">
-          <div ref={paypalContainerRef} className="min-h-[55px] rounded-xl overflow-hidden" />
-          {!paypalLoaded && (
-            <div className="flex items-center justify-center py-4 text-zinc-500 text-sm">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                className="w-5 h-5 rounded-full border-2 border-zinc-700 border-t-yellow-400 mr-2"
-              />
-              Cargando PayPal...
-            </div>
-          )}
-        </div>
-      )}
+      <button
+        onClick={handleStripeCheckout}
+        className="w-full py-4 rounded-xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-[1.02] transition-transform mb-4"
+      >
+        Pagar {formatPrice(total)}
+      </button>
 
       {/* Security note */}
       <div className="flex items-center gap-2 justify-center text-xs text-zinc-600">
