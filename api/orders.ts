@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const period = (req.query.period as string) || 'all';
     const created = getStartTimestamp(period);
 
-    const params: Stripe.Checkout.SessionListParams = {
+    const params: any = {
       limit,
       expand: ['data.line_items'],
     };
