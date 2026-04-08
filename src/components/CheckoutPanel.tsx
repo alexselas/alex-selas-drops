@@ -44,7 +44,8 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
     const sessionId = params.get('session_id');
 
     if (payment === 'success') {
-      setPurchasedItems(loadPurchasedItems());
+      const saved = loadPurchasedItems();
+      setPurchasedItems(saved);
 
       if (sessionId) {
         setStep('processing');
@@ -57,6 +58,17 @@ export default function CheckoutPanel({ items, total, onBack, onComplete }: Chec
           .then(data => {
             if (data.paid) {
               setStep('success');
+              // Send download email in background
+              if (data.email && saved.length > 0) {
+                fetch('/api/send-download-email', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    email: data.email,
+                    tracks: saved.map(i => ({ title: i.track.title, fileUrl: i.track.fileUrl })),
+                  }),
+                }).catch(() => {}); // silent — email is a bonus, not critical
+              }
             } else {
               setStep('error');
               setErrorMsg('El pago no se ha completado');
