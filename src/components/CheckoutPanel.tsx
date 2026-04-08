@@ -127,26 +127,35 @@ export default function CheckoutPanel({ items, total, onBack, onComplete, onClea
     }
   };
 
-  // Download file (works with cross-origin Vercel Blob URLs)
-  const handleDownload = useCallback(async (fileUrl: string, title: string, authors: string, bpm: number) => {
-    const fileName = authors
-      ? `${authors} - ${title}${bpm ? ` ${bpm}Bpm` : ''}`
-      : `${title}${bpm ? ` ${bpm}Bpm` : ''}`;
-    setDownloadingId(title);
+  // Download file with ID3 metadata (title, artist, cover art)
+  const handleDownload = useCallback(async (track: CartItem['track']) => {
+    const fileName = track.authors
+      ? `${track.authors} - ${track.title}`
+      : track.title;
+    setDownloadingId(track.title);
     try {
-      const response = await fetch(fileUrl);
+      const params = new URLSearchParams({
+        fileUrl: track.fileUrl,
+        title: track.title,
+        artist: track.artist,
+        authors: track.authors || '',
+        coverUrl: track.coverUrl || '',
+        genre: track.genre || '',
+        bpm: String(track.bpm || 0),
+      });
+      const response = await fetch(`/api/download?${params}`);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const ext = fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
+      const ext = track.fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
       a.download = `${fileName}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      window.open(fileUrl, '_blank');
+      window.open(track.fileUrl, '_blank');
     } finally {
       setDownloadingId(null);
     }
@@ -190,7 +199,7 @@ export default function CheckoutPanel({ items, total, onBack, onComplete, onClea
                   <span className="text-sm text-zinc-300 text-left">{item.track.title}</span>
                 </div>
                 <button
-                  onClick={() => handleDownload(item.track.fileUrl, item.track.title, item.track.authors, item.track.bpm)}
+                  onClick={() => handleDownload(item.track)}
                   disabled={downloadingId === item.track.title}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-400/20 text-yellow-400 text-sm font-medium hover:bg-yellow-400/30 transition-colors disabled:opacity-50"
                 >
