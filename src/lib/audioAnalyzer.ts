@@ -1,6 +1,9 @@
 /**
  * Audio Analyzer — detects BPM, key and duration from an audio file
- * Uses Web Audio API (Goertzel algorithm for key, autocorrelation for BPM)
+ * Optimized for electronic / DJ music
+ *
+ * BPM:  Multi-band onset detection + autocorrelation + octave resolution
+ * Key:  Goertzel chroma extraction + Krumhansl-Schmuckler key profiles
  */
 
 export interface AudioAnalysis {
@@ -9,146 +12,248 @@ export interface AudioAnalysis {
   key: string;      // e.g. "Am", "C", "F#m"
 }
 
-// ─── Key Detection ──────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════
+//  KEY DETECTION
+// ═════════════════════════════════════════════════════════════════
 
 const NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
-// Krumhansl-Schmuckler key profiles
 const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
 const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
 
 function pearsonCorrelation(x: number[], y: number[]): number {
   const n = x.length;
-  let sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
+  let sXY = 0, sX = 0, sY = 0, sX2 = 0, sY2 = 0;
   for (let i = 0; i < n; i++) {
-    sumXY += x[i] * y[i];
-    sumX += x[i];
-    sumY += y[i];
-    sumX2 += x[i] * x[i];
-    sumY2 += y[i] * y[i];
+    sXY += x[i] * y[i]; sX += x[i]; sY += y[i];
+    sX2 += x[i] * x[i]; sY2 += y[i] * y[i];
   }
-  const num = n * sumXY - sumX * sumY;
-  const den = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-  return den === 0 ? 0 : num / den;
+  const den = Math.sqrt((n * sX2 - sX * sX) * (n * sY2 - sY * sY));
+  return den === 0 ? 0 : (n * sXY - sX * sY) / den;
 }
 
 function rotateArray(arr: number[], shift: number): number[] {
-  const n = arr.length;
-  const s = ((shift % n) + n) % n;
+  const s = ((shift % arr.length) + arr.length) % arr.length;
   return [...arr.slice(s), ...arr.slice(0, s)];
 }
 
-function detectKey(audioBuffer: AudioBuffer): string {
-  const data = audioBuffer.getChannelData(0);
-  const sampleRate = audioBuffer.sampleRate;
-  const chroma = new Float64Array(12).fill(0);
+async function detectKey(audioBuffer: AudioBuffer): Promise<string> {
+  const sr = audioBuffer.sampleRate;
+  const raw = audioBuffer.getChannelData(0);
 
+  // Filter to melodic range (100–4000 Hz) — removes kick drum bass that skews results
+  const maxLen = Math.min(raw.length, sr * 45);
+  // Skip first 10 s (often just kick intro in electronic music)
+  const skip = Math.min(Math.floor(sr * 10), Math.floor(maxLen * 0.2));
+  const len = maxLen - skip;
+
+  let data: Float32Array;
+  if (len > sr * 5) {
+    const ctx = new OfflineAudioContext(1, len, sr);
+    const buf = ctx.createBuffer(1, len, sr);
+    buf.getChannelData(0).set(raw.subarray(skip, skip + len));
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 100; hp.Q.value = 0.707;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';  lp.frequency.value = 4000; lp.Q.value = 0.707;
+    src.connect(hp); hp.connect(lp); lp.connect(ctx.destination); src.start(0);
+    data = (await ctx.startRendering()).getChannelData(0);
+  } else {
+    data = raw;
+  }
+
+  // Goertzel chroma extraction with Hanning window
+  const chroma = new Float64Array(12).fill(0);
   const chunkSize = 8192;
   const totalChunks = Math.floor(data.length / chunkSize);
-  // Spread chunks evenly across the audio, max 40
-  const step = Math.max(1, Math.floor(totalChunks / 40));
+  const step = Math.max(1, Math.floor(totalChunks / 50));
   let processed = 0;
 
-  for (let c = 0; c < totalChunks && processed < 40; c += step, processed++) {
+  for (let c = 0; c < totalChunks && processed < 50; c += step, processed++) {
     const offset = c * chunkSize;
+    const end = Math.min(offset + chunkSize, data.length);
+    const cLen = end - offset;
+
+    // Pre-compute windowed samples
+    const windowed = new Float32Array(cLen);
+    for (let i = 0; i < cLen; i++) {
+      windowed[i] = data[offset + i] * (0.5 * (1 - Math.cos(2 * Math.PI * i / (cLen - 1))));
+    }
 
     for (let note = 0; note < 12; note++) {
       for (let octave = 2; octave <= 6; octave++) {
         const midi = 12 * (octave + 1) + note;
         const freq = 440 * Math.pow(2, (midi - 69) / 12);
-        if (freq >= sampleRate / 2 || freq < 30) continue;
+        if (freq >= sr / 2 || freq < 50) continue;
 
-        // Goertzel algorithm for this frequency
-        const w = (2 * Math.PI * freq) / sampleRate;
-        const coeff = 2 * Math.cos(w);
+        const coeff = 2 * Math.cos((2 * Math.PI * freq) / sr);
         let s1 = 0, s2 = 0;
-
-        const end = Math.min(offset + chunkSize, data.length);
-        for (let i = offset; i < end; i++) {
-          const s0 = data[i] + coeff * s1 - s2;
-          s2 = s1;
-          s1 = s0;
+        for (let i = 0; i < cLen; i++) {
+          const s0 = windowed[i] + coeff * s1 - s2;
+          s2 = s1; s1 = s0;
         }
         chroma[note] += Math.abs(s1 * s1 + s2 * s2 - coeff * s1 * s2);
       }
     }
   }
 
-  // Normalize
+  // Normalize & match key
   const maxVal = Math.max(...Array.from(chroma));
   if (maxVal > 0) for (let i = 0; i < 12; i++) chroma[i] /= maxVal;
 
-  const chromaArr = Array.from(chroma);
+  const arr = Array.from(chroma);
   let bestKey = 'C';
   let bestCorr = -Infinity;
-
   for (let i = 0; i < 12; i++) {
-    const majorCorr = pearsonCorrelation(chromaArr, rotateArray(MAJOR_PROFILE, i));
-    if (majorCorr > bestCorr) { bestCorr = majorCorr; bestKey = NOTE_NAMES[i]; }
-
-    const minorCorr = pearsonCorrelation(chromaArr, rotateArray(MINOR_PROFILE, i));
-    if (minorCorr > bestCorr) { bestCorr = minorCorr; bestKey = NOTE_NAMES[i] + 'm'; }
+    const maj = pearsonCorrelation(arr, rotateArray(MAJOR_PROFILE, i));
+    if (maj > bestCorr) { bestCorr = maj; bestKey = NOTE_NAMES[i]; }
+    const min = pearsonCorrelation(arr, rotateArray(MINOR_PROFILE, i));
+    if (min > bestCorr) { bestCorr = min; bestKey = NOTE_NAMES[i] + 'm'; }
   }
-
   return bestKey;
 }
 
-// ─── BPM Detection ──────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════
+//  BPM DETECTION
+// ═════════════════════════════════════════════════════════════════
 
-async function detectBPM(audioBuffer: AudioBuffer): Promise<number> {
-  const sampleRate = audioBuffer.sampleRate;
+/** Band-pass filter via OfflineAudioContext */
+async function filterBand(
+  audioBuffer: AudioBuffer, low: number, high: number, maxLen: number,
+): Promise<Float32Array> {
+  const sr = audioBuffer.sampleRate;
+  const raw = audioBuffer.getChannelData(0);
+  const len = Math.min(raw.length, maxLen);
 
-  // Low-pass filter to isolate bass / kick
-  const offlineCtx = new OfflineAudioContext(1, audioBuffer.length, sampleRate);
-  const source = offlineCtx.createBufferSource();
-  source.buffer = audioBuffer;
+  const ctx = new OfflineAudioContext(1, len, sr);
+  const buf = ctx.createBuffer(1, len, sr);
+  buf.getChannelData(0).set(raw.subarray(0, len));
+  const src = ctx.createBufferSource(); src.buffer = buf;
 
-  const filter = offlineCtx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 150;
-  filter.Q.value = 1;
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = low; hp.Q.value = 0.707;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';  lp.frequency.value = high; lp.Q.value = 0.707;
+  src.connect(hp); hp.connect(lp); lp.connect(ctx.destination); src.start(0);
 
-  source.connect(filter);
-  filter.connect(offlineCtx.destination);
-  source.start(0);
-
-  const filtered = await offlineCtx.startRendering();
-  const data = filtered.getChannelData(0);
-
-  // Compute energy in 10 ms windows
-  const windowMs = 0.01;
-  const windowSamples = Math.floor(sampleRate * windowMs);
-  const numWindows = Math.floor(data.length / windowSamples);
-  const energy = new Float32Array(numWindows);
-
-  for (let i = 0; i < numWindows; i++) {
-    let sum = 0;
-    const start = i * windowSamples;
-    for (let j = 0; j < windowSamples; j++) {
-      sum += data[start + j] * data[start + j];
-    }
-    energy[i] = sum;
-  }
-
-  // Autocorrelation — BPM range 60-200
-  const minLag = Math.floor(60 / 200 / windowMs);
-  const maxLag = Math.floor(60 / 60 / windowMs);
-  const limit = Math.min(numWindows, 3000); // first ~30 s
-
-  let bestLag = minLag;
-  let bestCorr = -Infinity;
-
-  for (let lag = minLag; lag <= Math.min(maxLag, numWindows - 1); lag++) {
-    let corr = 0;
-    const n = Math.min(limit, numWindows - lag);
-    for (let i = 0; i < n; i++) corr += energy[i] * energy[i + lag];
-    if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
-  }
-
-  return Math.round(60 / (bestLag * windowMs));
+  return (await ctx.startRendering()).getChannelData(0);
 }
 
-// ─── Public API ─────────────────────────────────────────────────
+async function detectBPM(audioBuffer: AudioBuffer): Promise<number> {
+  const sr = audioBuffer.sampleRate;
+  const maxLen = Math.min(audioBuffer.length, sr * 45);
+
+  // ── 1. Multi-band filtering (parallel) ──
+  const [bass, mid, high] = await Promise.all([
+    filterBand(audioBuffer, 40, 200, maxLen),      // kick drum
+    filterBand(audioBuffer, 200, 2000, maxLen),     // snare / toms
+    filterBand(audioBuffer, 2000, 12000, maxLen),   // hi-hat / cymbals
+  ]);
+
+  // ── 2. Onset strength per band ──
+  const hopMs = 10;                                  // 10 ms hop
+  const winMs = 20;                                  // 20 ms window
+  const hopN  = Math.floor(sr * hopMs / 1000);
+  const winN  = Math.floor(sr * winMs / 1000);
+  const nFrames = Math.floor((maxLen - winN) / hopN);
+
+  function onsetEnvelope(band: Float32Array): Float64Array {
+    const energy = new Float64Array(nFrames);
+    for (let i = 0; i < nFrames; i++) {
+      let sum = 0;
+      const s = i * hopN;
+      for (let j = 0; j < winN; j++) { const v = band[s + j]; sum += v * v; }
+      energy[i] = sum;
+    }
+    // Onset = positive energy difference (half-wave rectification)
+    const onset = new Float64Array(nFrames > 1 ? nFrames - 1 : 0);
+    for (let i = 0; i < onset.length; i++) {
+      onset[i] = Math.max(0, energy[i + 1] - energy[i]);
+    }
+    return onset;
+  }
+
+  const onsets = [onsetEnvelope(bass), onsetEnvelope(mid), onsetEnvelope(high)];
+  const weights = [2.0, 1.0, 0.5];                  // bass is king for beat detection
+
+  const N = onsets[0].length;
+  if (N < 200) return 128;                           // audio too short
+
+  // Combine (per-band normalization prevents one band from dominating)
+  const combined = new Float64Array(N);
+  for (let b = 0; b < 3; b++) {
+    let peak = 0;
+    for (let i = 0; i < N; i++) if (onsets[b][i] > peak) peak = onsets[b][i];
+    if (peak > 0) {
+      for (let i = 0; i < N; i++) combined[i] += (onsets[b][i] / peak) * weights[b];
+    }
+  }
+
+  // ── 3. Autocorrelation ──
+  const fps    = 1000 / hopMs;                       // 100 frames/s
+  const lagMin = Math.floor(fps * 60 / 220);         // 220 BPM
+  const lagMax = Math.ceil(fps * 60 / 60);           // 60 BPM
+  const acfN   = Math.min(N, Math.floor(fps * 30));  // analyse first 30 s
+
+  const acf = new Float64Array(lagMax + 1);
+  for (let lag = lagMin; lag <= Math.min(lagMax, N - 1); lag++) {
+    let sum = 0;
+    const cnt = Math.min(acfN, N - lag);
+    for (let i = 0; i < cnt; i++) sum += combined[i] * combined[i + lag];
+    acf[lag] = sum / cnt;                             // normalise by count
+  }
+
+  // ── 4. Peak finding + parabolic interpolation ──
+  interface Peak { lag: number; bpm: number; score: number }
+  const peaks: Peak[] = [];
+  for (let lag = lagMin + 1; lag < Math.min(lagMax, acf.length - 1); lag++) {
+    if (acf[lag] > acf[lag - 1] && acf[lag] >= acf[lag + 1] && acf[lag] > 0) {
+      const a = acf[lag - 1], b = acf[lag], c = acf[lag + 1];
+      const d = 2 * (2 * b - a - c);
+      const off = d !== 0 ? (a - c) / d : 0;
+      const rLag = lag + off;
+      peaks.push({ lag: rLag, bpm: fps * 60 / rLag, score: b });
+    }
+  }
+  if (peaks.length === 0) return 128;
+  peaks.sort((a, b) => b.score - a.score);
+
+  // ── 5. Octave resolution ──
+  // Electronic music tempos live in 100-160; pick the octave that fits best.
+  const topBPM   = peaks[0].bpm;
+  const topScore = peaks[0].score;
+
+  const candidates: { bpm: number; score: number }[] = [];
+  for (let mult = 0.25; mult <= 4; mult *= 2) {
+    const cand = topBPM * mult;
+    if (cand < 70 || cand > 200) continue;
+
+    const cLag = Math.round(fps * 60 / cand);
+    if (cLag < lagMin || cLag > lagMax || cLag >= acf.length) continue;
+
+    // Best ACF near this lag (±3 frames)
+    let best = 0;
+    for (let l = Math.max(lagMin, cLag - 3); l <= Math.min(lagMax, cLag + 3); l++) {
+      if (l < acf.length && acf[l] > best) best = acf[l];
+    }
+
+    // Perceptual weighting — prefer 128 BPM neighbourhood
+    const tw = 1 + 0.4 * Math.exp(-((cand - 128) ** 2) / (2 * 25 * 25));
+    candidates.push({ bpm: cand, score: best * tw });
+  }
+
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.score - a.score);
+    return Math.round(candidates[0].bpm);
+  }
+
+  let bpm = topBPM;
+  while (bpm > 200) bpm /= 2;
+  while (bpm < 70)  bpm *= 2;
+  return Math.round(bpm);
+}
+
+// ═════════════════════════════════════════════════════════════════
+//  PUBLIC API
+// ═════════════════════════════════════════════════════════════════
 
 export async function analyzeAudio(file: File): Promise<AudioAnalysis> {
   const arrayBuffer = await file.arrayBuffer();
@@ -156,11 +261,11 @@ export async function analyzeAudio(file: File): Promise<AudioAnalysis> {
 
   try {
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
     const duration = Math.round(audioBuffer.duration);
+
     const [bpm, key] = await Promise.all([
       detectBPM(audioBuffer),
-      Promise.resolve(detectKey(audioBuffer)),
+      detectKey(audioBuffer),
     ]);
 
     return { bpm, duration, key };
