@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Upload, Image, FileAudio, Music, Trash2, CheckCircle, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import type { Track, Category } from '../types';
+import { analyzeAudio } from '../lib/audioAnalyzer';
 
 interface AdminTrackFormProps {
   track: Track | null;
@@ -20,6 +21,7 @@ function FileDropZone({
   folder,
   onUploaded,
   onClear,
+  onFileSelected,
 }: {
   label: string;
   accept: string;
@@ -30,6 +32,7 @@ function FileDropZone({
   folder: string;
   onUploaded: (url: string) => void;
   onClear: () => void;
+  onFileSelected?: (file: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -44,6 +47,9 @@ function FileDropZone({
   const uploadFile = async (file: File) => {
     setFileName(file.name);
     setStatus('uploading');
+
+    // Notify parent for audio analysis
+    onFileSelected?.(file);
 
     // Show local preview for images
     if (isImage) {
@@ -230,6 +236,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
     category: 'sesiones' as Category,
     price: 9.99,
     bpm: 128,
+    key: '',
     genre: '',
     duration: 0,
     releaseDate: new Date().toISOString().split('T')[0],
@@ -243,6 +250,25 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
   });
 
   const [aiLoading, setAiLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const handleAudioAnalysis = async (file: File) => {
+    if (!file.type.startsWith('audio/')) return;
+    setAnalyzing(true);
+    try {
+      const result = await analyzeAudio(file);
+      setForm(prev => ({
+        ...prev,
+        bpm: result.bpm,
+        duration: result.duration,
+        key: result.key,
+      }));
+    } catch (e) {
+      console.error('Audio analysis failed:', e);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     if (track) {
@@ -253,6 +279,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
         category: track.category,
         price: track.price,
         bpm: track.bpm,
+        key: track.key || '',
         genre: track.genre,
         duration: track.duration,
         releaseDate: track.releaseDate,
@@ -305,6 +332,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
       category: form.category,
       price: Number(form.price),
       bpm: Number(form.bpm),
+      key: form.key,
       genre: form.genre,
       duration: Number(form.duration),
       releaseDate: form.releaseDate,
@@ -374,6 +402,7 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
               folder="previews"
               onUploaded={url => setForm(prev => ({ ...prev, previewUrl: url }))}
               onClear={() => setForm(prev => ({ ...prev, previewUrl: '' }))}
+              onFileSelected={handleAudioAnalysis}
             />
             <FileDropZone
               label="Archivo completo (320kbps)"
@@ -384,9 +413,21 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
               folder="tracks"
               onUploaded={url => setForm(prev => ({ ...prev, fileUrl: url }))}
               onClear={() => setForm(prev => ({ ...prev, fileUrl: '' }))}
+              onFileSelected={handleAudioAnalysis}
             />
           </div>
         </div>
+
+        {/* Analyzing indicator */}
+        {analyzing && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-yellow-400/5 border border-yellow-400/20">
+            <Loader2 className="w-5 h-5 text-yellow-400 animate-spin" />
+            <div>
+              <p className="text-sm text-yellow-400 font-medium">Analizando audio...</p>
+              <p className="text-xs text-zinc-500">Detectando BPM, tonalidad y duración</p>
+            </div>
+          </div>
+        )}
 
         {/* === INFO BÁSICA === */}
         <div>
@@ -476,7 +517,17 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Tonalidad</label>
+              <input
+                type="text"
+                value={form.key}
+                onChange={e => setForm({ ...form, key: e.target.value })}
+                placeholder="Am, C, F#m..."
+                className={inputClass}
+              />
+            </div>
             <div>
               <label className="block text-xs text-zinc-500 mb-1">Duración (seg)</label>
               <input
@@ -486,6 +537,11 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
                 onChange={e => setForm({ ...form, duration: Number(e.target.value) })}
                 className={inputClass}
               />
+              {form.duration > 0 && (
+                <p className="text-[10px] text-yellow-400/60 mt-1">
+                  {Math.floor(form.duration / 60)} min {String(form.duration % 60).padStart(2, '0')} seg
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs text-zinc-500 mb-1">Fecha lanzamiento</label>

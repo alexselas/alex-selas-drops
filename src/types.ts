@@ -8,6 +8,7 @@ export interface Track {
   category: Category;
   price: number;
   bpm: number;
+  key?: string;
   genre: string;
   duration: number; // seconds
   releaseDate: string; // ISO date
