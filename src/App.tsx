@@ -455,6 +455,7 @@ export default function App() {
                 onDeleteTrack={handleDeleteTrack}
                 onReorderTracks={handleReorderTracks}
                 onLogout={admin.logout}
+                adminToken={admin.getToken()}
               />
             )}
           </>

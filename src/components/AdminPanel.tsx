@@ -19,6 +19,7 @@ interface AdminPanelProps {
   onDeleteTrack: (id: string) => void;
   onReorderTracks: (tracks: Track[]) => void;
   onLogout: () => void;
+  adminToken?: string;
 }
 
 interface Order {
@@ -29,7 +30,7 @@ interface Order {
   date: string;
 }
 
-export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDeleteTrack, onReorderTracks, onLogout }: AdminPanelProps) {
+export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDeleteTrack, onReorderTracks, onLogout, adminToken }: AdminPanelProps) {
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -276,6 +277,7 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
           {(isAdding || editingTrack) ? (
             <AdminTrackForm
               track={editingTrack}
+              adminToken={adminToken}
               onSave={(data) => {
                 if (editingTrack) {
                   onUpdateTrack(data);
