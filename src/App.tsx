@@ -50,13 +50,14 @@ export default function App() {
   const admin = useAdmin();
 
   // Load tracks from API + handle /track/:id URLs
-  useEffect(() => {
-    fetch('/api/tracks')
+  const loadTracks = useCallback((token?: string) => {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    fetch('/api/tracks', { headers })
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
           setTracks(data);
-          // Check if URL points to a specific track (e.g. /track/track-001)
           const match = window.location.pathname.match(/^\/track\/(.+)$/);
           if (match) {
             const found = data.find((t: Track) => t.id === match[1]);
@@ -72,6 +73,15 @@ export default function App() {
       .catch(() => setTracks(demoTracks))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { loadTracks(); }, [loadTracks]);
+
+  // Reload tracks with admin token when admin logs in
+  useEffect(() => {
+    if (admin.isAuthenticated) {
+      loadTracks(admin.getToken());
+    }
+  }, [admin.isAuthenticated, loadTracks]);
 
   // Navigate
   const navigate = useCallback((s: Section) => {

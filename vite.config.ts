@@ -89,7 +89,7 @@ function localUploadPlugin(): Plugin {
 
 export default defineConfig(({ mode }) => {
   return {
-    plugins: [react(), tailwindcss(), localUploadPlugin()],
+    plugins: [react(), tailwindcss()], // localUploadPlugin disabled — uploads go to Vercel via proxy
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -97,12 +97,32 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
-        // Proxy API calls to Vercel deployment (tracks, orders, etc.)
+        // Proxy API calls to Vercel deployment
         '/api/tracks': {
           target: 'https://alex-selas-drops.vercel.app',
           changeOrigin: true,
         },
         '/api/orders': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/admin-login': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/upload': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/upload-url': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/delete-blob': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/generate-description': {
           target: 'https://alex-selas-drops.vercel.app',
           changeOrigin: true,
         },

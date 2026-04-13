@@ -238,6 +238,10 @@ function FileDropZone({
 }
 
 export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: AdminTrackFormProps) {
+  const [trackFileBlob, setTrackFileBlob] = useState<Blob | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewLocalUrl, setPreviewLocalUrl] = useState('');
+  const [uploadingPreview, setUploadingPreview] = useState(false);
   const [form, setForm] = useState({
     title: '',
     artist: 'Alex Selas',
@@ -407,39 +411,59 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
               onClear={() => setForm(prev => ({ ...prev, coverUrl: '' }))}
             />
             {/* Preview Generator from full track */}
-            {form.previewUrl ? (
+            {(form.previewUrl || previewLocalUrl) ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Preview</span>
-                  <button onClick={() => setForm(prev => ({ ...prev, previewUrl: '' }))} className="text-[10px] text-red-400 hover:text-red-300">Eliminar</button>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                    Preview {previewLocalUrl && !form.previewUrl ? '(escucha y sube)' : ''}
+                  </span>
+                  <button onClick={() => { setForm(prev => ({ ...prev, previewUrl: '' })); setPreviewBlob(null); setPreviewLocalUrl(''); }} className="text-[10px] text-red-400 hover:text-red-300">Eliminar</button>
                 </div>
-                <audio src={form.previewUrl} controls className="w-full h-8" />
+                <audio src={previewLocalUrl || form.previewUrl} controls className="w-full h-8" />
+                {previewBlob && !form.previewUrl && (
+                  <button
+                    onClick={async () => {
+                      setUploadingPreview(true);
+                      try {
+                        const res = await fetch('/api/upload', {
+                          method: 'POST',
+                          headers: {
+                            'X-Filename': `preview-${Date.now()}.mp3`,
+                            'X-Folder': 'previews',
+                            'Authorization': `Bearer ${adminToken || ''}`,
+                          },
+                          body: previewBlob,
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          console.log('Upload response:', data);
+                          setForm(prev => ({ ...prev, previewUrl: data.url }));
+                          setPreviewBlob(null);
+                        } else {
+                          const err = await res.text();
+                          console.error('Upload failed:', res.status, err);
+                          alert('Error al subir la preview: ' + res.status);
+                        }
+                      } catch (e) { console.error('Upload error:', e); alert('Error de conexion'); }
+                      setUploadingPreview(false);
+                    }}
+                    disabled={uploadingPreview}
+                    className="w-full py-2 bg-yellow-400 text-black font-black text-[10px] uppercase tracking-widest rounded-lg hover:bg-yellow-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {uploadingPreview ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                    {uploadingPreview ? 'Subiendo...' : 'Subir preview a la nube'}
+                  </button>
+                )}
               </div>
             ) : (
               <PreviewGenerator
                 fileUrl={form.fileUrl}
+                fileBlob={trackFileBlob}
                 adminToken={adminToken || ''}
-                onPreviewReady={async (blob, filename) => {
-                  // Upload the generated preview
-                  try {
-                    const res = await fetch('/api/upload', {
-                      method: 'POST',
-                      headers: {
-                        'X-Filename': filename,
-                        'X-Folder': 'previews',
-                        'Authorization': `Bearer ${adminToken || ''}`,
-                      },
-                      body: blob,
-                    });
-                    if (res.ok) {
-                      const { url } = await res.json();
-                      setForm(prev => ({ ...prev, previewUrl: url }));
-                    } else {
-                      alert('Error al subir la preview');
-                    }
-                  } catch {
-                    alert('Error de conexión al subir');
-                  }
+                onPreviewReady={(blob, _filename) => {
+                  const localUrl = URL.createObjectURL(blob);
+                  setPreviewBlob(blob);
+                  setPreviewLocalUrl(localUrl);
                 }}
               />
             )}
@@ -451,8 +475,8 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
               currentUrl={form.fileUrl}
               folder="tracks"
               onUploaded={url => setForm(prev => ({ ...prev, fileUrl: url }))}
-              onClear={() => setForm(prev => ({ ...prev, fileUrl: '' }))}
-              onFileSelected={handleAudioAnalysis}
+              onClear={() => { setForm(prev => ({ ...prev, fileUrl: '' })); setTrackFileBlob(null); }}
+              onFileSelected={(file) => { setTrackFileBlob(file); handleAudioAnalysis(file); }}
             />
           </div>
         </div>
