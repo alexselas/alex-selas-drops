@@ -1,6 +1,9 @@
+// Shared auth helpers — inline-friendly for Vercel serverless functions
+// If import fails, copy these functions directly into the endpoint file
+
 import crypto from 'crypto';
 
-const TOKEN_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
+const TOKEN_MAX_AGE = 24 * 60 * 60 * 1000;
 
 export function verifyAdminToken(authHeader: string | undefined): boolean {
   try {
