@@ -1,13 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { verifyAdminToken, corsHeaders } from './_auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    return res.status(200).end();
-  }
+  const headers = corsHeaders(req);
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
     const body = req.body as HandleUploadBody;
@@ -15,7 +14,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const jsonResponse = await handleUpload({
       body,
       request: req as any,
-      onBeforeGenerateToken: async () => {
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        // Admin auth required — check from Authorization header or clientPayload
+        let authorized = verifyAdminToken(req.headers.authorization);
+        if (!authorized && clientPayload) {
+          try {
+            const payload = JSON.parse(clientPayload);
+            authorized = verifyAdminToken(`Bearer ${payload.token}`);
+          } catch {}
+        }
+        if (!authorized) {
+          throw new Error('No autorizado');
+        }
+
         return {
           allowedContentTypes: [
             'image/jpeg', 'image/png', 'image/webp',
@@ -30,6 +41,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json(jsonResponse);
   } catch (error: any) {
-    return res.status(400).json({ error: error.message });
+    console.error('Upload-url error:', error);
+    const msg = error.message === 'No autorizado' ? 'No autorizado' : 'Error al generar token de subida';
+    const status = error.message === 'No autorizado' ? 401 : 400;
+    return res.status(status).json({ error: msg });
   }
 }

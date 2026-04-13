@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
+import { verifyAdminToken, corsHeaders } from './_auth';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',
@@ -8,7 +9,6 @@ const redis = new Redis({
 
 const KV_KEY = 'tracks';
 
-// Seed data — used only on first load when DB is empty
 const demoTracks = [
   { id: 'track-010', title: 'Midnight Circuit Live', artist: 'Alex Selas', authors: '', category: 'sesiones', price: 9.99, bpm: 128, genre: 'Tech House', duration: 3720, releaseDate: '2026-03-15', description: 'Sesión grabada en vivo en Midnight Circuit. Tech house oscuro con líneas de bajo profundas y percusiones hipnóticas.', coverUrl: '', previewUrl: '/previews/midnight-circuit-preview.mp3', fileUrl: '/tracks/midnight-circuit.mp3', featured: true, tags: ['sesión', 'tech house', 'live', 'dark'] },
   { id: 'track-011', title: 'Warehouse Sessions', artist: 'Alex Selas', authors: '', category: 'sesiones', price: 9.99, bpm: 132, genre: 'Techno', duration: 4200, releaseDate: '2026-04-01', description: 'Sesión de techno grabada en un warehouse. Sonidos raw, oscuros y contundentes.', coverUrl: '', previewUrl: '/previews/warehouse-sessions-preview.mp3', fileUrl: '/tracks/warehouse-sessions.mp3', featured: true, tags: ['sesión', 'techno', 'warehouse', 'underground'] },
@@ -27,28 +27,36 @@ const demoTracks = [
 async function getTracks() {
   const tracks = await redis.get(KV_KEY);
   if (!tracks) {
-    // First time — seed with demo tracks
     await redis.set(KV_KEY, demoTracks);
     return demoTracks;
   }
   return tracks as any[];
 }
 
+// Strip fileUrl from tracks for public response (only admin sees it)
+function stripFileUrls(tracks: any[]) {
+  return tracks.map(({ fileUrl, ...rest }) => rest);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const headers = corsHeaders(req);
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // GET — return all tracks
+    // GET — public (but strip fileUrl)
     if (req.method === 'GET') {
       const tracks = await getTracks();
-      return res.status(200).json(tracks);
+      const isAdmin = verifyAdminToken(req.headers.authorization);
+      return res.status(200).json(isAdmin ? tracks : stripFileUrls(tracks));
     }
 
-    // POST — add new track
+    // All write operations require admin auth
+    if (!verifyAdminToken(req.headers.authorization)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
     if (req.method === 'POST') {
       const data = req.body;
       const tracks = await getTracks();
@@ -58,7 +66,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(newTrack);
     }
 
-    // PUT — update track
     if (req.method === 'PUT') {
       const data = req.body;
       if (!data.id) return res.status(400).json({ error: 'Falta id' });
@@ -70,7 +77,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(tracks[idx]);
     }
 
-    // PATCH — replace full array (reorder)
     if (req.method === 'PATCH') {
       const data = req.body;
       if (!Array.isArray(data)) return res.status(400).json({ error: 'Se esperaba un array' });
@@ -78,7 +84,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true });
     }
 
-    // DELETE — remove track
     if (req.method === 'DELETE') {
       const id = req.query.id as string;
       if (!id) return res.status(400).json({ error: 'Falta id' });
@@ -90,7 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
-    console.error('Tracks API error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Tracks API error:', error?.message);
+    return res.status(500).json({ error: 'Error interno' });
   }
 }

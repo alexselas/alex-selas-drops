@@ -42,10 +42,14 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersPeriod, setOrdersPeriod] = useState('all');
 
+  const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || '';
+
   const fetchOrders = (period: string) => {
     setOrdersLoading(true);
     setOrdersPeriod(period);
-    fetch(`/api/orders?period=${period}`)
+    fetch(`/api/orders?period=${period}`, {
+      headers: { Authorization: `Bearer ${getAdminToken()}` },
+    })
       .then(r => r.json())
       .then(data => {
         if (data.orders) {
@@ -119,7 +123,7 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
           </div>
           <div>
             <h1 className="text-xl font-bold text-zinc-50">Admin Panel</h1>
-            <p className="text-xs text-zinc-500">alex-selas92@hotmail.com</p>
+            <p className="text-xs text-zinc-500">Admin</p>
           </div>
         </div>
         <button
@@ -578,7 +582,7 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                 <label className="block text-xs text-zinc-500 mb-1">Email</label>
                 <input
                   type="email"
-                  defaultValue="alex-selas92@hotmail.com"
+                  placeholder="tu@email.com"
                   className="w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-400 text-sm cursor-not-allowed"
                   disabled
                 />

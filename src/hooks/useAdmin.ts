@@ -1,30 +1,44 @@
 import { useState, useCallback } from 'react';
 
 const ADMIN_KEY = 'alex-selas-drops-admin';
-const ADMIN_EMAIL = 'alex-selas92@hotmail.com';
-const ADMIN_PASSWORD = 'Gato1992.';
+const TOKEN_KEY = 'alex-selas-drops-token';
 
 export function useAdmin() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem(ADMIN_KEY) === 'true';
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    return !!token;
   });
 
-  const login = useCallback((email: string, password: string): { success: boolean; error?: string } => {
-    if (email !== ADMIN_EMAIL) {
-      return { success: false, error: 'Email no reconocido' };
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { success: false, error: data.error || 'Email o contraseña incorrectos' };
+      }
+      const { token } = await res.json();
+      sessionStorage.setItem(TOKEN_KEY, token);
+      sessionStorage.setItem(ADMIN_KEY, 'true');
+      setIsAuthenticated(true);
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Error de conexión' };
     }
-    if (password !== ADMIN_PASSWORD) {
-      return { success: false, error: 'Contraseña incorrecta' };
-    }
-    sessionStorage.setItem(ADMIN_KEY, 'true');
-    setIsAuthenticated(true);
-    return { success: true };
   }, []);
 
   const logout = useCallback(() => {
     sessionStorage.removeItem(ADMIN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
     setIsAuthenticated(false);
   }, []);
 
-  return { isAuthenticated, login, logout };
+  const getToken = useCallback(() => {
+    return sessionStorage.getItem(TOKEN_KEY) || '';
+  }, []);
+
+  return { isAuthenticated, login, logout, getToken };
 }

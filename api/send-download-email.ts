@@ -1,7 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
+import Stripe from 'stripe';
+import { corsHeaders } from './_auth';
 
 const resend = new Resend(process.env.RESEND_API_KEY || '');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2025-04-30.basil',
+});
 
 interface TrackInfo {
   title: string;
@@ -9,18 +14,46 @@ interface TrackInfo {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const headers = corsHeaders(req);
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { email, tracks } = req.body as { email: string; tracks: TrackInfo[] };
+    const { email, tracks, sessionId } = req.body as {
+      email: string;
+      tracks: TrackInfo[];
+      sessionId?: string;
+    };
 
     if (!email || !tracks?.length) {
       return res.status(400).json({ error: 'Faltan email o tracks' });
+    }
+
+    // Verify Stripe payment session — only send download emails after confirmed payment
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Falta session_id de pago' });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status !== 'paid') {
+        return res.status(403).json({ error: 'Pago no confirmado' });
+      }
+      // Verify the email matches the payment session
+      if (session.customer_details?.email && session.customer_details.email !== email) {
+        return res.status(403).json({ error: 'Email no coincide con el pago' });
+      }
+    } catch {
+      return res.status(403).json({ error: 'Sesión de pago no válida' });
+    }
+
+    // Validate that all file URLs point to Vercel Blob storage
+    for (const t of tracks) {
+      if (!t.fileUrl.includes('.vercel-storage.com') && !t.fileUrl.includes('.public.blob.vercel-storage.com')) {
+        return res.status(400).json({ error: 'URL de archivo no válida' });
+      }
     }
 
     const trackRows = tracks
@@ -85,12 +118,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (error) {
       console.error('Resend error:', error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: 'Error al enviar email' });
     }
 
     return res.status(200).json({ success: true, id: data?.id });
   } catch (error: any) {
     console.error('Email error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Error al enviar email' });
   }
 }

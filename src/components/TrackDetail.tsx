@@ -237,9 +237,9 @@ export default function TrackDetail({
                   />
                 )}
                 <span className="relative flex items-center gap-2">
-                  {storyStatus === 'idle' && <><Instagram className="w-5 h-5" /> Crear Story con Audio</>}
-                  {storyStatus === 'drawing' && <><Loader2 className="w-5 h-5 animate-spin" /> Diseñando...</>}
-                  {storyStatus === 'loading-ffmpeg' && <><Loader2 className="w-5 h-5 animate-spin" /> Cargando motor...</>}
+                  {storyStatus === 'idle' && <><Instagram className="w-5 h-5" /> Crear Story para Instagram</>}
+                  {storyStatus === 'drawing' && <><Loader2 className="w-5 h-5 animate-spin" /> Diseñando story...</>}
+                  {storyStatus === 'loading-ffmpeg' && <><Loader2 className="w-5 h-5 animate-spin" /> Preparando video...</>}
                   {storyStatus === 'processing' && <><Loader2 className="w-5 h-5 animate-spin" /> Generando video... {storyProgress}%</>}
                   {storyStatus === 'done' && <><CheckCircle className="w-5 h-5" /> Story descargada!</>}
                   {storyStatus === 'error' && <><X className="w-5 h-5" /> Error — Inténtalo de nuevo</>}

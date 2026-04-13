@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { put } from '@vercel/blob';
+import { verifyAdminToken, corsHeaders } from './_auth';
 
 export const config = {
   api: {
@@ -8,12 +9,16 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Filename, X-Folder');
+  const headers = corsHeaders(req);
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  // Admin auth required — only admin can upload files
+  if (!verifyAdminToken(req.headers.authorization)) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
 
   try {
     const filename = req.headers['x-filename'] as string;
@@ -23,7 +28,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Falta el nombre del archivo (header X-Filename)' });
     }
 
-    const path = `${folder}/${Date.now()}-${filename}`;
+    // Sanitize folder name to prevent path traversal
+    const safeFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '');
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '');
+    const path = `${safeFolder}/${Date.now()}-${safeFilename}`;
 
     const blob = await put(path, req, {
       access: 'public',
@@ -36,6 +44,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error('Upload error:', error);
-    return res.status(500).json({ error: error.message || 'Error al subir archivo' });
+    return res.status(500).json({ error: 'Error al subir archivo' });
   }
 }

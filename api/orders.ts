@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
+import { verifyAdminToken, corsHeaders } from './_auth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-04-30.basil',
@@ -28,15 +29,19 @@ function getStartTimestamp(period: string): number {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const headers = corsHeaders(req);
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
+  // Admin auth required — orders are sensitive data
+  if (!verifyAdminToken(req.headers.authorization)) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+
   try {
-    const limit = Number(req.query.limit) || 100;
+    const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
     const period = (req.query.period as string) || 'all';
     const created = getStartTimestamp(period);
 
@@ -73,6 +78,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error('Orders API error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Error al obtener pedidos' });
   }
 }

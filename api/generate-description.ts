@@ -1,17 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifyAdminToken, corsHeaders } from './_auth';
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const headers = corsHeaders(req);
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
+  // Admin auth required — only admin generates descriptions
+  if (!verifyAdminToken(req.headers.authorization)) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+
   try {
     const { title, artist, authors, category, genre, bpm, userDescription } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Falta el título del track' });
+    }
 
     const prompt = `Eres un copywriter experto en música electrónica y DJ culture. Genera una descripción comercial atractiva en español para vender este track en una tienda online de música.
 
@@ -55,6 +64,6 @@ Reglas:
     return res.status(200).json({ description: text.trim() });
   } catch (error: any) {
     console.error('Generate error:', error);
-    return res.status(500).json({ error: error.message || 'Error al generar descripción' });
+    return res.status(500).json({ error: 'Error al generar descripción' });
   }
 }

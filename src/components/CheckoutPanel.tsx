@@ -41,6 +41,9 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
   const [purchasedItems, setPurchasedItems] = useState<CartItem[]>([]);
   const displayItems = step === 'success' && purchasedItems.length > 0 ? purchasedItems : items;
 
+  // Store verified session ID for download auth
+  const [verifiedSessionId, setVerifiedSessionId] = useState<string | null>(null);
+
   // Check if returning from Stripe redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -62,6 +65,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
           .then(data => {
             if (data.paid) {
               setStep('success');
+              setVerifiedSessionId(sessionId);
               onClearCart();
               // Send download email in background
               if (data.email && saved.length > 0) {
@@ -70,6 +74,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     email: data.email,
+                    sessionId,
                     tracks: saved.map(i => ({ title: i.track.title, fileUrl: i.track.fileUrl })),
                   }),
                 }).catch(() => {}); // silent — email is a bonus, not critical
@@ -146,7 +151,12 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
         genre: track.genre || '',
         bpm: String(track.bpm || 0),
       });
+      // Include session_id for payment verification
+      if (verifiedSessionId) {
+        params.set('session_id', verifiedSessionId);
+      }
       const response = await fetch(`/api/download?${params}`);
+      if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -162,7 +172,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
     } finally {
       setDownloadingId(null);
     }
-  }, []);
+  }, [verifiedSessionId]);
 
   // ============ SUCCESS ============
   if (step === 'success') {

@@ -95,5 +95,31 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    server: {
+      proxy: {
+        // Proxy API calls to Vercel deployment (tracks, orders, etc.)
+        '/api/tracks': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/orders': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        // Proxy media files (covers, previews, tracks) to Vercel
+        '/covers': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/previews': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/tracks': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+      },
+    },
   };
 });

@@ -123,11 +123,16 @@ export default function App() {
   }, [tracks, categoryFilter, search, sort]);
 
   // Track CRUD (admin) — syncs with server
+  const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || '';
+
   const handleAddTrack = useCallback(async (data: Omit<Track, 'id'> & { id?: string }) => {
     try {
       const res = await fetch('/api/tracks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAdminToken()}`,
+        },
         body: JSON.stringify(data),
       });
       const newTrack = await res.json();
@@ -144,7 +149,10 @@ export default function App() {
     try {
       await fetch('/api/tracks', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAdminToken()}`,
+        },
         body: JSON.stringify(data),
       });
     } catch {}
@@ -153,7 +161,10 @@ export default function App() {
 
   const handleDeleteTrack = useCallback(async (id: string) => {
     try {
-      await fetch(`/api/tracks?id=${id}`, { method: 'DELETE' });
+      await fetch(`/api/tracks?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getAdminToken()}` },
+      });
     } catch {}
     setTracks(prev => prev.filter(t => t.id !== id));
   }, []);
@@ -163,7 +174,10 @@ export default function App() {
     try {
       await fetch('/api/tracks', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAdminToken()}`,
+        },
         body: JSON.stringify(reordered),
       });
     } catch {}

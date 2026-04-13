@@ -44,6 +44,8 @@ function FileDropZone({
     if (currentUrl) setStatus('done');
   }, [currentUrl]);
 
+  const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || '';
+
   const uploadFile = async (file: File) => {
     setFileName(file.name);
     setStatus('uploading');
@@ -62,7 +64,11 @@ function FileDropZone({
       const blob = await upload(
         `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
         file,
-        { access: 'public', handleUploadUrl: '/api/upload-url' },
+        {
+          access: 'public',
+          handleUploadUrl: '/api/upload-url',
+          clientPayload: JSON.stringify({ token: getAdminToken() }),
+        },
       );
       if (blob.url) {
         onUploaded(blob.url);
@@ -81,6 +87,7 @@ function FileDropZone({
           'X-Filename': file.name,
           'X-Folder': folder,
           'Content-Type': file.type,
+          'Authorization': `Bearer ${getAdminToken()}`,
         },
         body: file,
       });
@@ -298,9 +305,13 @@ export default function AdminTrackForm({ track, onSave, onCancel }: AdminTrackFo
     if (!form.title) return;
     setAiLoading(true);
     try {
+      const adminToken = sessionStorage.getItem('alex-selas-drops-token') || '';
       const res = await fetch('/api/generate-description', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           title: form.title,
           artist: form.artist,

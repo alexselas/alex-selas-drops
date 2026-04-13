@@ -1,5 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import NodeID3 from 'node-id3';
+import Stripe from 'stripe';
+import { corsHeaders } from './_auth';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2025-04-30.basil',
+});
 
 export const config = {
   api: {
@@ -8,18 +14,36 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const headers = corsHeaders(req);
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { fileUrl, title, artist, authors, coverUrl, genre, bpm } = req.query as Record<string, string>;
+    const { fileUrl, title, artist, authors, coverUrl, genre, bpm, session_id } = req.query as Record<string, string>;
 
     if (!fileUrl) {
       return res.status(400).json({ error: 'Falta fileUrl' });
+    }
+
+    // Only serve files from Vercel Blob storage
+    if (!fileUrl.includes('.vercel-storage.com') && !fileUrl.includes('.public.blob.vercel-storage.com')) {
+      return res.status(400).json({ error: 'URL de archivo no válida' });
+    }
+
+    // Verify Stripe payment — session_id is required
+    if (!session_id) {
+      return res.status(403).json({ error: 'Falta verificación de pago' });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      if (session.payment_status !== 'paid') {
+        return res.status(403).json({ error: 'Pago no confirmado' });
+      }
+    } catch {
+      return res.status(403).json({ error: 'Sesión de pago no válida' });
     }
 
     // Fetch the original MP3 file
@@ -53,17 +77,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Fetch and embed cover art
       if (coverUrl && !coverUrl.startsWith('data:')) {
         try {
-          const coverRes = await fetch(coverUrl);
-          if (coverRes.ok) {
-            const coverBuffer = Buffer.from(await coverRes.arrayBuffer());
-            const contentType = coverRes.headers.get('content-type') || 'image/jpeg';
-            const mime = contentType.includes('png') ? 'image/png' : 'image/jpeg';
-            tags.image = {
-              mime,
-              type: { id: 3, name: 'front cover' },
-              description: 'Cover',
-              imageBuffer: coverBuffer,
-            };
+          // Only fetch covers from Vercel Blob storage
+          if (coverUrl.includes('.vercel-storage.com') || coverUrl.includes('.public.blob.vercel-storage.com')) {
+            const coverRes = await fetch(coverUrl);
+            if (coverRes.ok) {
+              const coverBuffer = Buffer.from(await coverRes.arrayBuffer());
+              const contentType = coverRes.headers.get('content-type') || 'image/jpeg';
+              const mime = contentType.includes('png') ? 'image/png' : 'image/jpeg';
+              tags.image = {
+                mime,
+                type: { id: 3, name: 'front cover' },
+                description: 'Cover',
+                imageBuffer: coverBuffer,
+              };
+            }
           }
         } catch {
           // Skip cover if fetch fails
@@ -105,6 +132,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.send(buffer);
   } catch (error: any) {
     console.error('Download error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Error al descargar archivo' });
   }
 }
