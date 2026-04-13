@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Scissors, Play, Pause, Upload, Loader2, Volume2, VolumeX } from 'lucide-react';
+// @ts-ignore
+import lamejs from 'lamejs';
 
 interface PreviewGeneratorProps {
   fileUrl: string; // URL of the full track
@@ -216,8 +218,6 @@ export function PreviewGenerator({ fileUrl, onPreviewReady, adminToken }: Previe
       const renderedBuffer = await offline.startRendering();
 
       // Encode to MP3 at 128kbps using lamejs
-      // @ts-ignore
-      const lamejs = await import('lamejs');
       const mp3encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
 
       const left = renderedBuffer.getChannelData(0);
