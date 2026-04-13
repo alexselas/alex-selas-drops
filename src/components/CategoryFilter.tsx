@@ -1,10 +1,9 @@
-import { Disc3, Radio, Repeat, Layers, Library, Settings } from 'lucide-react';
+import { Disc3, Radio, Repeat, Layers, Library } from 'lucide-react';
 import type { Category } from '../types';
 
 interface CategoryFilterProps {
   selected: Category | 'all';
   onSelect: (cat: Category | 'all') => void;
-  onAdmin?: () => void;
 }
 
 const categories: { value: Category | 'all'; label: string; icon: typeof Disc3 }[] = [
@@ -15,7 +14,7 @@ const categories: { value: Category | 'all'; label: string; icon: typeof Disc3 }
   { value: 'librerias', label: 'Librerías', icon: Library },
 ];
 
-export default function CategoryFilter({ selected, onSelect, onAdmin }: CategoryFilterProps) {
+export default function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {categories.map(cat => {
@@ -36,15 +35,6 @@ export default function CategoryFilter({ selected, onSelect, onAdmin }: Category
           </button>
         );
       })}
-      {onAdmin && (
-        <button
-          onClick={onAdmin}
-          className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium transition-all bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-        >
-          <Settings className="w-4 h-4" />
-          Admin
-        </button>
-      )}
     </div>
   );
 }

@@ -1,4 +1,8 @@
-export default function Footer() {
+interface FooterProps {
+  onAdmin?: () => void;
+}
+
+export default function Footer({ onAdmin }: FooterProps) {
   return (
     <footer className="border-t border-zinc-800/50 bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -18,6 +22,10 @@ export default function Footer() {
             <span>Mashups</span>
             <span className="w-1 h-1 rounded-full bg-zinc-700" />
             <span>Librerías</span>
+            {onAdmin && <>
+              <span className="w-1 h-1 rounded-full bg-zinc-700" />
+              <span onClick={onAdmin} className="cursor-pointer">Admin</span>
+            </>}
           </div>
         </div>
 
