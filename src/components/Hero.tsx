@@ -53,31 +53,10 @@ export default function Hero({ onNavigate }: HeroProps) {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
-        >
-          <button
-            onClick={() => onNavigate('catalog')}
-            className="group relative px-8 py-3.5 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-105 active:scale-95 transition-transform"
-          >
-            <span className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5" />
-              Explorar Catálogo
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              const el = document.getElementById('featured');
-              el?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="px-8 py-3.5 rounded-2xl border border-zinc-700 text-zinc-300 font-semibold text-lg hover:border-yellow-400/40 hover:text-white transition-all"
-          >
-            Ver Destacados
-          </button>
-        </motion.div>
+        />
 
       </div>
     </section>
