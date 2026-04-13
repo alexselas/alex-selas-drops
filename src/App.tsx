@@ -247,7 +247,7 @@ export default function App() {
 
               {/* Filters */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-                <CategoryFilter selected={categoryFilter} onSelect={v => { setCategoryFilter(v); setCurrentPage(1); }} />
+                <CategoryFilter selected={categoryFilter} onSelect={v => { setCategoryFilter(v); setCurrentPage(1); }} onAdmin={() => navigate('admin')} />
                 <div className="flex items-center gap-3 sm:ml-auto w-full sm:w-auto">
                   <div className="relative flex-1 sm:flex-initial">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
