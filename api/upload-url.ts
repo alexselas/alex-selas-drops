@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { verifyAdminToken, corsHeaders } from './_auth';
+import { verifyAdminToken, corsHeaders } from './lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders(req);

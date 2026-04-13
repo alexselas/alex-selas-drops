@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
-import { verifyAdminToken, corsHeaders } from './_auth';
+import { verifyAdminToken, corsHeaders } from './lib/auth';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',

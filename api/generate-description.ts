@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyAdminToken, corsHeaders } from './_auth';
+import { verifyAdminToken, corsHeaders } from './lib/auth';
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 

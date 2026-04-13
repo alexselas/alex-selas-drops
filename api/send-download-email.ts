@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
 import Stripe from 'stripe';
-import { corsHeaders } from './_auth';
+import { corsHeaders } from './lib/auth';
 
 const resend = new Resend(process.env.RESEND_API_KEY || '');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {

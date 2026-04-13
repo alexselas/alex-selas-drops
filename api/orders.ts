@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
-import { verifyAdminToken, corsHeaders } from './_auth';
+import { verifyAdminToken, corsHeaders } from './lib/auth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-04-30.basil',

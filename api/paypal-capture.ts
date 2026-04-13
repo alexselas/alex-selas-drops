@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { corsHeaders } from './_auth';
+import { corsHeaders } from './lib/auth';
 
 const PAYPAL_CLIENT_ID = process.env.VITE_PAYPAL_CLIENT_ID || '';
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET_KEY || '';
