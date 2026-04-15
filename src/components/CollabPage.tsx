@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Loader2, Music, Play, Pause, ShoppingCart, Star, Package, ChevronDown, ChevronUp } from 'lucide-react';
-import type { Track, CollaboratorProfile, Section } from '../types';
+import { ArrowLeft, Loader2, Music, Play, Pause, ShoppingCart, Star, Package, ChevronDown, ChevronUp, Search, ArrowUpDown, Sparkles } from 'lucide-react';
+import type { Track, CollaboratorProfile, Section, Category, SortOption } from '../types';
 import { formatPrice, formatDuration } from '../lib/utils';
+import CategoryFilter from './CategoryFilter';
+import TrackCard from './TrackCard';
 
 interface CollabPageProps {
   collaboratorId: string;
@@ -156,188 +158,255 @@ export default function CollabPage({
         </div>
       </div>
 
-      {/* ====== FEATURED — same style as Home ====== */}
-      {featuredTracks.length > 0 && (
-        <div className="relative z-10 max-w-5xl mx-auto px-4 pt-8 pb-2">
-          <h2 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
-            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-            Destacados
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {featuredTracks.map(track => {
-              const isCurrentTrack = currentTrackId === track.id;
-              return (
-                <motion.div
-                  key={track.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="group relative bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 overflow-hidden hover:border-yellow-400/20 flex flex-col"
-                >
-                  {/* Cover */}
-                  <div className="relative aspect-square bg-[#111] cursor-pointer overflow-hidden flex-shrink-0" onClick={() => onDetail(track)}>
-                    {track.coverUrl ? (
-                      <img src={track.coverUrl} alt={track.title} className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1e1e1e] to-[#141414]">
-                        <Music className="w-12 h-12 text-zinc-800" />
-                      </div>
-                    )}
-                    {/* Play overlay */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button
-                        onClick={e => { e.stopPropagation(); onPlay(track); }}
-                        className="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform"
-                      >
-                        {isCurrentTrack && isPlaying ? <Pause className="w-5 h-5 text-black" /> : <Play className="w-5 h-5 text-black ml-0.5" />}
-                      </button>
-                    </div>
-                    {/* Playing indicator */}
-                    {isCurrentTrack && isPlaying && (
-                      <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-black/70 text-yellow-400 text-[10px] font-medium">
-                        Reproduciendo
-                      </div>
-                    )}
-                  </div>
-                  {/* Info */}
-                  <div className="p-3 flex flex-col flex-1">
-                    <h3 className="font-semibold text-sm text-zinc-50 truncate group-hover:text-yellow-400 transition-colors">{track.title}</h3>
-                    <p className="text-xs text-zinc-500 mt-0.5 truncate">
-                      {track.authors ? <><span className="text-zinc-400">{track.authors}</span> &middot; </> : null}
-                      {track.genre}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-zinc-500">
-                      {track.bpm > 0 && <span>{track.bpm} BPM</span>}
-                    </div>
-                    <div className="flex items-center justify-between mt-auto pt-2.5">
-                      <span className="text-base font-bold gradient-text">{formatPrice(track.price)}</span>
-                      <button
-                        onClick={() => onAddToCart(track)}
-                        disabled={isInCart(track.id)}
-                        className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                          isInCart(track.id)
-                            ? 'bg-green-500/20 text-green-400 cursor-default'
-                            : 'bg-zinc-800 text-zinc-300 hover:gradient-bg hover:text-black active:scale-95'
-                        }`}
-                      >
-                        {isInCart(track.id) ? 'Añadido' : 'Añadir'}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ====== ALL TRACKS — same style as Home ====== */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-6 pb-28">
-        {myTracks.length === 0 ? (
-          <div className="text-center py-20 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800/50">
-            <Music className="w-14 h-14 text-zinc-700 mx-auto mb-4" />
-            <p className="text-zinc-400 text-lg font-medium">Próximamente</p>
-            <p className="text-zinc-600 text-sm mt-1">Este artista aún no ha publicado tracks</p>
-          </div>
-        ) : (() => {
-          // Group packs + standalone — same as Home
-          type DisplayItem = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string };
-          const seenPacks = new Set<string>();
-          const displayItems: DisplayItem[] = [];
-          for (const track of myTracks) {
-            if (track.packId) {
-              if (seenPacks.has(track.packId)) continue;
-              seenPacks.add(track.packId);
-              const packTracks = myTracks.filter(t => t.packId === track.packId);
-              displayItems.push({ type: 'pack', packId: track.packId, packName: track.packName || 'Pack', tracks: packTracks, coverUrl: track.coverUrl, price: packTracks.reduce((s, t) => s + t.price, 0), artist: track.artist, genre: track.genre });
-            } else {
-              displayItems.push({ type: 'track', track });
-            }
-          }
-          return (
-            <div className="space-y-2">
-              {displayItems.map(item => {
-                if (item.type === 'track') {
-                  const track = item.track;
-                  const isCurrentTrack = currentTrackId === track.id;
-                  return (
-                    <div
-                      key={track.id}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
-                      onClick={() => onDetail(track)}
-                    >
-                      <button
-                        onClick={e => { e.stopPropagation(); onPlay(track); }}
-                        className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
-                      >
-                        {isCurrentTrack && isPlaying ? (
-                          <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" />
-                        ) : (
-                          <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />
-                        )}
-                      </button>
-                      {track.coverUrl ? (
-                        <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                          <Music className="w-4 h-4 text-zinc-700" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
-                        <p className="text-xs text-zinc-500 truncate">
-                          {track.authors ? `${track.authors} · ` : ''}{track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
-                        </p>
-                      </div>
-                      <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
-                      <button
-                        onClick={e => { e.stopPropagation(); onAddToCart(track); }}
-                        disabled={isInCart(track.id)}
-                        className={`flex-shrink-0 p-2 rounded-lg transition-all ${
-                          isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
-                        }`}
-                      >
-                        <ShoppingCart className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                }
-
-                // PACK item — same as Home
-                return (
-                  <PackRow
-                    key={item.packId}
-                    item={item}
-                    currentTrackId={currentTrackId}
-                    isPlaying={isPlaying}
-                    isInCart={isInCart}
-                    onPlay={onPlay}
-                    onAddToCart={onAddToCart}
-                  />
-                );
-              })}
-            </div>
-          );
-        })()}
-      </div>
+      {/* ====== FEATURED — same as Home ====== */}
+      <CollabContent
+        myTracks={myTracks}
+        featuredTracks={featuredTracks}
+        currentTrackId={currentTrackId}
+        isPlaying={isPlaying}
+        isInCart={isInCart}
+        onPlay={onPlay}
+        onAddToCart={onAddToCart}
+        onDetail={onDetail}
+      />
     </div>
   );
 }
 
+/* ====== CONTENT SECTION — replicates Home layout ====== */
+function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, isInCart, onPlay, onAddToCart, onDetail }: {
+  myTracks: Track[];
+  featuredTracks: Track[];
+  currentTrackId: string | null;
+  isPlaying: boolean;
+  isInCart: (id: string) => boolean;
+  onPlay: (track: Track) => void;
+  onAddToCart: (track: Track) => void;
+  onDetail: (track: Track) => void;
+}) {
+  const [categoryFilter, setCategoryFilter] = useState<Category | 'all' | 'packs'>('all');
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortOption>('newest');
+  const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
+
+  const filteredTracks = useMemo(() => {
+    let result = [...myTracks];
+    if (categoryFilter === 'packs') {
+      result = result.filter(t => !!t.packId);
+    } else if (categoryFilter !== 'all') {
+      result = result.filter(t => t.category === categoryFilter);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(t => t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q) || t.tags.some(tag => tag.toLowerCase().includes(q)));
+    }
+    switch (sort) {
+      case 'newest': result.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()); break;
+      case 'oldest': result.sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime()); break;
+      case 'price-asc': result.sort((a, b) => a.price - b.price); break;
+      case 'price-desc': result.sort((a, b) => b.price - a.price); break;
+      case 'title': result.sort((a, b) => a.title.localeCompare(b.title)); break;
+    }
+    return result;
+  }, [myTracks, categoryFilter, search, sort]);
+
+  // Build display items: standalone + grouped packs
+  const displayItems = useMemo(() => {
+    type DisplayItem = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string; category: string };
+    const seenPacks = new Set<string>();
+    const items: DisplayItem[] = [];
+    for (const track of filteredTracks) {
+      if (track.packId) {
+        if (seenPacks.has(track.packId)) continue;
+        seenPacks.add(track.packId);
+        const packTracks = filteredTracks.filter(t => t.packId === track.packId);
+        items.push({ type: 'pack', packId: track.packId, packName: track.packName || 'Pack', tracks: packTracks, coverUrl: track.coverUrl, price: packTracks.reduce((s, t) => s + t.price, 0), artist: track.artist, genre: track.genre, category: track.category });
+      } else {
+        items.push({ type: 'track', track });
+      }
+    }
+    return items;
+  }, [filteredTracks]);
+
+  if (myTracks.length === 0) {
+    return (
+      <div className="relative z-10 max-w-5xl mx-auto px-4 py-10 pb-28">
+        <div className="text-center py-20 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800/50">
+          <Music className="w-14 h-14 text-zinc-700 mx-auto mb-4" />
+          <p className="text-zinc-400 text-lg font-medium">Próximamente</p>
+          <p className="text-zinc-600 text-sm mt-1">Este artista aún no ha publicado tracks</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* ====== FEATURED ====== */}
+      {featuredTracks.length > 0 && (
+        <section className="relative z-10 py-8">
+          <div className="max-w-5xl mx-auto px-4">
+            <div className="flex items-center gap-3 mb-6">
+              <Sparkles className="w-6 h-6 text-yellow-400" />
+              <h2 className="text-3xl font-bold text-zinc-50">Destacados</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {featuredTracks.map(track => (
+                <TrackCard
+                  key={track.id}
+                  track={track}
+                  isPlaying={isPlaying}
+                  isCurrentTrack={currentTrackId === track.id}
+                  isInCart={isInCart(track.id)}
+                  onPlay={() => onPlay(track)}
+                  onAddToCart={() => onAddToCart(track)}
+                  onDetail={() => onDetail(track)}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ====== ALL TRACKS ====== */}
+      <div className="relative z-10 max-w-5xl mx-auto px-4 py-6 pb-28">
+        {/* Promo banner */}
+        <div className="relative overflow-hidden rounded-2xl mb-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500" />
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
+          <div className="relative px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+            <div className="text-center sm:text-left">
+              <p className="text-black/90 font-bold text-lg sm:text-xl">Descuento en tu primera compra</p>
+              <p className="text-black/60 text-sm mt-0.5">Introduce este código en el carrito</p>
+            </div>
+            <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg">WELCOME20</span>
+          </div>
+        </div>
+
+        <h2 className="text-2xl font-bold text-zinc-50 mb-6">Todos los tracks</h2>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+          <CategoryFilter selected={categoryFilter} onSelect={v => setCategoryFilter(v)} />
+          <div className="flex items-center gap-3 sm:ml-auto w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar..."
+                className="w-full sm:w-56 pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors"
+              />
+            </div>
+            <div className="relative">
+              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <select
+                value={sort}
+                onChange={e => setSort(e.target.value as SortOption)}
+                className="pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors appearance-none cursor-pointer"
+              >
+                <option value="newest">Más recientes</option>
+                <option value="oldest">Más antiguos</option>
+                <option value="price-asc">Precio: menor</option>
+                <option value="price-desc">Precio: mayor</option>
+                <option value="title">A-Z</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Track + Pack list */}
+        <div className="space-y-2">
+          {displayItems.map(item => {
+            if (item.type === 'track') {
+              const track = item.track;
+              const isCurrentTrack = currentTrackId === track.id;
+              return (
+                <div
+                  key={track.id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
+                  onClick={() => onDetail(track)}
+                >
+                  <button
+                    onClick={e => { e.stopPropagation(); onPlay(track); }}
+                    className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
+                  >
+                    {isCurrentTrack && isPlaying ? (
+                      <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" />
+                    ) : (
+                      <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />
+                    )}
+                  </button>
+                  {track.coverUrl ? (
+                    <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                      <Music className="w-4 h-4 text-zinc-700" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
+                    <p className="text-xs text-zinc-500 truncate">
+                      {track.authors ? `${track.authors} · ` : ''}{track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
+                    </p>
+                  </div>
+                  <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
+                  <button
+                    onClick={e => { e.stopPropagation(); onAddToCart(track); }}
+                    disabled={isInCart(track.id)}
+                    className={`flex-shrink-0 p-2 rounded-lg transition-all ${isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            }
+
+            // PACK
+            return (
+              <PackRow
+                key={item.packId}
+                item={item}
+                expanded={expandedPackId === item.packId}
+                onToggle={() => setExpandedPackId(expandedPackId === item.packId ? null : item.packId)}
+                currentTrackId={currentTrackId}
+                isPlaying={isPlaying}
+                isInCart={isInCart}
+                onPlay={onPlay}
+                onAddToCart={onAddToCart}
+              />
+            );
+          })}
+
+          {displayItems.length === 0 && (
+            <div className="text-center py-16">
+              <Music className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+              <p className="text-zinc-500">No se encontraron tracks</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* Pack row sub-component — matches Home style */
-function PackRow({ item, currentTrackId, isPlaying, isInCart, onPlay, onAddToCart }: {
+function PackRow({ item, expanded, onToggle, currentTrackId, isPlaying, isInCart, onPlay, onAddToCart }: {
   item: { packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string };
+  expanded: boolean;
+  onToggle: () => void;
   currentTrackId: string | null;
   isPlaying: boolean;
   isInCart: (id: string) => boolean;
   onPlay: (track: Track) => void;
   onAddToCart: (track: Track) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   return (
     <div className="rounded-xl overflow-hidden">
       <div
         className={`flex items-center gap-3 p-3 bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer ${expanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggle}
       >
         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex items-center justify-center">
           <Package className="w-5 h-5 text-yellow-400" />
