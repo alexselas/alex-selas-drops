@@ -42,6 +42,8 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
   const [trackSearch, setTrackSearch] = useState('');
   const [trackFilter, setTrackFilter] = useState<Category | 'all' | 'packs'>('all');
   const [expandedAdminPackId, setExpandedAdminPackId] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   // Orders from Stripe
   const [orders, setOrders] = useState<Order[]>([]);
@@ -395,13 +397,42 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                     </p>
 
                     <div className="space-y-2">
-                      {/* Packs */}
+                      {/* Packs — draggable */}
                       {packItems.map(pack => {
                         const isExpanded = expandedAdminPackId === pack.packId;
+                        const packDragging = dragId === pack.packId;
+                        const packDragOver = dragOverId === pack.packId;
                         return (
-                          <div key={pack.packId} className="rounded-xl overflow-hidden">
+                          <div
+                            key={pack.packId}
+                            className="rounded-xl overflow-hidden"
+                            draggable
+                            onDragStart={e => { setDragId(pack.packId); e.dataTransfer.effectAllowed = 'move'; }}
+                            onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                            onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverId !== pack.packId) setDragOverId(pack.packId); }}
+                            onDragLeave={() => { if (dragOverId === pack.packId) setDragOverId(null); }}
+                            onDrop={e => {
+                              e.preventDefault();
+                              if (dragId && dragId !== pack.packId) {
+                                const r = [...tracks];
+                                const fromIdx = r.findIndex(t => t.id === dragId || t.packId === dragId);
+                                const toIdx = r.findIndex(t => t.packId === pack.packId);
+                                if (fromIdx !== -1 && toIdx !== -1) {
+                                  const [moved] = r.splice(fromIdx, 1);
+                                  r.splice(toIdx, 0, moved);
+                                  onReorderTracks(r);
+                                }
+                              }
+                              setDragId(null);
+                              setDragOverId(null);
+                            }}
+                          >
                             <div
-                              className={`flex items-center gap-4 p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors cursor-pointer group ${isExpanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
+                              className={`flex items-center gap-4 p-4 border transition-all cursor-pointer group ${
+                                packDragging ? 'opacity-40 bg-zinc-900/30 border-zinc-800/30' :
+                                packDragOver ? 'bg-yellow-400/5 border-yellow-400/30' :
+                                'bg-zinc-900/50 border-zinc-800/50 hover:border-zinc-700/50'
+                              } ${isExpanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
                               onClick={() => setExpandedAdminPackId(isExpanded ? null : pack.packId)}
                             >
                               <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
@@ -487,20 +518,48 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                         );
                       })}
 
-                      {/* Standalone tracks */}
+                      {/* Standalone tracks — draggable */}
                       {standaloneTracks.map((track, i) => {
                         const CatIcon = categoryIcons[track.category] || Music;
+                        const isDragging = dragId === track.id;
+                        const isDragOver = dragOverId === track.id;
                         return (
-                          <motion.div
+                          <div
                             key={track.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.02 }}
-                            className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors group"
+                            draggable
+                            onDragStart={e => { setDragId(track.id); e.dataTransfer.effectAllowed = 'move'; }}
+                            onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                            onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverId !== track.id) setDragOverId(track.id); }}
+                            onDragLeave={() => { if (dragOverId === track.id) setDragOverId(null); }}
+                            onDrop={e => {
+                              e.preventDefault();
+                              if (dragId && dragId !== track.id) {
+                                const r = [...tracks];
+                                const fromIdx = r.findIndex(t => t.id === dragId);
+                                const toIdx = r.findIndex(t => t.id === track.id);
+                                if (fromIdx !== -1 && toIdx !== -1) {
+                                  const [moved] = r.splice(fromIdx, 1);
+                                  r.splice(toIdx, 0, moved);
+                                  onReorderTracks(r);
+                                }
+                              }
+                              setDragId(null);
+                              setDragOverId(null);
+                            }}
+                            className={`flex items-center gap-4 p-4 rounded-xl border transition-all group ${
+                              isDragging ? 'opacity-40 scale-[0.98] bg-zinc-900/30 border-zinc-800/30' :
+                              isDragOver ? 'bg-yellow-400/5 border-yellow-400/30 shadow-lg shadow-yellow-400/5' :
+                              'bg-zinc-900/50 border-zinc-800/50 hover:border-zinc-700/50'
+                            }`}
+                            style={{ cursor: 'grab' }}
                           >
+                            {/* Drag handle */}
+                            <div className="flex-shrink-0 text-zinc-700 hover:text-zinc-400 transition-colors cursor-grab active:cursor-grabbing">
+                              <GripVertical className="w-4 h-4" />
+                            </div>
                             <div className="w-14 h-14 rounded-xl bg-zinc-800 flex-shrink-0 flex items-center justify-center overflow-hidden">
                               {track.coverUrl ? (
-                                <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
+                                <img src={track.coverUrl} alt="" className="w-full h-full object-cover" draggable={false} />
                               ) : (
                                 <CatIcon className={`w-6 h-6 ${categoryColors[track.category]}`} />
                               )}
@@ -524,14 +583,10 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                             </div>
                             <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(track.price)}</span>
                             <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
-                              <div className="flex flex-col">
-                                <button onClick={() => { const idx = tracks.findIndex(t => t.id === track.id); if (idx > 0) { const r = [...tracks]; [r[idx-1],r[idx]]=[r[idx],r[idx-1]]; onReorderTracks(r); }}} disabled={tracks.findIndex(t => t.id === track.id) === 0} className="p-1 rounded text-zinc-600 hover:text-yellow-400 disabled:opacity-20 transition-colors" title="Subir"><ChevronUp className="w-3.5 h-3.5" /></button>
-                                <button onClick={() => { const idx = tracks.findIndex(t => t.id === track.id); if (idx < tracks.length - 1) { const r = [...tracks]; [r[idx],r[idx+1]]=[r[idx+1],r[idx]]; onReorderTracks(r); }}} disabled={tracks.findIndex(t => t.id === track.id) === tracks.length - 1} className="p-1 rounded text-zinc-600 hover:text-yellow-400 disabled:opacity-20 transition-colors" title="Bajar"><ChevronDown className="w-3.5 h-3.5" /></button>
-                              </div>
                               <button onClick={() => { setEditingTrack(track); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button>
-                              <button onClick={() => { if (confirm(`¿Eliminar "${track.title}"?`)) onDeleteTrack(track.id); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
+                              <button onClick={() => onDeleteTrack(track.id)} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                             </div>
-                          </motion.div>
+                          </div>
                         );
                       })}
 
