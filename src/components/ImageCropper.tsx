@@ -20,6 +20,17 @@ export default function ImageCropper({ imageUrl, shape = 'circle', onCrop, onCan
   const dragging = useRef(false);
   const lastPointer = useRef({ x: 0, y: 0 });
   const imgRef = useRef<HTMLImageElement>(null);
+  const [imgKey, setImgKey] = useState(0);
+
+  // Reset everything when imageUrl changes
+  useEffect(() => {
+    setNaturalW(0);
+    setNaturalH(0);
+    setZoom(1);
+    setMinZoom(1);
+    setPos({ x: 0, y: 0 });
+    setImgKey(k => k + 1);
+  }, [imageUrl]);
 
   const handleImgLoad = useCallback(() => {
     const img = imgRef.current;
@@ -136,6 +147,7 @@ export default function ImageCropper({ imageUrl, shape = 'circle', onCrop, onCan
         onWheel={onWheel}
       >
         <img
+          key={imgKey}
           ref={imgRef}
           src={imageUrl}
           alt=""
