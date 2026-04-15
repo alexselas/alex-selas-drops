@@ -1261,11 +1261,9 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                 </div>
                 {(profile.photoUrl || localPhotoPreview) && (
                   <div className="flex gap-2">
-                    {originalPhoto && (
-                      <button type="button" onClick={() => { setCropperMode('photo'); setCropperImage(originalPhoto); }} className="text-[10px] px-2.5 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-yellow-400/30 transition-colors">
-                        Editar recorte
-                      </button>
-                    )}
+                    <button type="button" onClick={() => { setCropperMode('photo'); setCropperImage(originalPhoto || profile.photoUrl); }} className="text-[10px] px-2.5 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-yellow-400/30 transition-colors">
+                      Editar recorte
+                    </button>
                     <button type="button" onClick={() => { setProfile(prev => ({ ...prev, photoUrl: '' })); setLocalPhotoPreview(''); setOriginalPhoto(''); }} className="text-[10px] px-2.5 py-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors">
                       Eliminar
                     </button>
@@ -1310,9 +1308,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
               </div>
               {(profile.bannerUrl || localBannerPreview) && (
                 <div className="flex flex-wrap gap-1.5">
-                  {originalBanner && (
-                    <button type="button" onClick={() => { setCropperMode('banner'); setCropperImage(originalBanner); }} className="text-[10px] px-2.5 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-yellow-400/30 transition-colors">Editar recorte</button>
-                  )}
+                  <button type="button" onClick={() => { setCropperMode('banner'); setCropperImage(originalBanner || profile.bannerUrl); }} className="text-[10px] px-2.5 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-yellow-400/30 transition-colors">Editar recorte</button>
                   <button type="button" onClick={() => bannerRef.current?.click()} className="text-[10px] px-2.5 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-yellow-400/30 transition-colors">Cambiar</button>
                   <button type="button" onClick={() => { setProfile(prev => ({ ...prev, bannerUrl: '' })); setLocalBannerPreview(''); setOriginalBanner(''); }} className="text-[10px] px-2.5 py-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors">Eliminar</button>
                 </div>
