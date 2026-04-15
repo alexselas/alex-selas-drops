@@ -529,26 +529,32 @@ export default function App() {
         {/* ============ COLABORADORES ============ */}
         {section === 'colabs' && !showCheckout && (() => {
           const colabTracks = tracks.filter(t => t.collaborator);
+          // Build dynamic collaborator list from API profiles, sorted alphabetically
+          const dynamicCollabs = Object.entries(collabProfiles)
+            .map(([id, prof]: [string, any]) => ({
+              id,
+              name: prof.artistName || id,
+              photoUrl: prof.photoUrl || '',
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'es'));
           return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
               <h1 className="text-3xl font-bold text-zinc-50 mb-3">Colaboradores</h1>
               <p className="text-zinc-500 mb-10">DJs y productores que colaboran con Alex Selas</p>
 
-              {/* Collaborator avatars — compact row */}
-              {(
+              {/* Collaborator avatars — compact row, sorted alphabetically */}
+              {dynamicCollabs.length > 0 ? (
                 <div className="flex flex-wrap gap-3 mb-10">
-                  {collaborators.map(collab => {
-                    const prof = collabProfiles[collab.id];
-                    const photo = prof?.photoUrl || collab.photoUrl;
+                  {dynamicCollabs.map(collab => {
                     const collabTrackCount = colabTracks.filter(t => t.collaboratorId === collab.id).length;
                     return (
                       <button
                         key={collab.id}
                         onClick={() => navigate('colab-page', collab.id)}
-                        className="flex items-center gap-3 bg-[#141414] rounded-xl border border-zinc-800/50 px-4 py-3 hover:border-yellow-400/30 transition-all"
+                        className="flex items-center gap-3 bg-[#141414] rounded-xl border border-zinc-800/50 px-4 py-3 hover:border-yellow-400/30 hover:bg-yellow-400/5 transition-all"
                       >
-                        {photo ? (
-                          <img src={photo} alt={collab.name} className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400/30 flex-shrink-0" />
+                        {collab.photoUrl ? (
+                          <img src={collab.photoUrl} alt={collab.name} className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400/30 flex-shrink-0" />
                         ) : (
                           <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-yellow-400/20 bg-yellow-400/5 flex-shrink-0">
                             <span className="text-sm font-bold text-yellow-400">{collab.name.charAt(0)}</span>
@@ -564,6 +570,11 @@ export default function App() {
                     );
                   })}
                 </div>
+              ) : (
+                <div className="text-center py-12 mb-10 bg-[#141414] rounded-2xl border border-zinc-800/50">
+                  <Music className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+                  <p className="text-zinc-500">Aún no hay colaboradores registrados</p>
+                </div>
               )}
 
               {/* Collaborator tracks — list format */}
@@ -573,7 +584,8 @@ export default function App() {
                   <div className="space-y-2 mb-16">
                     {colabTracks.map(track => {
                       const isCurrentTrack = player.currentTrack?.id === track.id;
-                      const collab = collaborators.find(c => c.id === track.collaboratorId);
+                      const prof = collabProfiles[track.collaboratorId || ''];
+                      const collabName = prof?.artistName || track.collaboratorId || '';
                       return (
                         <div
                           key={track.id}
@@ -607,7 +619,7 @@ export default function App() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-zinc-200 truncate">{track.title}</p>
                             <div className="flex items-center gap-2 text-[11px] text-zinc-500 mt-0.5">
-                              {collab && <span>{collab.name}</span>}
+                              {collabName && <span>{collabName}</span>}
                               <span className="text-zinc-700">·</span>
                               <span>{track.genre}</span>
                               {track.bpm > 0 && <><span className="text-zinc-700">·</span><span>{track.bpm} BPM</span></>}
@@ -681,11 +693,11 @@ export default function App() {
 
         {/* ============ COLAB PAGE (personal) ============ */}
         {section === 'colab-page' && !showCheckout && activeCollabId && (() => {
-          const collab = collaborators.find(c => c.id === activeCollabId);
+          const prof = collabProfiles[activeCollabId];
           return (
             <CollabPage
               collaboratorId={activeCollabId}
-              collaboratorName={collab?.name || activeCollabId}
+              collaboratorName={prof?.artistName || activeCollabId}
               tracks={tracks}
               currentTrackId={player.currentTrack?.id || null}
               isPlaying={player.isPlaying}
