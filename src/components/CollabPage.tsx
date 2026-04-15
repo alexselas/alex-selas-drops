@@ -326,7 +326,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
 
       {/* ====== ALL TRACKS ====== */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-28">
-      <div className="bg-zinc-900/90 backdrop-blur-md rounded-3xl border border-zinc-800/50 p-6 sm:p-8">
+      <div className="backdrop-blur-md rounded-3xl p-6 sm:p-8" style={{ backgroundColor: '#E3DFED' }}>
         {/* Promo banner */}
         <div className="relative overflow-hidden rounded-2xl mb-8">
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500" />
