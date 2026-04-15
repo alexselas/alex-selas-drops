@@ -732,6 +732,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDelete
   const [allCollabs, setAllCollabs] = useState<CollabEntry[]>(collaborators.map(c => ({ id: c.id, name: c.name })));
   const [selectedId, setSelectedId] = useState(collaborators[0]?.id || '');
   const [collabSubTab, setCollabSubTab] = useState<'profile' | 'tracks'>('tracks');
+  const [deleting, setDeleting] = useState(false);
   const [profile, setProfile] = useState<CollaboratorProfile>({
     bio: '', photoUrl: '', bannerUrl: '', artistName: '',
     socialLinks: {}, colorPrimary: '#FACC15', colorSecondary: '#EAB308',
@@ -809,6 +810,23 @@ function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDelete
     setIsAdding(false);
   };
 
+  const handleDeleteCollab = async () => {
+    if (!selectedId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/collab-delete?id=${selectedId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      if (res.ok) {
+        setAllCollabs(prev => prev.filter(c => c.id !== selectedId));
+        const remaining = allCollabs.filter(c => c.id !== selectedId);
+        setSelectedId(remaining[0]?.id || '');
+      }
+    } catch {}
+    setDeleting(false);
+  };
+
   const collabTracks = tracks.filter(t => t.collaboratorId === selectedId);
   const filteredCollabTracks = collabTracks.filter(t => {
     if (!trackSearch.trim()) return true;
@@ -827,17 +845,29 @@ function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDelete
       {/* Selector */}
       <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
         <h3 className="text-sm font-semibold text-zinc-300 mb-3">Selecciona colaborador</h3>
-        <div className="relative">
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
-          <select
-            value={selectedId}
-            onChange={e => setSelectedId(e.target.value)}
-            className={`${inputClass} appearance-none cursor-pointer pr-10`}
-          >
-            {allCollabs.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+            <select
+              value={selectedId}
+              onChange={e => setSelectedId(e.target.value)}
+              className={`${inputClass} appearance-none cursor-pointer pr-10`}
+            >
+              {allCollabs.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          {selectedId && (
+            <button
+              onClick={handleDeleteCollab}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/30 text-red-400 text-sm font-medium hover:bg-red-500/10 transition-colors disabled:opacity-50 flex-shrink-0"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </button>
+          )}
         </div>
       </div>
 
