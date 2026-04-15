@@ -79,7 +79,7 @@ export default function CollabPage({
       >
         {/* Gradient overlay */}
         {profile?.bannerUrl ? (
-          <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${c1}60 0%, ${c2}40 30%, rgba(9,9,11,0.85) 60%, rgba(9,9,11,1) 100%)` }} />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, transparent 0%, ${c1}30 20%, ${c2}25 45%, rgba(9,9,11,0.6) 75%, rgba(9,9,11,0.95) 92%, rgba(9,9,11,1) 100%)` }} />
         ) : (
           <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${c1} 0%, ${c2} 30%, #09090b 70%)` }} />
         )}
