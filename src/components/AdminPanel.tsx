@@ -729,8 +729,8 @@ interface CollabManagerProps {
 interface CollabEntry { id: string; name: string; }
 
 function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDeleteTrack }: CollabManagerProps) {
-  const [allCollabs, setAllCollabs] = useState<CollabEntry[]>(collaborators.map(c => ({ id: c.id, name: c.name })));
-  const [selectedId, setSelectedId] = useState(collaborators[0]?.id || '');
+  const [allCollabs, setAllCollabs] = useState<CollabEntry[]>([]);
+  const [selectedId, setSelectedId] = useState('');
   const [collabSubTab, setCollabSubTab] = useState<'profile' | 'tracks'>('tracks');
   const [deleting, setDeleting] = useState(false);
   const [profile, setProfile] = useState<CollaboratorProfile>({
@@ -745,19 +745,20 @@ function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDelete
   const [isAddingPack, setIsAddingPack] = useState(false);
   const [trackSearch, setTrackSearch] = useState('');
 
-  // Load registered collaborators from API
+  // Load registered collaborators from API only
   useEffect(() => {
     fetch('/api/collab-accounts-list', {
       headers: { Authorization: `Bearer ${adminToken}` },
     })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.accounts) {
-          const staticIds = collaborators.map(c => c.id);
-          const dynamic: CollabEntry[] = data.accounts
-            .filter((a: any) => !staticIds.includes(a.collaboratorId))
-            .map((a: any) => ({ id: a.collaboratorId, name: a.artistName || a.collaboratorId }));
-          setAllCollabs([...collaborators.map(c => ({ id: c.id, name: c.name })), ...dynamic]);
+        if (data?.accounts && data.accounts.length > 0) {
+          const list: CollabEntry[] = data.accounts.map((a: any) => ({
+            id: a.collaboratorId,
+            name: a.artistName || a.collaboratorId,
+          }));
+          setAllCollabs(list);
+          setSelectedId(list[0].id);
         }
       })
       .catch(() => {});
@@ -839,6 +840,16 @@ function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDelete
 
   const categoryLabels: Record<string, string> = { sesiones: 'Sesión', remixes: 'Remix', mashups: 'Mashup', librerias: 'Librería' };
   const categoryColors: Record<string, string> = { sesiones: 'text-emerald-400', remixes: 'text-violet-400', mashups: 'text-yellow-400', librerias: 'text-amber-400' };
+
+  if (allCollabs.length === 0) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
+        <Users className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+        <p className="text-zinc-500">No hay colaboradores registrados</p>
+        <p className="text-zinc-600 text-sm mt-1">Los colaboradores aparecerán aquí cuando se registren en /colab-admin</p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
