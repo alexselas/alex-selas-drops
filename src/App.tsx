@@ -715,6 +715,7 @@ export default function App() {
                 onAddTrack={handleAddTrack}
                 onUpdateTrack={handleUpdateTrack}
                 onDeleteTrack={handleDeleteTrack}
+                onReorderTracks={handleReorderTracks}
                 onLogout={collabAdmin.logout}
                 collabToken={collabAdmin.getToken()}
               />
