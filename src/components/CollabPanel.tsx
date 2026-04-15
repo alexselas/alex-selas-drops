@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   Plus, Edit2, Trash2, LogOut, Music, Clock, Package,
-  ListMusic, Search, ChevronDown, ChevronUp, Star, User, GripVertical,
+  ListMusic, Search, ChevronDown, ChevronUp, Star, User, GripVertical, ExternalLink,
 } from 'lucide-react';
 import type { Track, Category, Collaborator } from '../types';
 import { formatPrice, formatDuration } from '../lib/utils';
@@ -119,13 +119,22 @@ export default function CollabPanel({
             <h1 className="text-xl font-bold text-zinc-50">{collaborator.name}</h1>
           </div>
         </div>
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-400/30 transition-colors text-sm"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Cerrar sesión</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.open(`/colab/${collaborator.id}`, '_blank')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 text-zinc-400 hover:text-emerald-400 hover:border-emerald-400/30 transition-colors text-sm"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span className="hidden sm:inline">Acceder a mi perfil</span>
+          </button>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-400/30 transition-colors text-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Cerrar sesión</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
