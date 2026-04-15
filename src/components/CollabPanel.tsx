@@ -96,8 +96,8 @@ export default function CollabPanel({
             </div>
           )}
           <div>
+            <p className="text-xs text-zinc-500">Panel de</p>
             <h1 className="text-xl font-bold text-zinc-50">{collaborator.name}</h1>
-            <p className="text-xs text-zinc-500">Panel de Colaborador</p>
           </div>
         </div>
         <button
@@ -253,12 +253,16 @@ export default function CollabPanel({
                         <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 fill-yellow-400" />
                       )}
                     </div>
+                    {track.artist && (
+                      <p className="text-xs text-zinc-400 mt-0.5 truncate">{track.artist}{track.authors ? ` — ${track.authors}` : ''}</p>
+                    )}
                     <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
                       <span className={`font-medium ${categoryColors[track.category]}`}>
                         {categoryLabels[track.category]}
                       </span>
                       <span>{track.genre}</span>
                       {track.bpm > 0 && <span>{track.bpm} BPM</span>}
+                      {track.key && <span>{track.key}</span>}
                       {track.duration > 0 && (
                         <span className="flex items-center gap-0.5">
                           <Clock className="w-3 h-3" />

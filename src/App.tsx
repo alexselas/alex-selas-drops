@@ -679,7 +679,14 @@ export default function App() {
               />
             ) : (
               <CollabPanel
-                collaborator={collaborators.find(c => c.id === collabAdmin.collaboratorId) || { id: collabAdmin.collaboratorId, name: collabAdmin.collaboratorId, photoUrl: '' }}
+                collaborator={(() => {
+                  const prof = collabProfiles[collabAdmin.collaboratorId];
+                  return {
+                    id: collabAdmin.collaboratorId,
+                    name: prof?.artistName || collabAdmin.collaboratorId,
+                    photoUrl: prof?.photoUrl || '',
+                  };
+                })()}
                 tracks={tracks}
                 onAddTrack={handleAddTrack}
                 onUpdateTrack={handleUpdateTrack}
