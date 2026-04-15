@@ -529,14 +529,13 @@ export default function App() {
         {/* ============ COLABORADORES ============ */}
         {section === 'colabs' && !showCheckout && (() => {
           const colabTracks = tracks.filter(t => t.collaborator);
-          const isDev = import.meta.env.DEV;
           return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
               <h1 className="text-3xl font-bold text-zinc-50 mb-3">Colaboradores</h1>
               <p className="text-zinc-500 mb-10">DJs y productores que colaboran con Alex Selas</p>
 
               {/* Collaborator avatars — compact row */}
-              {isDev && (
+              {(
                 <div className="flex flex-wrap gap-3 mb-10">
                   {collaborators.map(collab => {
                     const prof = collabProfiles[collab.id];
@@ -568,7 +567,7 @@ export default function App() {
               )}
 
               {/* Collaborator tracks — list format */}
-              {isDev && colabTracks.length > 0 && (
+              {colabTracks.length > 0 && (
                 <>
                   <h2 className="text-xl font-bold text-zinc-200 mb-4">Tracks de colaboradores</h2>
                   <div className="space-y-2 mb-16">
@@ -680,8 +679,8 @@ export default function App() {
           </>
         )}
 
-        {/* ============ COLAB PAGE (personal) — dev only ============ */}
-        {import.meta.env.DEV && section === 'colab-page' && !showCheckout && activeCollabId && (() => {
+        {/* ============ COLAB PAGE (personal) ============ */}
+        {section === 'colab-page' && !showCheckout && activeCollabId && (() => {
           const collab = collaborators.find(c => c.id === activeCollabId);
           return (
             <CollabPage
