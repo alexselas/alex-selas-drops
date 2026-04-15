@@ -64,6 +64,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'No autorizado' });
     }
 
+    // Enforce max 4 featured per group (admin tracks or per collaborator)
+    function enforceFeaturedLimit(tracks: any[], newTrack: any) {
+      if (!newTrack.featured) return;
+      const isCollab = newTrack.collaborator && newTrack.collaboratorId;
+      const featured = tracks.filter((t: any) => {
+        if (t.id === newTrack.id) return false; // exclude the track being saved
+        if (!t.featured) return false;
+        if (isCollab) return t.collaboratorId === newTrack.collaboratorId;
+        return !t.collaborator;
+      });
+      // Sort by releaseDate ascending (oldest first)
+      featured.sort((a: any, b: any) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime());
+      // Remove oldest until we have room for 1 more (max 4 total)
+      while (featured.length >= 4) {
+        const oldest = featured.shift();
+        if (oldest) {
+          const oi = tracks.findIndex((t: any) => t.id === oldest.id);
+          if (oi !== -1) tracks[oi].featured = false;
+        }
+      }
+    }
+
     if (req.method === 'POST') {
       const data = req.body;
       // Collaborators: force their ID onto the track
@@ -73,6 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const tracks = await getTracks();
       const newTrack = { ...data, id: data.id || `track-${Date.now()}` };
+      enforceFeaturedLimit(tracks, newTrack);
       tracks.unshift(newTrack);
       await redis.set(KV_KEY, tracks);
       return res.status(200).json(newTrack);
@@ -88,7 +111,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (collab.valid && !isAdmin && tracks[idx].collaboratorId !== collab.collaboratorId) {
         return res.status(403).json({ error: 'No puedes editar este track' });
       }
-      tracks[idx] = { ...tracks[idx], ...data };
+      const updated = { ...tracks[idx], ...data };
+      enforceFeaturedLimit(tracks, updated);
+      tracks[idx] = updated;
       await redis.set(KV_KEY, tracks);
       return res.status(200).json(tracks[idx]);
     }
