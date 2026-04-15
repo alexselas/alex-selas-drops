@@ -248,7 +248,22 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
   return (
     <>
       {/* ====== FEATURED ====== */}
-      {featuredTracks.length > 0 && (
+      {featuredTracks.length > 0 && (() => {
+        // Group packs in featured — show packName not individual track title
+        type FeatItem = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string; category: string };
+        const seenPacks = new Set<string>();
+        const featItems: FeatItem[] = [];
+        for (const track of featuredTracks) {
+          if (track.packId) {
+            if (seenPacks.has(track.packId)) continue;
+            seenPacks.add(track.packId);
+            const packTracks = myTracks.filter(t => t.packId === track.packId);
+            featItems.push({ type: 'pack', packId: track.packId, packName: track.packName || 'Pack', tracks: packTracks, coverUrl: track.coverUrl, price: packTracks.reduce((s, t) => s + t.price, 0), artist: track.artist, genre: track.genre, category: track.category });
+          } else {
+            featItems.push({ type: 'track', track });
+          }
+        }
+        return (
         <section className="relative z-10 py-8">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center gap-3 mb-6">
@@ -256,22 +271,64 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
               <h2 className="text-3xl font-bold text-zinc-50">Destacados</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {featuredTracks.map(track => (
-                <TrackCard
-                  key={track.id}
-                  track={track}
-                  isPlaying={isPlaying}
-                  isCurrentTrack={currentTrackId === track.id}
-                  isInCart={isInCart(track.id)}
-                  onPlay={() => onPlay(track)}
-                  onAddToCart={() => onAddToCart(track)}
-                  onDetail={() => onDetail(track)}
-                />
-              ))}
+              {featItems.map(item => {
+                if (item.type === 'track') {
+                  return (
+                    <TrackCard
+                      key={item.track.id}
+                      track={item.track}
+                      isPlaying={isPlaying}
+                      isCurrentTrack={currentTrackId === item.track.id}
+                      isInCart={isInCart(item.track.id)}
+                      onPlay={() => onPlay(item.track)}
+                      onAddToCart={() => onAddToCart(item.track)}
+                      onDetail={() => onDetail(item.track)}
+                    />
+                  );
+                }
+                // Pack card
+                return (
+                  <motion.div
+                    key={item.packId}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="group relative bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 overflow-hidden hover:border-yellow-400/20 flex flex-col cursor-pointer"
+                    onClick={() => item.tracks[0] && onDetail(item.tracks[0])}
+                  >
+                    <div className="relative aspect-square bg-[#111] overflow-hidden flex-shrink-0">
+                      {item.coverUrl ? (
+                        <img src={item.coverUrl} alt={item.packName} className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1e1e1e] to-[#141414]">
+                          <Package className="w-12 h-12 text-zinc-800" />
+                        </div>
+                      )}
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold backdrop-blur-sm bg-yellow-400/20 text-yellow-400">PACK</span>
+                    </div>
+                    <div className="p-3 flex flex-col flex-1">
+                      <h3 className="font-semibold text-sm text-zinc-50 truncate group-hover:text-yellow-400 transition-colors">{item.packName}</h3>
+                      <p className="text-xs text-zinc-500 mt-0.5 truncate">{item.artist} &middot; {item.tracks.length} tracks</p>
+                      <div className="flex items-center justify-between mt-auto pt-2.5">
+                        <span className="text-base font-bold gradient-text">{formatPrice(item.price)}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); item.tracks.forEach(t => onAddToCart(t)); }}
+                          disabled={item.tracks.every(t => isInCart(t.id))}
+                          className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                            item.tracks.every(t => isInCart(t.id)) ? 'bg-green-500/20 text-green-400 cursor-default' : 'bg-zinc-800 text-zinc-300 hover:gradient-bg hover:text-black active:scale-95'
+                          }`}
+                        >
+                          {item.tracks.every(t => isInCart(t.id)) ? 'Añadido' : 'Añadir'}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {/* ====== ALL TRACKS ====== */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-28">
