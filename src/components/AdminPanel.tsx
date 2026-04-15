@@ -463,9 +463,9 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                                         Archivo {track.fileUrl ? '✓' : '—'}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-0.5 opacity-0 group-hover/track:opacity-100 transition-opacity">
+                                    <div className="flex items-center gap-0.5 flex-shrink-0">
                                       <button
-                                        onClick={e => { e.stopPropagation(); setEditingTrack(track); setIsAdding(false); setIsAddingPack(false); setEditingPackTracks(null); }}
+                                        onClick={e => { e.stopPropagation(); setExpandedAdminPackId(null); setEditingTrack(track); setIsAdding(false); setIsAddingPack(false); setEditingPackTracks(null); }}
                                         className="p-1.5 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
                                         title="Editar track"
                                       >
