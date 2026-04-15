@@ -111,7 +111,7 @@ export default function CollabPage({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-white/80 text-sm sm:text-base max-w-lg mx-auto leading-relaxed mb-6 text-center text-justify break-words"
+              className="text-white/80 text-sm sm:text-base max-w-lg mx-auto leading-relaxed mb-6 text-center break-words"
               style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
             >
               {profile.bio}
