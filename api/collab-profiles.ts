@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
-function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','http://localhost:3000'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, OPTIONS','Access-Control-Allow-Headers':'Content-Type'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
+function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, OPTIONS','Access-Control-Allow-Headers':'Content-Type'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',

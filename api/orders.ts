@@ -21,7 +21,7 @@ function verifyAdminToken(authHeader: string | undefined): boolean {
   } catch { return false; }
 }
 function corsHeaders(req: { headers: { origin?: string } }) {
-  const allowedOrigins = ['https://alex-selas-drops.vercel.app', 'http://localhost:3000'];
+  const allowedOrigins = ['https://alex-selas-drops.vercel.app'];
   const origin = req.headers.origin || '';
   const headers: Record<string, string> = { 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
   if (allowedOrigins.includes(origin)) headers['Access-Control-Allow-Origin'] = origin;

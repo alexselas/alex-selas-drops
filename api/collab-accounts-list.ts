@@ -27,7 +27,7 @@ function verifyAdminToken(h: string | undefined): boolean {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const allowedOrigins = ['https://alex-selas-drops.vercel.app', 'http://localhost:3000', 'http://localhost:3001'];
+  const allowedOrigins = ['https://alex-selas-drops.vercel.app'];
   const origin = req.headers.origin || '';
   if (allowedOrigins.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');

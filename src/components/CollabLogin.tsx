@@ -44,8 +44,8 @@ export default function CollabLogin({ collaborators, onLogin, onRegister }: Coll
     }
 
     if (mode === 'register') {
-      if (password.length < 6) {
-        setError('La contraseña debe tener al menos 6 caracteres');
+      if (password.length < 12) {
+        setError('La contraseña debe tener al menos 12 caracteres');
         return;
       }
       if (password !== confirmPassword) {
@@ -147,7 +147,7 @@ export default function CollabLogin({ collaborators, onLogin, onRegister }: Coll
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
+                placeholder={mode === 'register' ? 'Mínimo 12 caracteres' : '••••••••'}
                 className="w-full pl-11 pr-12 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-violet-400/25 transition-colors"
               />
               <button

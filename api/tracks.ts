@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
-const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}function verifyCollabToken(h:string|undefined):{valid:boolean;collaboratorId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('collab.'))return{valid:false};const s=process.env.ADMIN_SECRET||'dev-secret';const p=t.split('.');if(p.length!==4)return{valid:false};const[,cid,ts,hm]=p;if(!cid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return{valid:false};const py=`collab.${cid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,collaboratorId:cid};}catch{return{valid:false};}}function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','http://localhost:3000'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
+const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}function verifyCollabToken(h:string|undefined):{valid:boolean;collaboratorId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('collab.'))return{valid:false};const s=process.env.ADMIN_SECRET||'dev-secret';const p=t.split('.');if(p.length!==4)return{valid:false};const[,cid,ts,hm]=p;if(!cid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return{valid:false};const py=`collab.${cid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,collaboratorId:cid};}catch{return{valid:false};}}function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',
@@ -37,6 +37,21 @@ async function getTracks() {
 // Strip fileUrl from tracks for public response (only admin sees it)
 function stripFileUrls(tracks: any[]) {
   return tracks.map(({ fileUrl, ...rest }) => rest);
+}
+
+function validateTrackData(data: any): string | null {
+  if (!data || typeof data !== 'object') return 'Datos no válidos';
+  if (data.title && (typeof data.title !== 'string' || data.title.length > 200)) return 'Título demasiado largo';
+  if (data.artist && (typeof data.artist !== 'string' || data.artist.length > 200)) return 'Artista demasiado largo';
+  if (data.authors && (typeof data.authors !== 'string' || data.authors.length > 500)) return 'Autores demasiado largo';
+  if (data.description && (typeof data.description !== 'string' || data.description.length > 1000)) return 'Descripción demasiado larga';
+  if (data.genre && (typeof data.genre !== 'string' || data.genre.length > 100)) return 'Género demasiado largo';
+  if (data.coverUrl && (typeof data.coverUrl !== 'string' || data.coverUrl.length > 2000)) return 'URL demasiado larga';
+  if (data.fileUrl && (typeof data.fileUrl !== 'string' || data.fileUrl.length > 2000)) return 'URL demasiado larga';
+  if (data.price !== undefined && (typeof data.price !== 'number' || data.price < 0 || data.price > 9999)) return 'Precio no válido';
+  if (data.bpm !== undefined && (typeof data.bpm !== 'number' || data.bpm < 0 || data.bpm > 999)) return 'BPM no válido';
+  if (data.tags && (!Array.isArray(data.tags) || data.tags.length > 20)) return 'Tags no válidos';
+  return null;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -92,6 +107,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Support batch: if body is an array, add all tracks at once
       const items = Array.isArray(body) ? body : [body];
+      for (const item of items) {
+        const err = validateTrackData(item);
+        if (err) return res.status(400).json({ error: err });
+      }
       const newTracks: any[] = [];
       for (const data of items) {
         if (collab.valid && collab.collaboratorId) {
@@ -110,6 +129,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'PUT') {
       const data = req.body;
       if (!data.id) return res.status(400).json({ error: 'Falta id' });
+      const valErr = validateTrackData(data);
+      if (valErr) return res.status(400).json({ error: valErr });
       const tracks = await getTracks();
       const idx = tracks.findIndex((t: any) => t.id === data.id);
       if (idx === -1) return res.status(404).json({ error: 'Track no encontrado' });

@@ -1,10 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
 import crypto from 'crypto';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',
   token: process.env.KV_REST_API_TOKEN || '',
+});
+
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, '15 m'),
+  prefix: 'ratelimit:collab-login',
 });
 
 const COLLAB_ACCOUNTS_KEY = 'collab-accounts';
@@ -29,7 +36,7 @@ function generateToken(collaboratorId: string): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const allowedOrigins = ['https://alex-selas-drops.vercel.app', 'http://localhost:3000'];
+  const allowedOrigins = ['https://alex-selas-drops.vercel.app'];
   const origin = req.headers.origin || '';
   if (allowedOrigins.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -37,6 +44,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown';
+  const { success } = await ratelimit.limit(ip);
+  if (!success) {
+    return res.status(429).json({ error: 'Demasiados intentos. Intenta de nuevo más tarde.' });
+  }
 
   const { email, password } = req.body;
   if (!email || !password) {

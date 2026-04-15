@@ -2,8 +2,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import NodeID3 from 'node-id3';
 import Stripe from 'stripe';
 import crypto from 'crypto';
+
+function sanitizeTag(s: string, max = 200): string {
+  return s ? s.replace(/[\x00-\x1F\x7F]/g, '').trim().substring(0, max) : '';
+}
 const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}
-function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','http://localhost:3000'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
+function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -63,17 +67,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (isMP3) {
       // Build ID3 tags
       const tags: NodeID3.Tags = {
-        title: title || '',
-        artist: authors ? `${authors}` : (artist || ''),
-        performerInfo: artist || '',
-        album: artist ? `${artist} Drops` : 'Alex Selas Drops',
-        genre: genre || '',
+        title: sanitizeTag(title || ''),
+        artist: authors ? sanitizeTag(authors) : sanitizeTag(artist || ''),
+        performerInfo: sanitizeTag(artist || ''),
+        album: sanitizeTag(artist ? `${artist} Drops` : 'Alex Selas Drops'),
+        genre: sanitizeTag(genre || '', 100),
         year: new Date().getFullYear().toString(),
         comment: { language: 'spa', text: 'alexselasdrops.com' },
       };
 
-      // Add BPM if available
-      if (bpm && Number(bpm) > 0) {
+      // Add BPM if available (validated)
+      if (bpm && /^\d{1,3}$/.test(bpm) && Number(bpm) > 0 && Number(bpm) < 999) {
         tags.bpm = bpm;
       }
 
