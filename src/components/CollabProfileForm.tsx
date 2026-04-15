@@ -127,7 +127,7 @@ export default function CollabProfileForm({ collaboratorId, collaboratorName, co
     setSaving(true);
     setSaved(false);
     try {
-      await fetch('/api/collab-profile', {
+      const res = await fetch('/api/collab-profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -135,6 +135,14 @@ export default function CollabProfileForm({ collaboratorId, collaboratorName, co
         },
         body: JSON.stringify(form),
       });
+      const data = await res.json();
+      // If the collaboratorId changed (artist name slug), update session
+      if (data.newCollaboratorId && data.newCollaboratorId !== collaboratorId) {
+        sessionStorage.setItem('alex-selas-drops-collab-id', data.newCollaboratorId);
+        // Reload to refresh everything with new ID
+        window.location.href = '/colab-admin';
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {}

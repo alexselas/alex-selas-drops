@@ -302,11 +302,7 @@ export default function CollabPanel({
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`¿Eliminar "${track.title}"?`)) {
-                          onDeleteTrack(track.id);
-                        }
-                      }}
+                      onClick={() => onDeleteTrack(track.id)}
                       className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                       title="Eliminar"
                     >

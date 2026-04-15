@@ -9,6 +9,12 @@ const redis = new Redis({
 });
 
 const PROFILES_KEY = 'collab-profiles';
+const ACCOUNTS_KEY = 'collab-accounts';
+const TRACKS_KEY = 'tracks';
+
+function toSlug(name: string): string {
+  return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'collab';
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders(req);
@@ -48,8 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const { bio, photoUrl, bannerUrl, artistName, socialLinks, colorPrimary, colorSecondary } = req.body;
 
-      const profiles = ((await redis.get(PROFILES_KEY)) || {}) as Record<string, any>;
-      profiles[targetId] = {
+      const profileData = {
         bio: (bio || '').substring(0, 300),
         photoUrl: photoUrl || '',
         bannerUrl: bannerUrl || '',
@@ -58,9 +63,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         colorPrimary: colorPrimary || '#FACC15',
         colorSecondary: colorSecondary || '#EAB308',
       };
+
+      // Check if artistName changed → update collaboratorId (slug) everywhere
+      const newSlug = artistName ? toSlug(artistName) : '';
+      let finalId = targetId;
+
+      if (newSlug && newSlug !== targetId) {
+        const profiles = ((await redis.get(PROFILES_KEY)) || {}) as Record<string, any>;
+
+        // Check slug not taken by another collaborator
+        if (profiles[newSlug] && newSlug !== targetId) {
+          // Append number to make unique
+          let n = 2;
+          while (profiles[`${newSlug}-${n}`]) n++;
+          finalId = `${newSlug}-${n}`;
+        } else {
+          finalId = newSlug;
+        }
+
+        // Move profile to new key
+        delete profiles[targetId];
+        profiles[finalId] = profileData;
+        await redis.set(PROFILES_KEY, profiles);
+
+        // Update account collaboratorId
+        const accounts = ((await redis.get(ACCOUNTS_KEY)) || []) as any[];
+        const acc = accounts.find((a: any) => a.collaboratorId === targetId);
+        if (acc) {
+          acc.collaboratorId = finalId;
+          await redis.set(ACCOUNTS_KEY, accounts);
+        }
+
+        // Update all tracks with old collaboratorId
+        const tracks = ((await redis.get(TRACKS_KEY)) || []) as any[];
+        let tracksChanged = false;
+        for (const t of tracks) {
+          if (t.collaboratorId === targetId) {
+            t.collaboratorId = finalId;
+            t.artist = artistName || t.artist;
+            tracksChanged = true;
+          }
+        }
+        if (tracksChanged) await redis.set(TRACKS_KEY, tracks);
+
+        return res.status(200).json({ ...profileData, newCollaboratorId: finalId });
+      }
+
+      // No slug change — just update profile
+      const profiles = ((await redis.get(PROFILES_KEY)) || {}) as Record<string, any>;
+      profiles[targetId] = profileData;
       await redis.set(PROFILES_KEY, profiles);
 
-      return res.status(200).json(profiles[targetId]);
+      return res.status(200).json(profileData);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
