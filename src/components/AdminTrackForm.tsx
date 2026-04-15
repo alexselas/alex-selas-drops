@@ -523,8 +523,9 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
               <input
                 type="text"
                 value={form.artist}
-                onChange={e => setForm({ ...form, artist: e.target.value })}
-                className={inputClass}
+                onChange={e => { if (!hideCollaboratorCheckbox) setForm({ ...form, artist: e.target.value }); }}
+                readOnly={!!hideCollaboratorCheckbox}
+                className={`${inputClass} ${hideCollaboratorCheckbox ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
             </div>
             <div>

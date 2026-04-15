@@ -274,7 +274,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
           </div>
           <div>
             <label className="block text-xs text-zinc-500 mb-1">Productor</label>
-            <input type="text" value={artist} onChange={e => setArtist(e.target.value)} className={inputClass} />
+            <input type="text" value={artist} onChange={e => { if (!hideCollaboratorCheckbox) setArtist(e.target.value); }} readOnly={!!hideCollaboratorCheckbox} className={`${inputClass} ${hideCollaboratorCheckbox ? 'opacity-60 cursor-not-allowed' : ''}`} />
           </div>
           <div>
             <label className="block text-xs text-zinc-500 mb-1">Autores originales</label>
