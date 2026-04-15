@@ -79,14 +79,9 @@ export default function CollabPage({
           background: `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, #09090b 100%)`,
         }}
       >
-        {/* Overlays — clean, no colored tints */}
+        {/* Thin fade only at the very bottom to blend into content */}
         {profile?.bannerUrl && (
-          <>
-            {/* Subtle overall darken for text readability */}
-            <div className="absolute inset-0 bg-black/25" />
-            {/* Bottom fade to content */}
-            <div className="absolute inset-x-0 bottom-0 h-[50%]" style={{ background: 'linear-gradient(to bottom, transparent 0%, rgba(9,9,11,0.4) 40%, rgba(9,9,11,0.85) 75%, rgba(9,9,11,1) 100%)' }} />
-          </>
+          <div className="absolute inset-x-0 bottom-0 h-20" style={{ background: 'linear-gradient(to bottom, transparent, rgba(9,9,11,1))' }} />
         )}
 
         {/* Back */}
