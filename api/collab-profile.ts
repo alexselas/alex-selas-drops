@@ -109,10 +109,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ...profileData, newCollaboratorId: finalId });
       }
 
-      // No slug change — just update profile
+      // No slug change — update profile + sync artist name on all tracks and account
       const profiles = ((await redis.get(PROFILES_KEY)) || {}) as Record<string, any>;
       profiles[targetId] = profileData;
       await redis.set(PROFILES_KEY, profiles);
+
+      // Update artist name on all tracks of this collaborator
+      if (artistName) {
+        const tracks = ((await redis.get(TRACKS_KEY)) || []) as any[];
+        let tracksChanged = false;
+        for (const t of tracks) {
+          if (t.collaboratorId === targetId && t.artist !== artistName) {
+            t.artist = artistName;
+            tracksChanged = true;
+          }
+        }
+        if (tracksChanged) await redis.set(TRACKS_KEY, tracks);
+
+        // Update artistName on account
+        const accounts = ((await redis.get(ACCOUNTS_KEY)) || []) as any[];
+        const acc = accounts.find((a: any) => a.collaboratorId === targetId);
+        if (acc && acc.artistName !== artistName) {
+          acc.artistName = artistName;
+          await redis.set(ACCOUNTS_KEY, accounts);
+        }
+      }
 
       return res.status(200).json(profileData);
     }
