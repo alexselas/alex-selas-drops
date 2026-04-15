@@ -170,7 +170,15 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
       setGeneratingPreviews(true);
       for (const { idx } of tracksNeedingPreview) {
         const ref = previewGenRefs.current[idx];
-        if (ref?.isReady()) {
+        if (!ref) continue;
+        // Wait for the PreviewGenerator to finish loading audio (up to 15s)
+        if (!ref.isReady()) {
+          setPreviewProgress(`Cargando audio ${idx + 1}/${tracks.length}...`);
+          for (let wait = 0; wait < 30 && !ref.isReady(); wait++) {
+            await new Promise(r => setTimeout(r, 500));
+          }
+        }
+        if (ref.isReady()) {
           setPreviewProgress(`Generando preview ${idx + 1}/${tracks.length}...`);
           const blob = await ref.generate();
           if (blob) {
