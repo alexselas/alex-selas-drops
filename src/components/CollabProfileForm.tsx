@@ -246,6 +246,7 @@ export default function CollabProfileForm({ collaboratorId, collaboratorName, co
               <div className="w-full h-full bg-zinc-800/50 flex flex-col items-center justify-center gap-1">
                 <Upload className="w-5 h-5 text-zinc-600 group-hover:text-yellow-400 transition-colors" />
                 <span className="text-[9px] text-zinc-600">Subir foto</span>
+                <span className="text-[9px] text-zinc-600">1600 × 900 px</span>
               </div>
             )}
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

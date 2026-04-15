@@ -70,12 +70,12 @@ export default function CollabPage({
     <div className="min-h-screen relative">
       {/* ====== FULL PAGE BACKGROUND ====== */}
       {profile?.bannerUrl ? (
-        <div className="fixed inset-0 z-0">
+        <div className="absolute inset-x-0 top-0 h-[100vh] z-0">
           <img src={profile.bannerUrl} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${c1}60 0%, ${c2}40 30%, rgba(9,9,11,0.85) 60%, rgba(9,9,11,1) 80%)` }} />
         </div>
       ) : (
-        <div className="fixed inset-0 z-0" style={{ background: `linear-gradient(to bottom, ${c1} 0%, ${c2} 30%, #09090b 70%)` }} />
+        <div className="absolute inset-x-0 top-0 h-[100vh] z-0" style={{ background: `linear-gradient(to bottom, ${c1} 0%, ${c2} 30%, #09090b 70%)` }} />
       )}
 
       {/* ====== HEADER AREA ====== */}
