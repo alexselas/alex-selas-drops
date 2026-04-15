@@ -139,6 +139,7 @@ export default function ImageCropper({ imageUrl, shape = 'circle', onCrop, onCan
           ref={imgRef}
           src={imageUrl}
           alt=""
+          crossOrigin="anonymous"
           draggable={false}
           onLoad={handleImgLoad}
           style={{
