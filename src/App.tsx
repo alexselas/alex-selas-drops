@@ -25,6 +25,140 @@ import Footer from './components/Footer';
 import { Search, ArrowUpDown, LayoutGrid, List, Music, ShoppingCart, Play, Pause, Check, Package, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { formatPrice, formatDuration } from './lib/utils';
 
+/* Collab tracks catalog — same layout as Home */
+function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart, onDetail }: {
+  tracks: Track[];
+  collabProfiles: Record<string, any>;
+  player: { currentTrack: Track | null; isPlaying: boolean; play: (t: Track) => void };
+  cart: { isInCart: (id: string) => boolean; addItem: (t: Track) => void };
+  onDetail: (t: Track) => void;
+}) {
+  const [catFilter, setCatFilter] = useState<Category | 'all' | 'packs'>('all');
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortOption>('newest');
+  const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    let r = [...colabTracks];
+    if (catFilter === 'packs') r = r.filter(t => !!t.packId);
+    else if (catFilter !== 'all') r = r.filter(t => t.category === catFilter);
+    if (search.trim()) { const q = search.toLowerCase(); r = r.filter(t => t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q) || t.tags.some(tag => tag.toLowerCase().includes(q))); }
+    switch (sort) {
+      case 'newest': r.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()); break;
+      case 'oldest': r.sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime()); break;
+      case 'price-asc': r.sort((a, b) => a.price - b.price); break;
+      case 'price-desc': r.sort((a, b) => b.price - a.price); break;
+      case 'title': r.sort((a, b) => a.title.localeCompare(b.title)); break;
+    }
+    return r;
+  }, [colabTracks, catFilter, search, sort]);
+
+  const displayItems = useMemo(() => {
+    type DI = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string; category: string };
+    const seen = new Set<string>();
+    const items: DI[] = [];
+    for (const t of filtered) {
+      if (t.packId) {
+        if (seen.has(t.packId)) continue;
+        seen.add(t.packId);
+        const pt = filtered.filter(x => x.packId === t.packId);
+        items.push({ type: 'pack', packId: t.packId, packName: t.packName || 'Pack', tracks: pt, coverUrl: t.coverUrl, price: pt.reduce((s, x) => s + x.price, 0), artist: t.artist, genre: t.genre, category: t.category });
+      } else {
+        items.push({ type: 'track', track: t });
+      }
+    }
+    return items;
+  }, [filtered]);
+
+  return (
+    <>
+      <h2 className="text-2xl font-bold text-zinc-50 mb-6">Tracks de colaboradores</h2>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+        <CategoryFilter selected={catFilter} onSelect={v => setCatFilter(v)} />
+        <div className="flex items-center gap-3 sm:ml-auto w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="w-full sm:w-56 pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors" />
+          </div>
+          <div className="relative">
+            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <select value={sort} onChange={e => setSort(e.target.value as SortOption)} className="pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors appearance-none cursor-pointer">
+              <option value="newest">Más recientes</option>
+              <option value="oldest">Más antiguos</option>
+              <option value="price-asc">Precio: menor</option>
+              <option value="price-desc">Precio: mayor</option>
+              <option value="title">A-Z</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div className="space-y-2 mb-16">
+        {displayItems.map(item => {
+          if (item.type === 'track') {
+            const track = item.track;
+            const isCurrent = player.currentTrack?.id === track.id;
+            const prof = collabProfiles[track.collaboratorId || ''];
+            const collabName = prof?.artistName || track.collaboratorId || '';
+            return (
+              <div key={track.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer" onClick={() => onDetail(track)}>
+                <button onClick={e => { e.stopPropagation(); player.play(track); }} className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
+                  {isCurrent && player.isPlaying ? <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
+                </button>
+                {track.coverUrl ? <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><Music className="w-4 h-4 text-zinc-700" /></div>}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
+                  <p className="text-xs text-zinc-500 truncate">{collabName}{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}</p>
+                </div>
+                <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
+                <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
+              </div>
+            );
+          }
+          // PACK
+          const isExp = expandedPackId === item.packId;
+          return (
+            <div key={item.packId} className="rounded-xl overflow-hidden">
+              <div className={`flex items-center gap-3 p-3 bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer ${isExp ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`} onClick={() => setExpandedPackId(isExp ? null : item.packId)}>
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex items-center justify-center"><Package className="w-5 h-5 text-yellow-400" /></div>
+                {item.coverUrl ? <img src={item.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><Music className="w-4 h-4 text-zinc-700" /></div>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p><span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-bold flex-shrink-0">PACK</span></div>
+                  <p className="text-xs text-zinc-500 truncate">{item.artist} · {item.tracks.length} tracks · {item.genre}</p>
+                </div>
+                <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(item.price)}</span>
+                <button onClick={e => { e.stopPropagation(); item.tracks.forEach(t => cart.addItem(t)); }} disabled={item.tracks.every(t => cart.isInCart(t.id))} className={`flex-shrink-0 p-2 rounded-lg transition-all ${item.tracks.every(t => cart.isInCart(t.id)) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
+                {isExp ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
+              </div>
+              {isExp && (
+                <div className="bg-[#111] border border-zinc-800/50 border-t-0 rounded-b-xl divide-y divide-zinc-800/30 max-h-[400px] overflow-y-auto">
+                  {item.tracks.map((track, idx) => {
+                    const isCurrent = player.currentTrack?.id === track.id;
+                    return (
+                      <div key={track.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800/30 transition-colors">
+                        <span className="text-[11px] text-zinc-600 font-bold w-5 text-center flex-shrink-0">{idx + 1}</span>
+                        <button onClick={() => player.play(track)} className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
+                          {isCurrent && player.isPlaying ? <Pause className="w-3.5 h-3.5 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-3.5 h-3.5 text-zinc-400 group-hover/play:text-black ml-0.5" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-zinc-200 truncate">{track.title}</p>
+                          <p className="text-[11px] text-zinc-600">{track.authors ? `${track.authors} · ` : ''}{track.bpm > 0 ? `${track.bpm} BPM` : ''}{track.key ? ` · ${track.key}` : ''}{track.duration > 0 ? ` · ${formatDuration(track.duration)}` : ''}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {displayItems.length === 0 && (
+          <div className="text-center py-16"><Music className="w-12 h-12 text-zinc-700 mx-auto mb-3" /><p className="text-zinc-500">No se encontraron tracks</p></div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function pathToSection(path: string): Section {
   if (path === '/admin') return 'admin';
   if (path === '/colab-admin') return 'colab-admin';
@@ -630,62 +764,18 @@ export default function App() {
                 </div>
               )}
 
-              {/* Collaborator tracks — same style as Home */}
+              {/* Collaborator tracks — full catalog like Home */}
               {colabTracks.length > 0 && (
-                <>
-                  <h2 className="text-xl font-bold text-zinc-200 mb-4">Tracks de colaboradores</h2>
-                  <div className="space-y-2 mb-16">
-                    {colabTracks.map(track => {
-                      const isCurrentTrack = player.currentTrack?.id === track.id;
-                      const prof = collabProfiles[track.collaboratorId || ''];
-                      const collabName = prof?.artistName || track.collaboratorId || '';
-                      return (
-                        <div
-                          key={track.id}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
-                          onClick={() => {
-                            setSelectedTrack(track);
-                            window.history.pushState({}, '', `/track/${track.id}`);
-                          }}
-                        >
-                          <button
-                            onClick={e => { e.stopPropagation(); player.play(track); }}
-                            className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
-                          >
-                            {isCurrentTrack && player.isPlaying ? (
-                              <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" />
-                            ) : (
-                              <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />
-                            )}
-                          </button>
-                          {track.coverUrl ? (
-                            <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                              <Music className="w-4 h-4 text-zinc-700" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
-                            <p className="text-xs text-zinc-500 truncate">
-                              {collabName}{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
-                            </p>
-                          </div>
-                          <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
-                          <button
-                            onClick={e => { e.stopPropagation(); cart.addItem(track); }}
-                            disabled={cart.isInCart(track.id)}
-                            className={`flex-shrink-0 p-2 rounded-lg transition-all ${
-                              cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
-                            }`}
-                          >
-                            <ShoppingCart className="w-4 h-4" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
+                <CollabTracksSection
+                  tracks={colabTracks}
+                  collabProfiles={collabProfiles}
+                  player={player}
+                  cart={cart}
+                  onDetail={(track) => {
+                    setSelectedTrack(track);
+                    window.history.pushState({}, '', `/track/${track.id}`);
+                  }}
+                />
               )}
 
               {/* Contact CTA */}
