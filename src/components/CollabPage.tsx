@@ -70,7 +70,7 @@ export default function CollabPage({
     <div className="min-h-screen bg-zinc-950">
       {/* ====== HERO WITH BACKGROUND ====== */}
       <div
-        className="relative min-h-[85vh]"
+        className="relative min-h-[55vh]"
         style={profile?.bannerUrl ? {
           backgroundImage: `url(${profile.bannerUrl})`,
           backgroundSize: 'cover',
@@ -99,7 +99,7 @@ export default function CollabPage({
         </button>
 
         {/* Hero content — pushed to bottom of the image */}
-        <div className="relative z-10 min-h-[85vh] flex flex-col items-center justify-end px-6 pb-12 sm:pb-16 text-center">
+        <div className="relative z-10 min-h-[55vh] flex flex-col items-center justify-end px-6 pb-12 sm:pb-16 text-center">
           {/* Name */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
