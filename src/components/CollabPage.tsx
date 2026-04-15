@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Loader2, Music, Play, Pause, ShoppingCart, Star } from 'lucide-react';
+import { ArrowLeft, Loader2, Music, Play, Pause, ShoppingCart, Star, Package, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Track, CollaboratorProfile, Section } from '../types';
-import { formatPrice } from '../lib/utils';
+import { formatPrice, formatDuration } from '../lib/utils';
 
 interface CollabPageProps {
   collaboratorId: string;
@@ -230,7 +230,7 @@ export default function CollabPage({
         </div>
       )}
 
-      {/* ====== ALL TRACKS ====== */}
+      {/* ====== ALL TRACKS — same style as Home ====== */}
       <div className="relative z-10 max-w-5xl mx-auto px-4 py-6 pb-28">
         {myTracks.length === 0 ? (
           <div className="text-center py-20 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800/50">
@@ -238,76 +238,167 @@ export default function CollabPage({
             <p className="text-zinc-400 text-lg font-medium">Próximamente</p>
             <p className="text-zinc-600 text-sm mt-1">Este artista aún no ha publicado tracks</p>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {myTracks.map((track, i) => {
-              const isCurrentTrack = currentTrackId === track.id;
-              return (
-                <motion.div
-                  key={track.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="flex items-center gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer group backdrop-blur-sm"
-                  style={{
-                    backgroundColor: isCurrentTrack ? `${c1}15` : 'rgba(20,20,20,0.85)',
-                    borderColor: isCurrentTrack ? `${c1}30` : 'rgba(39,39,42,0.5)',
-                  }}
-                  onClick={() => onDetail(track)}
-                >
-                  {/* Play */}
-                  <button
-                    onClick={e => { e.stopPropagation(); onPlay(track); }}
-                    className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all"
-                    style={{
-                      backgroundColor: isCurrentTrack && isPlaying ? `${c1}20` : 'rgba(63,63,70,0.4)',
-                      border: isCurrentTrack ? `1.5px solid ${c1}40` : '1.5px solid transparent',
-                    }}
-                  >
-                    {isCurrentTrack && isPlaying ? (
-                      <Pause className="w-4 h-4" style={{ color: c1 }} />
-                    ) : (
-                      <Play className="w-4 h-4 text-zinc-400 ml-0.5 group-hover:text-white transition-colors" />
-                    )}
-                  </button>
-
-                  {/* Cover */}
-                  {track.coverUrl ? (
-                    <img src={track.coverUrl} alt="" className="w-11 h-11 rounded-xl object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-11 h-11 rounded-xl bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                      <Music className="w-4 h-4 text-zinc-600" />
+        ) : (() => {
+          // Group packs + standalone — same as Home
+          type DisplayItem = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string };
+          const seenPacks = new Set<string>();
+          const displayItems: DisplayItem[] = [];
+          for (const track of myTracks) {
+            if (track.packId) {
+              if (seenPacks.has(track.packId)) continue;
+              seenPacks.add(track.packId);
+              const packTracks = myTracks.filter(t => t.packId === track.packId);
+              displayItems.push({ type: 'pack', packId: track.packId, packName: track.packName || 'Pack', tracks: packTracks, coverUrl: track.coverUrl, price: packTracks.reduce((s, t) => s + t.price, 0), artist: track.artist, genre: track.genre });
+            } else {
+              displayItems.push({ type: 'track', track });
+            }
+          }
+          return (
+            <div className="space-y-2">
+              {displayItems.map(item => {
+                if (item.type === 'track') {
+                  const track = item.track;
+                  const isCurrentTrack = currentTrackId === track.id;
+                  return (
+                    <div
+                      key={track.id}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
+                      onClick={() => onDetail(track)}
+                    >
+                      <button
+                        onClick={e => { e.stopPropagation(); onPlay(track); }}
+                        className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
+                      >
+                        {isCurrentTrack && isPlaying ? (
+                          <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" />
+                        ) : (
+                          <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />
+                        )}
+                      </button>
+                      {track.coverUrl ? (
+                        <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                          <Music className="w-4 h-4 text-zinc-700" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
+                        <p className="text-xs text-zinc-500 truncate">
+                          {track.authors ? `${track.authors} · ` : ''}{track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
+                      <button
+                        onClick={e => { e.stopPropagation(); onAddToCart(track); }}
+                        disabled={isInCart(track.id)}
+                        className={`flex-shrink-0 p-2 rounded-lg transition-all ${
+                          isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
+                        }`}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                      </button>
                     </div>
-                  )}
+                  );
+                }
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-zinc-100 truncate group-hover:text-white transition-colors">{track.title}</p>
-                    <p className="text-xs text-zinc-500 truncate">
-                      {track.authors ? `${track.authors} · ` : ''}{track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
-                    </p>
-                  </div>
+                // PACK item — same as Home
+                return (
+                  <PackRow
+                    key={item.packId}
+                    item={item}
+                    currentTrackId={currentTrackId}
+                    isPlaying={isPlaying}
+                    isInCart={isInCart}
+                    onPlay={onPlay}
+                    onAddToCart={onAddToCart}
+                  />
+                );
+              })}
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
 
-                  {/* Price */}
-                  <span className="text-sm font-bold flex-shrink-0 hidden sm:block" style={{ color: c1 }}>
-                    {formatPrice(track.price)}
-                  </span>
-
-                  {/* Cart */}
-                  <button
-                    onClick={e => { e.stopPropagation(); onAddToCart(track); }}
-                    disabled={isInCart(track.id)}
-                    className="flex-shrink-0 p-2.5 rounded-xl transition-all"
-                    style={isInCart(track.id) ? { color: '#4ade80' } : { color: `${c1}90` }}
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                  </button>
-                </motion.div>
-              );
-            })}
+/* Pack row sub-component — matches Home style */
+function PackRow({ item, currentTrackId, isPlaying, isInCart, onPlay, onAddToCart }: {
+  item: { packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string };
+  currentTrackId: string | null;
+  isPlaying: boolean;
+  isInCart: (id: string) => boolean;
+  onPlay: (track: Track) => void;
+  onAddToCart: (track: Track) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="rounded-xl overflow-hidden">
+      <div
+        className={`flex items-center gap-3 p-3 bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer ${expanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex items-center justify-center">
+          <Package className="w-5 h-5 text-yellow-400" />
+        </div>
+        {item.coverUrl ? (
+          <img src={item.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
+            <Music className="w-4 h-4 text-zinc-700" />
           </div>
         )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-bold flex-shrink-0">PACK</span>
+          </div>
+          <p className="text-xs text-zinc-500 truncate">
+            {item.artist} · {item.tracks.length} tracks · {item.genre}
+          </p>
+        </div>
+        <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(item.price)}</span>
+        <button
+          onClick={e => { e.stopPropagation(); item.tracks.forEach(t => onAddToCart(t)); }}
+          disabled={item.tracks.every(t => isInCart(t.id))}
+          className={`flex-shrink-0 p-2 rounded-lg transition-all ${
+            item.tracks.every(t => isInCart(t.id)) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
+          }`}
+        >
+          <ShoppingCart className="w-4 h-4" />
+        </button>
+        {expanded ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
       </div>
+
+      {expanded && (
+        <div className="bg-[#111] border border-zinc-800/50 border-t-0 rounded-b-xl divide-y divide-zinc-800/30 max-h-[400px] overflow-y-auto">
+          {item.tracks.map((track, idx) => {
+            const isCurrent = currentTrackId === track.id;
+            return (
+              <div key={track.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800/30 transition-colors">
+                <span className="text-[11px] text-zinc-600 font-bold w-5 text-center flex-shrink-0">{idx + 1}</span>
+                <button
+                  onClick={() => onPlay(track)}
+                  className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
+                >
+                  {isCurrent && isPlaying ? (
+                    <Pause className="w-3.5 h-3.5 text-yellow-400 group-hover/play:text-black" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 text-zinc-400 group-hover/play:text-black ml-0.5" />
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-zinc-200 truncate">{track.title}</p>
+                  <p className="text-[11px] text-zinc-600">
+                    {track.bpm > 0 ? `${track.bpm} BPM` : ''}{track.key ? ` · ${track.key}` : ''}{track.duration > 0 ? ` · ${formatDuration(track.duration)}` : ''}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
