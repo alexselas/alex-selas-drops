@@ -25,12 +25,26 @@ import Footer from './components/Footer';
 import { Search, ArrowUpDown, LayoutGrid, List, Music, ShoppingCart, Play, Pause, Check, Package, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { formatPrice, formatDuration } from './lib/utils';
 
-function getInitialSection(): Section {
-  const path = window.location.pathname;
+function pathToSection(path: string): Section {
   if (path === '/admin') return 'admin';
   if (path === '/colab-admin') return 'colab-admin';
+  if (path === '/colaboradores') return 'colabs';
   if (path.match(/^\/collab\/[a-z0-9-]+$/)) return 'colab-page';
   return 'home';
+}
+
+function getInitialSection(): Section {
+  return pathToSection(window.location.pathname);
+}
+
+function sectionToPath(s: Section, collabId?: string): string {
+  switch (s) {
+    case 'colabs': return '/colaboradores';
+    case 'admin': return '/admin';
+    case 'colab-admin': return '/colab-admin';
+    case 'colab-page': return collabId ? `/collab/${collabId}` : '/colaboradores';
+    default: return '/';
+  }
 }
 
 function getInitialCollabPageId(): string {
@@ -116,15 +130,34 @@ export default function App() {
     }
   }, [collabAdmin.isAuthenticated, loadTracks]);
 
-  // Navigate
+  // Navigate — always update URL
   const navigate = useCallback((s: Section, collabId?: string) => {
     setSection(s);
     setShowCheckout(false);
     if (s === 'colab-page' && collabId) {
       setActiveCollabId(collabId);
-      window.history.pushState({}, '', `/collab/${collabId}`);
+    }
+    const newPath = sectionToPath(s, collabId);
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({ section: s, collabId }, '', newPath);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const onPopState = () => {
+      const path = window.location.pathname;
+      const s = pathToSection(path);
+      setSection(s);
+      setShowCheckout(false);
+      if (s === 'colab-page') {
+        const match = path.match(/^\/collab\/([a-z0-9-]+)$/);
+        if (match) setActiveCollabId(match[1]);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   // Filtered tracks for catalog (exclude collaborator tracks)
