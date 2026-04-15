@@ -67,19 +67,23 @@ export default function CollabPage({
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={profile?.bannerUrl ? {
-        backgroundImage: `url(${profile.bannerUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center top',
-        backgroundAttachment: 'scroll',
-      } : {
-        background: `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, #09090b 100%)`,
-      }}
-    >
-      {/* ====== HERO ====== */}
-      <div className="relative">
+    <div className="min-h-screen bg-[#0a0a0b]">
+      {/* ====== HERO — big image with smooth fade ====== */}
+      <div className="relative overflow-hidden">
+        {/* Background image */}
+        {profile?.bannerUrl ? (
+          <div className="absolute inset-0">
+            <img src={profile.bannerUrl} alt="" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${c1} 0%, ${c2} 40%, #0a0a0b 100%)` }} />
+        )}
+
+        {/* Gradient fade — only bottom third, smooth into content */}
+        {profile?.bannerUrl && (
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(10,10,11,0) 0%, rgba(10,10,11,0) 40%, rgba(10,10,11,0.3) 60%, rgba(10,10,11,0.7) 80%, rgba(10,10,11,1) 100%)' }} />
+        )}
+
         {/* Back */}
         <button
           onClick={() => onNavigate('colabs')}
@@ -89,8 +93,8 @@ export default function CollabPage({
           Volver
         </button>
 
-        {/* Hero content */}
-        <div className="relative z-10 pt-32 pb-10 sm:pt-40 sm:pb-14 flex flex-col items-center px-6 text-center">
+        {/* Hero content — sits at the bottom of the image */}
+        <div className="relative z-10 pt-44 pb-16 sm:pt-56 sm:pb-20 flex flex-col items-center px-6 text-center">
           {/* Name */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -99,7 +103,7 @@ export default function CollabPage({
             className="text-6xl sm:text-8xl lg:text-9xl font-black text-white uppercase leading-[0.85] mb-5"
             style={{
               letterSpacing: '0.08em',
-              textShadow: '0 2px 20px rgba(0,0,0,0.8), 0 4px 60px rgba(0,0,0,0.5)',
+              textShadow: '0 2px 30px rgba(0,0,0,0.9), 0 0 80px rgba(0,0,0,0.4)',
             }}
           >
             {name}
@@ -111,8 +115,8 @@ export default function CollabPage({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-white/80 text-sm sm:text-base max-w-lg mx-auto leading-relaxed mb-6 text-center break-words"
-              style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
+              className="text-white/90 text-sm sm:text-base max-w-lg mx-auto leading-relaxed mb-6 text-center break-words"
+              style={{ textShadow: '0 1px 12px rgba(0,0,0,0.8)' }}
             >
               {profile.bio}
             </motion.p>
@@ -124,7 +128,7 @@ export default function CollabPage({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex items-center gap-2.5 mb-5"
+              className="flex items-center gap-3 mb-5"
             >
               {Object.entries(profile!.socialLinks).map(([key, url]) => {
                 if (!url) return null;
@@ -136,10 +140,10 @@ export default function CollabPage({
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-black/40 backdrop-blur-sm border border-white/20 hover:border-white/40"
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm border border-white/15 hover:bg-white/20"
                     title={icon.label}
                   >
-                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-[18px] h-[18px] text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d={icon.path} />
                     </svg>
                   </a>
@@ -149,14 +153,14 @@ export default function CollabPage({
           )}
 
           {/* Track count */}
-          <span className="text-sm font-bold text-white/50 uppercase tracking-widest">
+          <span className="text-xs font-semibold text-white/40 uppercase tracking-[0.2em]">
             {myTracks.length} {myTracks.length === 1 ? 'Track' : 'Tracks'}
           </span>
         </div>
       </div>
 
-      {/* ====== CONTENT ====== */}
-      <div className="relative">
+      {/* ====== CONTENT — solid dark bg ====== */}
+      <div className="relative bg-[#0a0a0b]">
         <CollabContent
           myTracks={myTracks}
           featuredTracks={featuredTracks}
@@ -326,7 +330,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
 
       {/* ====== ALL TRACKS ====== */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-28">
-      <div className="backdrop-blur-md rounded-3xl p-6 sm:p-8" style={{ backgroundColor: '#E3DFED' }}>
+      <div>
         {/* Promo banner */}
         <div className="relative overflow-hidden rounded-2xl mb-8">
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500" />
