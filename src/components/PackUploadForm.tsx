@@ -164,8 +164,20 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
     if (tracks.length === 0 || !packTitle) return;
     setSubmitting(true);
 
-    // Generate previews for tracks that don't have one yet
-    const tracksNeedingPreview = tracks.map((t, i) => ({ track: t, idx: i })).filter(({ track }) => !track.previewUrl && !track.analyzing);
+    // Wait for all track uploads + analysis to finish (up to 60s)
+    if (tracksRef.current.some(t => t.analyzing)) {
+      setPreviewProgress('Esperando a que se suban todos los archivos...');
+      setGeneratingPreviews(true);
+      for (let wait = 0; wait < 120 && tracksRef.current.some(t => t.analyzing); wait++) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+      setGeneratingPreviews(false);
+      setPreviewProgress('');
+    }
+
+    // Generate previews for tracks that don't have one yet (use ref for latest state)
+    const latestTracks = tracksRef.current;
+    const tracksNeedingPreview = latestTracks.map((t, i) => ({ track: t, idx: i })).filter(({ track }) => !track.previewUrl && !track.analyzing);
     if (tracksNeedingPreview.length > 0) {
       setGeneratingPreviews(true);
       for (const { idx } of tracksNeedingPreview) {
@@ -173,13 +185,13 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
         if (!ref) continue;
         // Wait for the PreviewGenerator to finish loading audio (up to 15s)
         if (!ref.isReady()) {
-          setPreviewProgress(`Cargando audio ${idx + 1}/${tracks.length}...`);
+          setPreviewProgress(`Cargando audio ${idx + 1}/${latestTracks.length}...`);
           for (let wait = 0; wait < 30 && !ref.isReady(); wait++) {
             await new Promise(r => setTimeout(r, 500));
           }
         }
         if (ref.isReady()) {
-          setPreviewProgress(`Generando preview ${idx + 1}/${tracks.length}...`);
+          setPreviewProgress(`Generando preview ${idx + 1}/${latestTracks.length}...`);
           const blob = await ref.generate();
           if (blob) {
             const url = await uploadFile(blob, 'previews', `preview-pack-${Date.now()}-${idx}.mp3`);
@@ -189,6 +201,8 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
       }
       setGeneratingPreviews(false);
       setPreviewProgress('');
+      // Wait a tick for tracksRef to sync
+      await new Promise(r => setTimeout(r, 100));
     }
 
     // Build final tracks with latest preview URLs (use ref for fresh state)
