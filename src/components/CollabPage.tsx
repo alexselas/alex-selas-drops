@@ -67,19 +67,23 @@ export default function CollabPage({
   }
 
   return (
-    <div className="min-h-screen relative">
-      {/* ====== FULL PAGE BACKGROUND ====== */}
-      {profile?.bannerUrl ? (
-        <div className="absolute inset-x-0 top-0 h-[100vh] z-0">
-          <img src={profile.bannerUrl} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${c1}60 0%, ${c2}40 30%, rgba(9,9,11,0.85) 60%, rgba(9,9,11,1) 80%)` }} />
-        </div>
-      ) : (
-        <div className="absolute inset-x-0 top-0 h-[100vh] z-0" style={{ background: `linear-gradient(to bottom, ${c1} 0%, ${c2} 30%, #09090b 70%)` }} />
-      )}
+    <div className="min-h-screen">
+      {/* ====== HERO WITH BACKGROUND ====== */}
+      <div
+        className="relative"
+        style={profile?.bannerUrl ? {
+          backgroundImage: `url(${profile.bannerUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center top',
+        } : undefined}
+      >
+        {/* Gradient overlay */}
+        {profile?.bannerUrl ? (
+          <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${c1}60 0%, ${c2}40 30%, rgba(9,9,11,0.85) 60%, rgba(9,9,11,1) 100%)` }} />
+        ) : (
+          <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${c1} 0%, ${c2} 30%, #09090b 70%)` }} />
+        )}
 
-      {/* ====== HEADER AREA ====== */}
-      <div className="relative z-10">
         {/* Back */}
         <button
           onClick={() => onNavigate('colabs')}
@@ -90,7 +94,7 @@ export default function CollabPage({
         </button>
 
         {/* Hero content */}
-        <div className="max-w-7xl mx-auto px-6 pt-32 pb-10 sm:pt-40 sm:pb-14 flex flex-col items-center text-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 pt-32 pb-10 sm:pt-40 sm:pb-14 flex flex-col items-center text-center">
           {/* Name */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -159,20 +163,17 @@ export default function CollabPage({
       </div>
 
       {/* ====== CONTENT — fade from hero to black ====== */}
-      <div className="relative z-10">
-      <div className="h-32 bg-gradient-to-b from-transparent to-zinc-950" />
       <div className="bg-zinc-950">
-      <CollabContent
-        myTracks={myTracks}
-        featuredTracks={featuredTracks}
-        currentTrackId={currentTrackId}
-        isPlaying={isPlaying}
-        isInCart={isInCart}
-        onPlay={onPlay}
-        onAddToCart={onAddToCart}
-        onDetail={onDetail}
-      />
-      </div>
+        <CollabContent
+          myTracks={myTracks}
+          featuredTracks={featuredTracks}
+          currentTrackId={currentTrackId}
+          isPlaying={isPlaying}
+          isInCart={isInCart}
+          onPlay={onPlay}
+          onAddToCart={onAddToCart}
+          onDetail={onDetail}
+        />
       </div>
     </div>
   );
