@@ -67,23 +67,19 @@ export default function CollabPage({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950">
-      {/* ====== HERO WITH BACKGROUND ====== */}
-      <div
-        className="relative min-h-[55vh]"
-        style={profile?.bannerUrl ? {
-          backgroundImage: `url(${profile.bannerUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        } : {
-          background: `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, #09090b 100%)`,
-        }}
-      >
-        {/* Thin fade only at the very bottom to blend into content */}
-        {profile?.bannerUrl && (
-          <div className="absolute inset-x-0 bottom-0 h-20" style={{ background: 'linear-gradient(to bottom, transparent, rgba(9,9,11,1))' }} />
-        )}
-
+    <div
+      className="min-h-screen"
+      style={profile?.bannerUrl ? {
+        backgroundImage: `url(${profile.bannerUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundAttachment: 'scroll',
+      } : {
+        background: `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, #09090b 100%)`,
+      }}
+    >
+      {/* ====== HERO ====== */}
+      <div className="relative">
         {/* Back */}
         <button
           onClick={() => onNavigate('colabs')}
@@ -93,8 +89,8 @@ export default function CollabPage({
           Volver
         </button>
 
-        {/* Hero content — pushed to bottom of the image */}
-        <div className="relative z-10 min-h-[55vh] flex flex-col items-center justify-end px-6 pb-12 sm:pb-16 text-center">
+        {/* Hero content */}
+        <div className="relative z-10 pt-32 pb-10 sm:pt-40 sm:pb-14 flex flex-col items-center px-6 text-center">
           {/* Name */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -160,7 +156,7 @@ export default function CollabPage({
       </div>
 
       {/* ====== CONTENT ====== */}
-      <div>
+      <div className="relative bg-zinc-950/85 backdrop-blur-sm">
         <CollabContent
           myTracks={myTracks}
           featuredTracks={featuredTracks}
