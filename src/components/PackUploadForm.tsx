@@ -216,8 +216,8 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
     const result: (Omit<Track, 'id'> & { id?: string })[] = currentTracks.map((t, i) => ({
       id: existingTracks?.[i]?.id,
       title: t.title || `${packTitle} - ${i + 1}`,
-      artist: t.artist || artist,
-      authors: t.authors || authors,
+      artist: artist,
+      authors: t.authors || '',
       category,
       price: i === 0 ? price : 0,
       bpm: t.bpm,
@@ -293,18 +293,14 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
         </div>
 
         {/* Pack info */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-zinc-500 mb-1">Nombre del pack *</label>
             <input type="text" value={packTitle} onChange={e => setPackTitle(e.target.value)} placeholder="Mi Pack Vol. 1" className={inputClass} required />
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Productor (por defecto)</label>
+            <label className="block text-xs text-zinc-500 mb-1">Productor</label>
             <input type="text" value={artist} onChange={e => setArtist(e.target.value)} className={inputClass} />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">Autores originales</label>
-            <input type="text" value={authors} onChange={e => setAuthors(e.target.value)} placeholder="Drake, Bad Bunny..." className={inputClass} />
           </div>
         </div>
 
@@ -393,22 +389,13 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
                         placeholder="Título"
                         className="w-full px-3 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50"
                       />
-                      <div className="flex gap-1.5">
-                        <input
-                          type="text"
-                          value={t.artist}
-                          onChange={e => updateTrack(i, 'artist', e.target.value)}
-                          placeholder="Productor"
-                          className="flex-1 px-3 py-1 rounded-lg bg-zinc-800/30 border border-zinc-800 text-zinc-300 text-xs focus:outline-none focus:border-yellow-400/50"
-                        />
-                        <input
-                          type="text"
-                          value={t.authors}
-                          onChange={e => updateTrack(i, 'authors', e.target.value)}
-                          placeholder="Autores originales"
-                          className="flex-1 px-3 py-1 rounded-lg bg-zinc-800/30 border border-zinc-800 text-zinc-300 text-xs focus:outline-none focus:border-yellow-400/50"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        value={t.authors}
+                        onChange={e => updateTrack(i, 'authors', e.target.value)}
+                        placeholder="Artistas originales"
+                        className="w-full px-3 py-1 rounded-lg bg-zinc-800/30 border border-zinc-800 text-zinc-300 text-xs focus:outline-none focus:border-yellow-400/50"
+                      />
                     </div>
 
                     {/* Status */}
