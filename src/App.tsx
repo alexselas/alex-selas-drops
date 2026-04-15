@@ -276,6 +276,7 @@ export default function App() {
         onNavigate={navigate}
         cartCount={cart.count}
         onCartOpen={() => cart.setIsOpen(true)}
+        collabArtistName={section === 'colab-page' && activeCollabId ? (collabProfiles[activeCollabId]?.artistName || activeCollabId) : undefined}
       />
 
       {/* Main content */}

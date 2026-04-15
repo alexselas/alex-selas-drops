@@ -8,9 +8,10 @@ interface NavbarProps {
   onNavigate: (section: Section) => void;
   cartCount: number;
   onCartOpen: () => void;
+  collabArtistName?: string;
 }
 
-export default function Navbar({ currentSection, onNavigate, cartCount, onCartOpen }: NavbarProps) {
+export default function Navbar({ currentSection, onNavigate, cartCount, onCartOpen, collabArtistName }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems: { label: string; section: Section }[] = [
@@ -24,11 +25,18 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-zinc-800/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <button onClick={() => onNavigate('home')} className="flex items-center gap-3 group">
-            <img src="/logo.png" alt="Alex Selas" className="h-9 w-auto" />
-            <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
-          </button>
+          {/* Logo / Collab name */}
+          {collabArtistName ? (
+            <button onClick={() => onNavigate('colabs')} className="flex items-center gap-3 group">
+              <span className="text-lg font-black text-white uppercase tracking-wide">{collabArtistName}</span>
+              <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
+            </button>
+          ) : (
+            <button onClick={() => onNavigate('home')} className="flex items-center gap-3 group">
+              <img src="/logo.png" alt="Alex Selas" className="h-9 w-auto" />
+              <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
+            </button>
+          )}
 
           {/* Desktop nav — centered */}
           <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
