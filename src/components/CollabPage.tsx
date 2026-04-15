@@ -156,7 +156,7 @@ export default function CollabPage({
       </div>
 
       {/* ====== CONTENT ====== */}
-      <div className="relative bg-zinc-950/85 backdrop-blur-sm">
+      <div className="relative">
         <CollabContent
           myTracks={myTracks}
           featuredTracks={featuredTracks}
