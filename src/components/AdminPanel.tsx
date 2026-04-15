@@ -443,16 +443,18 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                             {isExpanded && (
                               <div className="bg-[#111] border border-zinc-800/50 border-t-0 rounded-b-xl divide-y divide-zinc-800/30 max-h-[400px] overflow-y-auto">
                                 {pack.tracks.map((track, idx) => (
-                                  <div key={track.id} className="flex items-center gap-3 px-5 py-3">
+                                  <div key={track.id} className="flex items-center gap-3 px-5 py-3 group/track hover:bg-zinc-800/30 transition-colors">
                                     <span className="text-[11px] text-zinc-600 font-bold w-5 text-center flex-shrink-0">{idx + 1}</span>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm text-zinc-200 truncate">{track.title}</p>
                                       <div className="flex items-center gap-2 text-[11px] text-zinc-600">
-                                        {track.bpm > 0 && <span>{track.bpm} BPM</span>}
+                                        {track.genre && <span>{track.genre}</span>}
+                                        {track.bpm > 0 && <span>· {track.bpm} BPM</span>}
                                         {track.key && <span>· {track.key}</span>}
                                         {track.duration > 0 && <span>· {formatDuration(track.duration)}</span>}
                                       </div>
                                     </div>
+                                    <span className="text-xs font-bold text-yellow-400/70 hidden sm:block flex-shrink-0">{formatPrice(track.price)}</span>
                                     <div className="flex items-center gap-1">
                                       <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.previewUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
                                         Preview {track.previewUrl ? '✓' : '—'}
@@ -460,6 +462,22 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                                       <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.fileUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
                                         Archivo {track.fileUrl ? '✓' : '—'}
                                       </span>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 opacity-0 group-hover/track:opacity-100 transition-opacity">
+                                      <button
+                                        onClick={e => { e.stopPropagation(); setEditingTrack(track); setIsAdding(false); setIsAddingPack(false); setEditingPackTracks(null); }}
+                                        className="p-1.5 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                                        title="Editar track"
+                                      >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={e => { e.stopPropagation(); onDeleteTrack(track.id); }}
+                                        className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                                        title="Eliminar track"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
                                     </div>
                                   </div>
                                 ))}
