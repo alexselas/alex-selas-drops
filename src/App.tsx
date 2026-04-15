@@ -610,7 +610,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* Collaborator tracks — list format */}
+              {/* Collaborator tracks — same style as Home */}
               {colabTracks.length > 0 && (
                 <>
                   <h2 className="text-xl font-bold text-zinc-200 mb-4">Tracks de colaboradores</h2>
@@ -622,54 +622,44 @@ export default function App() {
                       return (
                         <div
                           key={track.id}
-                          className="flex items-center gap-4 p-3 rounded-xl bg-[#141414] border border-zinc-800/50 hover:border-yellow-400/20 transition-all group cursor-pointer"
+                          className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
                           onClick={() => {
                             setSelectedTrack(track);
                             window.history.pushState({}, '', `/track/${track.id}`);
                           }}
                         >
-                          {/* Cover */}
-                          <div className="w-12 h-12 rounded-lg bg-zinc-800 flex-shrink-0 overflow-hidden relative">
-                            {track.coverUrl ? (
-                              <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={e => { e.stopPropagation(); player.play(track); }}
+                            className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
+                          >
+                            {isCurrentTrack && player.isPlaying ? (
+                              <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Music className="w-5 h-5 text-zinc-600" />
-                              </div>
+                              <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />
                             )}
-                            {/* Play overlay */}
-                            <button
-                              onClick={e => { e.stopPropagation(); player.play(track); }}
-                              className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                            >
-                              {isCurrentTrack && player.isPlaying
-                                ? <Pause className="w-5 h-5 text-white" />
-                                : <Play className="w-5 h-5 text-white ml-0.5" />}
-                            </button>
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-zinc-200 truncate">{track.title}</p>
-                            <div className="flex items-center gap-2 text-[11px] text-zinc-500 mt-0.5">
-                              {collabName && <span>{collabName}</span>}
-                              <span className="text-zinc-700">·</span>
-                              <span>{track.genre}</span>
-                              {track.bpm > 0 && <><span className="text-zinc-700">·</span><span>{track.bpm} BPM</span></>}
+                          </button>
+                          {track.coverUrl ? (
+                            <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                              <Music className="w-4 h-4 text-zinc-700" />
                             </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
+                            <p className="text-xs text-zinc-500 truncate">
+                              {collabName}{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}
+                            </p>
                           </div>
-
-                          {/* Price + Cart */}
-                          <span className="text-sm font-bold text-yellow-400 flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
+                          <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
                           <button
                             onClick={e => { e.stopPropagation(); cart.addItem(track); }}
-                            className={`p-2 rounded-lg flex-shrink-0 transition-colors ${
-                              cart.isInCart(track.id)
-                                ? 'text-emerald-400 bg-emerald-400/10'
-                                : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
+                            disabled={cart.isInCart(track.id)}
+                            className={`flex-shrink-0 p-2 rounded-lg transition-all ${
+                              cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'
                             }`}
                           >
-                            {cart.isInCart(track.id) ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                            <ShoppingCart className="w-4 h-4" />
                           </button>
                         </div>
                       );
