@@ -1,15 +1,16 @@
-import { Disc3, Radio, Repeat, Layers, Library } from 'lucide-react';
+import { Disc3, Radio, Repeat, Layers, Library, Package } from 'lucide-react';
 import type { Category } from '../types';
 
 interface CategoryFilterProps {
-  selected: Category | 'all';
-  onSelect: (cat: Category | 'all') => void;
+  selected: Category | 'all' | 'packs';
+  onSelect: (cat: Category | 'all' | 'packs') => void;
 }
 
-const categories: { value: Category | 'all'; label: string; icon: typeof Disc3 }[] = [
+const categories: { value: Category | 'all' | 'packs'; label: string; icon: typeof Disc3 }[] = [
   { value: 'all', label: 'Todos', icon: Disc3 },
   { value: 'remixes', label: 'Remixes', icon: Repeat },
   { value: 'mashups', label: 'Mashups', icon: Layers },
+  { value: 'packs', label: 'Packs', icon: Package },
   { value: 'sesiones', label: 'Sesiones', icon: Radio },
   { value: 'librerias', label: 'Librerías', icon: Library },
 ];

@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Lock, Mail, Eye, EyeOff, AlertCircle, Music } from 'lucide-react';
 
 interface AdminLoginProps {
-  onLogin: (email: string, password: string) => { success: boolean; error?: string };
+  onLogin: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export default function AdminLogin({ onLogin }: AdminLoginProps) {
@@ -12,7 +12,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -25,7 +25,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
       return;
     }
 
-    const result = onLogin(email.trim(), password);
+    const result = await onLogin(email.trim(), password);
     if (!result.success) {
       setError(result.error || 'Credenciales incorrectas');
       setPassword('');

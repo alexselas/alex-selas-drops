@@ -2,21 +2,24 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   Plus, Edit2, Trash2, LogOut, Music, Package, Tag, Clock,
-  LayoutDashboard, ListMusic, ShoppingBag, Settings,
+  LayoutDashboard, ListMusic, ShoppingBag, Settings, Users,
   TrendingUp, DollarSign, Eye, Play, Radio, Layers, Library,
   Search, ChevronDown, Star, ChevronUp, GripVertical,
+  Save, Loader2, User, Upload, Image, Link, CheckCircle,
 } from 'lucide-react';
-import type { Track, Category } from '../types';
+import type { Track, Category, CollaboratorProfile } from '../types';
 import { formatPrice, formatDuration } from '../lib/utils';
+import { collaborators } from '../data/collaborators';
 import AdminTrackForm from './AdminTrackForm';
+import PackUploadForm from './PackUploadForm';
 
-type AdminTab = 'dashboard' | 'tracks' | 'orders' | 'settings';
+type AdminTab = 'dashboard' | 'tracks' | 'orders' | 'settings' | 'collabs';
 
 interface AdminPanelProps {
   tracks: Track[];
-  onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
-  onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
-  onDeleteTrack: (id: string) => void;
+  onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => Promise<void> | void;
+  onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => Promise<void> | void;
+  onDeleteTrack: (id: string) => Promise<void> | void;
   onReorderTracks: (tracks: Track[]) => void;
   onLogout: () => void;
   adminToken?: string;
@@ -34,8 +37,11 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isAddingPack, setIsAddingPack] = useState(false);
+  const [editingPackTracks, setEditingPackTracks] = useState<Track[] | null>(null);
   const [trackSearch, setTrackSearch] = useState('');
-  const [trackFilter, setTrackFilter] = useState<Category | 'all'>('all');
+  const [trackFilter, setTrackFilter] = useState<Category | 'all' | 'packs'>('all');
+  const [expandedAdminPackId, setExpandedAdminPackId] = useState<string | null>(null);
 
   // Orders from Stripe
   const [orders, setOrders] = useState<Order[]>([]);
@@ -64,14 +70,15 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
 
   useEffect(() => { fetchOrders('all'); }, []);
 
-  // Stats
+  // Stats (only own tracks, not collaborator tracks)
+  const myTracks = tracks.filter(t => !t.collaborator);
   const stats = {
-    total: tracks.length,
-    sesiones: tracks.filter(t => t.category === 'sesiones').length,
-    remixes: tracks.filter(t => t.category === 'remixes').length,
-    mashups: tracks.filter(t => t.category === 'mashups').length,
-    librerias: tracks.filter(t => t.category === 'librerias').length,
-    featured: tracks.filter(t => t.featured).length,
+    total: myTracks.length,
+    sesiones: myTracks.filter(t => t.category === 'sesiones').length,
+    remixes: myTracks.filter(t => t.category === 'remixes').length,
+    mashups: myTracks.filter(t => t.category === 'mashups').length,
+    librerias: myTracks.filter(t => t.category === 'librerias').length,
+    featured: myTracks.filter(t => t.featured).length,
     revenue: ordersRevenue,
     orders: orders.length,
   };
@@ -97,12 +104,17 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
     librerias: Library,
   };
 
-  // Filter tracks for list
+  // Filter tracks for list (exclude collaborator tracks — those are in their own panels)
   const filteredTracks = tracks.filter(t => {
-    if (trackFilter !== 'all' && t.category !== trackFilter) return false;
+    if (t.collaborator) return false;
+    if (trackFilter === 'packs') {
+      if (!t.packId) return false;
+    } else if (trackFilter !== 'all') {
+      if (t.category !== trackFilter) return false;
+    }
     if (trackSearch.trim()) {
       const q = trackSearch.toLowerCase();
-      return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q);
+      return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q) || (t.packName || '').toLowerCase().includes(q);
     }
     return true;
   });
@@ -112,6 +124,7 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
     { id: 'tracks', label: 'Tracks', icon: ListMusic },
     { id: 'orders', label: 'Pedidos', icon: ShoppingBag },
     { id: 'settings', label: 'Ajustes', icon: Settings },
+    { id: 'collabs', label: 'Colaboradores', icon: Users },
   ];
 
   return (
@@ -274,7 +287,22 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
       {tab === 'tracks' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           {/* Form */}
-          {(isAdding || editingTrack) ? (
+          {(isAddingPack || editingPackTracks) ? (
+            <PackUploadForm
+              adminToken={adminToken}
+              existingTracks={editingPackTracks || undefined}
+              onSavePack={async (packTracks) => {
+                if (editingPackTracks) {
+                  for (const t of packTracks) await onUpdateTrack(t);
+                } else {
+                  for (const t of packTracks) await onAddTrack(t);
+                }
+                setIsAddingPack(false);
+                setEditingPackTracks(null);
+              }}
+              onCancel={() => { setIsAddingPack(false); setEditingPackTracks(null); }}
+            />
+          ) : (isAdding || editingTrack) ? (
             <AdminTrackForm
               track={editingTrack}
               adminToken={adminToken}
@@ -296,13 +324,22 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
             <>
               {/* Toolbar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <button
-                  onClick={() => setIsAdding(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-white font-semibold shadow-lg hover:scale-[1.02] transition-transform"
-                >
-                  <Plus className="w-5 h-5" />
-                  Subir Track
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsAdding(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-white font-semibold shadow-lg hover:scale-[1.02] transition-transform"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Subir Track
+                  </button>
+                  <button
+                    onClick={() => setIsAddingPack(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold hover:border-yellow-400/30 hover:text-white transition-colors"
+                  >
+                    <Package className="w-5 h-5" />
+                    Subir Pack
+                  </button>
+                </div>
 
                 <div className="flex items-center gap-3 sm:ml-auto w-full sm:w-auto">
                   {/* Search */}
@@ -322,13 +359,14 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
                     <select
                       value={trackFilter}
-                      onChange={e => setTrackFilter(e.target.value as Category | 'all')}
+                      onChange={e => setTrackFilter(e.target.value as Category | 'all' | 'packs')}
                       className="pl-4 pr-10 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 appearance-none cursor-pointer"
                     >
                       <option value="all">Todas</option>
                       <option value="sesiones">Sesiones</option>
                       <option value="remixes">Remixes</option>
                       <option value="mashups">Mashups</option>
+                      <option value="packs">Packs</option>
                       <option value="librerias">Librerías</option>
                     </select>
                   </div>
@@ -336,139 +374,159 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
               </div>
 
               {/* Count */}
-              <p className="text-sm text-zinc-500">
-                {filteredTracks.length} track{filteredTracks.length !== 1 ? 's' : ''}
-              </p>
+              {(() => {
+                // Build display items: standalone tracks + packs grouped
+                const seenPacks = new Set<string>();
+                const standaloneTracks = filteredTracks.filter(t => !t.packId);
+                const packItems: { packId: string; packName: string; tracks: Track[]; coverUrl: string; category: string; price: number }[] = [];
+                for (const t of filteredTracks) {
+                  if (t.packId && !seenPacks.has(t.packId)) {
+                    seenPacks.add(t.packId);
+                    const packTracks = filteredTracks.filter(ft => ft.packId === t.packId);
+                    packItems.push({ packId: t.packId, packName: t.packName || 'Pack', tracks: packTracks, coverUrl: t.coverUrl, category: t.category, price: packTracks.reduce((s, pt) => s + pt.price, 0) });
+                  }
+                }
+                const totalItems = standaloneTracks.length + packItems.length;
 
-              {/* Track list */}
-              <div className="space-y-2">
-                {filteredTracks.map((track, i) => {
-                  const CatIcon = categoryIcons[track.category] || Music;
-                  return (
-                    <motion.div
-                      key={track.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.02 }}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors group"
-                    >
-                      {/* Cover */}
-                      <div className="w-14 h-14 rounded-xl bg-zinc-800 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                        {track.coverUrl ? (
-                          <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <CatIcon className={`w-6 h-6 ${categoryColors[track.category]}`} />
-                        )}
-                      </div>
+                return (
+                  <>
+                    <p className="text-sm text-zinc-500">
+                      {standaloneTracks.length} track{standaloneTracks.length !== 1 ? 's' : ''}{packItems.length > 0 ? ` · ${packItems.length} pack${packItems.length !== 1 ? 's' : ''}` : ''}
+                    </p>
 
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-zinc-200 truncate">{track.title}</p>
-                          {track.featured && (
-                            <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 fill-yellow-400" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
-                          <span className={`font-medium ${categoryColors[track.category]}`}>
-                            {categoryLabels[track.category]}
-                          </span>
-                          <span>{track.genre}</span>
-                          {track.bpm > 0 && <span>{track.bpm} BPM</span>}
-                          {track.duration > 0 && (
-                            <span className="flex items-center gap-0.5">
-                              <Clock className="w-3 h-3" />
-                              {formatDuration(track.duration)}
-                            </span>
-                          )}
-                        </div>
-                        {/* File status */}
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.coverUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
-                            Portada {track.coverUrl ? '✓' : '—'}
-                          </span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.previewUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
-                            Preview {track.previewUrl ? '✓' : '—'}
-                          </span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.fileUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
-                            Archivo {track.fileUrl ? '✓' : '—'}
-                          </span>
-                        </div>
-                      </div>
+                    <div className="space-y-2">
+                      {/* Packs */}
+                      {packItems.map(pack => {
+                        const isExpanded = expandedAdminPackId === pack.packId;
+                        return (
+                          <div key={pack.packId} className="rounded-xl overflow-hidden">
+                            <div
+                              className={`flex items-center gap-4 p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors cursor-pointer group ${isExpanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
+                              onClick={() => setExpandedAdminPackId(isExpanded ? null : pack.packId)}
+                            >
+                              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                {pack.coverUrl ? (
+                                  <img src={pack.coverUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <Package className="w-6 h-6 text-yellow-400" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-zinc-200 truncate">{pack.packName}</p>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-bold flex-shrink-0">PACK</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
+                                  <span className={`font-medium ${categoryColors[pack.category]}`}>{categoryLabels[pack.category]}</span>
+                                  <span>{pack.tracks.length} tracks</span>
+                                </div>
+                              </div>
+                              <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(pack.price)}</span>
+                              <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={e => { e.stopPropagation(); setEditingPackTracks(pack.tracks); }}
+                                  className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                                  title="Editar pack"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={async e => { e.stopPropagation(); if (confirm(`¿Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) { for (const t of pack.tracks) await onDeleteTrack(t.id); } }}
+                                  className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                                  title="Eliminar pack"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                                {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div className="bg-[#111] border border-zinc-800/50 border-t-0 rounded-b-xl divide-y divide-zinc-800/30 max-h-[400px] overflow-y-auto">
+                                {pack.tracks.map((track, idx) => (
+                                  <div key={track.id} className="flex items-center gap-3 px-5 py-3">
+                                    <span className="text-[11px] text-zinc-600 font-bold w-5 text-center flex-shrink-0">{idx + 1}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm text-zinc-200 truncate">{track.title}</p>
+                                      <div className="flex items-center gap-2 text-[11px] text-zinc-600">
+                                        {track.bpm > 0 && <span>{track.bpm} BPM</span>}
+                                        {track.key && <span>· {track.key}</span>}
+                                        {track.duration > 0 && <span>· {formatDuration(track.duration)}</span>}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.previewUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
+                                        Preview {track.previewUrl ? '✓' : '—'}
+                                      </span>
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.fileUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
+                                        Archivo {track.fileUrl ? '✓' : '—'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
 
-                      {/* Price */}
-                      <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">
-                        {formatPrice(track.price)}
-                      </span>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
-                        {/* Reorder */}
-                        <div className="flex flex-col">
-                          <button
-                            onClick={() => {
-                              const idx = tracks.findIndex(t => t.id === track.id);
-                              if (idx > 0) {
-                                const reordered = [...tracks];
-                                [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
-                                onReorderTracks(reordered);
-                              }
-                            }}
-                            disabled={tracks.findIndex(t => t.id === track.id) === 0}
-                            className="p-1 rounded text-zinc-600 hover:text-yellow-400 disabled:opacity-20 transition-colors"
-                            title="Subir"
+                      {/* Standalone tracks */}
+                      {standaloneTracks.map((track, i) => {
+                        const CatIcon = categoryIcons[track.category] || Music;
+                        return (
+                          <motion.div
+                            key={track.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.02 }}
+                            className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors group"
                           >
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const idx = tracks.findIndex(t => t.id === track.id);
-                              if (idx < tracks.length - 1) {
-                                const reordered = [...tracks];
-                                [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
-                                onReorderTracks(reordered);
-                              }
-                            }}
-                            disabled={tracks.findIndex(t => t.id === track.id) === tracks.length - 1}
-                            className="p-1 rounded text-zinc-600 hover:text-yellow-400 disabled:opacity-20 transition-colors"
-                            title="Bajar"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setEditingTrack(track);
-                            setIsAdding(false);
-                          }}
-                          className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
-                          title="Editar"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`¿Eliminar "${track.title}"?`)) {
-                              onDeleteTrack(track.id);
-                            }
-                          }}
-                          className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                            <div className="w-14 h-14 rounded-xl bg-zinc-800 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                              {track.coverUrl ? (
+                                <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <CatIcon className={`w-6 h-6 ${categoryColors[track.category]}`} />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-zinc-200 truncate">{track.title}</p>
+                                {track.featured && <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 fill-yellow-400" />}
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
+                                <span className={`font-medium ${categoryColors[track.category]}`}>{categoryLabels[track.category]}</span>
+                                <span>{track.genre}</span>
+                                {track.bpm > 0 && <span>{track.bpm} BPM</span>}
+                                {track.duration > 0 && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{formatDuration(track.duration)}</span>}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.coverUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>Portada {track.coverUrl ? '✓' : '—'}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.previewUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>Preview {track.previewUrl ? '✓' : '—'}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.fileUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>Archivo {track.fileUrl ? '✓' : '—'}</span>
+                              </div>
+                            </div>
+                            <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(track.price)}</span>
+                            <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
+                              <div className="flex flex-col">
+                                <button onClick={() => { const idx = tracks.findIndex(t => t.id === track.id); if (idx > 0) { const r = [...tracks]; [r[idx-1],r[idx]]=[r[idx],r[idx-1]]; onReorderTracks(r); }}} disabled={tracks.findIndex(t => t.id === track.id) === 0} className="p-1 rounded text-zinc-600 hover:text-yellow-400 disabled:opacity-20 transition-colors" title="Subir"><ChevronUp className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => { const idx = tracks.findIndex(t => t.id === track.id); if (idx < tracks.length - 1) { const r = [...tracks]; [r[idx],r[idx+1]]=[r[idx+1],r[idx]]; onReorderTracks(r); }}} disabled={tracks.findIndex(t => t.id === track.id) === tracks.length - 1} className="p-1 rounded text-zinc-600 hover:text-yellow-400 disabled:opacity-20 transition-colors" title="Bajar"><ChevronDown className="w-3.5 h-3.5" /></button>
+                              </div>
+                              <button onClick={() => { setEditingTrack(track); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button>
+                              <button onClick={() => { if (confirm(`¿Eliminar "${track.title}"?`)) onDeleteTrack(track.id); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
 
-                {filteredTracks.length === 0 && (
-                  <div className="text-center py-16">
-                    <ListMusic className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                    <p className="text-zinc-500">No se encontraron tracks</p>
-                  </div>
-                )}
-              </div>
+                      {totalItems === 0 && (
+                        <div className="text-center py-16">
+                          <ListMusic className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+                          <p className="text-zinc-500">No se encontraron tracks</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </>
           )}
         </motion.div>
@@ -637,7 +695,7 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
             <h3 className="text-sm font-semibold text-zinc-300 mb-4">Marca de agua</h3>
             <p className="text-sm text-zinc-400 mb-3">
               El archivo <code className="text-yellow-400 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">watermark.mp3</code> se
-              reproduce cada 15 segundos durante los previews.
+              reproduce cada 7 segundos durante los previews.
             </p>
             <div className="p-3 rounded-xl bg-zinc-800/30 text-sm text-zinc-500">
               Sube tu cuña de audio (~3 seg) como <code className="text-yellow-400">/public/watermark.mp3</code>
@@ -650,6 +708,355 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
           </button>
         </motion.div>
       )}
+
+      {/* ============ COLABORADORES ============ */}
+      {tab === 'collabs' && (
+        <CollabManager adminToken={adminToken} tracks={tracks} onAddTrack={onAddTrack} onUpdateTrack={onUpdateTrack} onDeleteTrack={onDeleteTrack} />
+      )}
     </div>
+  );
+}
+
+/* ====== COLLAB MANAGER SUB-COMPONENT ====== */
+interface CollabManagerProps {
+  adminToken?: string;
+  tracks: Track[];
+  onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
+  onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
+  onDeleteTrack: (id: string) => void;
+}
+
+interface CollabEntry { id: string; name: string; }
+
+function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDeleteTrack }: CollabManagerProps) {
+  const [allCollabs, setAllCollabs] = useState<CollabEntry[]>(collaborators.map(c => ({ id: c.id, name: c.name })));
+  const [selectedId, setSelectedId] = useState(collaborators[0]?.id || '');
+  const [collabSubTab, setCollabSubTab] = useState<'profile' | 'tracks'>('tracks');
+  const [profile, setProfile] = useState<CollaboratorProfile>({
+    bio: '', photoUrl: '', bannerUrl: '', artistName: '',
+    socialLinks: {}, colorPrimary: '#FACC15', colorSecondary: '#EAB308',
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isAddingPack, setIsAddingPack] = useState(false);
+  const [trackSearch, setTrackSearch] = useState('');
+
+  // Load registered collaborators from API
+  useEffect(() => {
+    fetch('/api/collab-accounts-list', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.accounts) {
+          const staticIds = collaborators.map(c => c.id);
+          const dynamic: CollabEntry[] = data.accounts
+            .filter((a: any) => !staticIds.includes(a.collaboratorId))
+            .map((a: any) => ({ id: a.collaboratorId, name: a.artistName || a.collaboratorId }));
+          setAllCollabs([...collaborators.map(c => ({ id: c.id, name: c.name })), ...dynamic]);
+        }
+      })
+      .catch(() => {});
+  }, [adminToken]);
+
+  const loadProfile = (id: string) => {
+    setLoading(true);
+    setSaved(false);
+    fetch(`/api/collab-profile?id=${id}`)
+      .then(r => r.json())
+      .then(data => { if (data) setProfile(prev => ({ ...prev, ...data })); else setProfile({ bio: '', photoUrl: '', bannerUrl: '', artistName: '', socialLinks: {}, colorPrimary: '#FACC15', colorSecondary: '#EAB308' }); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { if (selectedId) { loadProfile(selectedId); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); } }, [selectedId]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await fetch('/api/collab-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+          'X-Admin-Edit-Collab': selectedId,
+        },
+        body: JSON.stringify(profile),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {}
+    setSaving(false);
+  };
+
+  const handleTrackSave = (data: Omit<Track, 'id'> & { id?: string }) => {
+    const enriched = {
+      ...data,
+      collaborator: true,
+      collaboratorId: selectedId,
+      artist: data.artist || profile.artistName || collabEntry?.name || selectedId,
+    };
+    if (editingTrack) {
+      onUpdateTrack(enriched);
+    } else {
+      onAddTrack(enriched);
+    }
+    setEditingTrack(null);
+    setIsAdding(false);
+  };
+
+  const collabTracks = tracks.filter(t => t.collaboratorId === selectedId);
+  const filteredCollabTracks = collabTracks.filter(t => {
+    if (!trackSearch.trim()) return true;
+    const q = trackSearch.toLowerCase();
+    return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q);
+  });
+
+  const inputClass = 'w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-yellow-400/50 text-sm';
+  const collabEntry = allCollabs.find(c => c.id === selectedId);
+
+  const categoryLabels: Record<string, string> = { sesiones: 'Sesión', remixes: 'Remix', mashups: 'Mashup', librerias: 'Librería' };
+  const categoryColors: Record<string, string> = { sesiones: 'text-emerald-400', remixes: 'text-violet-400', mashups: 'text-yellow-400', librerias: 'text-amber-400' };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      {/* Selector */}
+      <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
+        <h3 className="text-sm font-semibold text-zinc-300 mb-3">Selecciona colaborador</h3>
+        <div className="relative">
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+          <select
+            value={selectedId}
+            onChange={e => setSelectedId(e.target.value)}
+            className={`${inputClass} appearance-none cursor-pointer pr-10`}
+          >
+            {allCollabs.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Sub-tabs: Tracks / Profile */}
+      <div className="flex gap-1 p-1 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
+        <button
+          onClick={() => { setCollabSubTab('tracks'); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${collabSubTab === 'tracks' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
+        >
+          <ListMusic className="w-4 h-4" />
+          Tracks ({collabTracks.length})
+        </button>
+        <button
+          onClick={() => { setCollabSubTab('profile'); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${collabSubTab === 'profile' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
+        >
+          <User className="w-4 h-4" />
+          Perfil
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 text-yellow-400 animate-spin" />
+        </div>
+      ) : collabSubTab === 'tracks' ? (
+        /* ===== TRACKS TAB ===== */
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          {isAddingPack ? (
+            <PackUploadForm
+              adminToken={adminToken || ''}
+              defaultArtist={profile.artistName || collabEntry?.name || ''}
+              hideCollaboratorCheckbox
+              onSavePack={async (packTracks) => {
+                for (const t of packTracks) handleTrackSave(t);
+                setIsAddingPack(false);
+              }}
+              onCancel={() => setIsAddingPack(false)}
+            />
+          ) : (isAdding || editingTrack) ? (
+            <AdminTrackForm
+              track={editingTrack}
+              adminToken={adminToken || ''}
+              defaultArtist={profile.artistName || collabEntry?.name || ''}
+              hideCollaboratorCheckbox
+              onSave={handleTrackSave}
+              onCancel={() => { setEditingTrack(null); setIsAdding(false); }}
+            />
+          ) : (
+            <>
+              {/* Toolbar */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsAdding(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-white font-semibold shadow-lg hover:scale-[1.02] transition-transform"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Subir Track
+                  </button>
+                  <button
+                    onClick={() => setIsAddingPack(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold hover:border-yellow-400/30 hover:text-white transition-colors"
+                  >
+                    <Package className="w-5 h-5" />
+                    Subir Pack
+                  </button>
+                </div>
+                <div className="relative flex-1 sm:flex-initial sm:ml-auto">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={trackSearch}
+                    onChange={e => setTrackSearch(e.target.value)}
+                    placeholder="Buscar track..."
+                    className="w-full sm:w-52 pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <p className="text-sm text-zinc-500">
+                {filteredCollabTracks.length} track{filteredCollabTracks.length !== 1 ? 's' : ''}
+              </p>
+
+              {/* Track list */}
+              <div className="space-y-2">
+                {filteredCollabTracks.map((track, i) => (
+                  <motion.div
+                    key={track.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors group"
+                  >
+                    <div className="w-14 h-14 rounded-xl bg-zinc-800 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                      {track.coverUrl ? (
+                        <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Music className="w-6 h-6 text-zinc-600" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-zinc-200 truncate">{track.title}</p>
+                        {track.featured && <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 fill-yellow-400" />}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
+                        <span className={`font-medium ${categoryColors[track.category]}`}>{categoryLabels[track.category]}</span>
+                        <span>{track.genre}</span>
+                        {track.bpm > 0 && <span>{track.bpm} BPM</span>}
+                        {track.duration > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            <Clock className="w-3 h-3" />
+                            {formatDuration(track.duration)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">
+                      {formatPrice(track.price)}
+                    </span>
+                    <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => { setEditingTrack(track); setIsAdding(false); }}
+                        className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                        title="Editar"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => { if (confirm(`¿Eliminar "${track.title}"?`)) onDeleteTrack(track.id); }}
+                        className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+                {filteredCollabTracks.length === 0 && (
+                  <div className="text-center py-16">
+                    <ListMusic className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+                    <p className="text-zinc-500">Este colaborador no tiene tracks</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </motion.div>
+      ) : (
+        /* ===== PROFILE TAB ===== */
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-3xl">
+          {/* Artist name */}
+          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
+            <label className="block text-xs text-zinc-500 mb-1">Nombre artístico</label>
+            <input
+              type="text"
+              value={profile.artistName}
+              onChange={e => setProfile(prev => ({ ...prev, artistName: e.target.value }))}
+              placeholder={collabEntry?.name}
+              className={inputClass}
+            />
+          </div>
+
+          {/* Bio */}
+          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
+            <label className="block text-xs text-zinc-500 mb-1">Biografía</label>
+            <textarea
+              value={profile.bio}
+              onChange={e => setProfile(prev => ({ ...prev, bio: e.target.value.substring(0, 300) }))}
+              placeholder="Bio del colaborador..."
+              className={`${inputClass} h-24 resize-none`}
+            />
+            <p className="text-[10px] text-zinc-600 mt-1 text-right">{profile.bio.length}/300</p>
+          </div>
+
+          {/* URLs */}
+          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-zinc-300">Imágenes</h3>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">URL foto de perfil</label>
+              <input type="text" value={profile.photoUrl} onChange={e => setProfile(prev => ({ ...prev, photoUrl: e.target.value }))} placeholder="https://..." className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">URL fondo de página</label>
+              <input type="text" value={profile.bannerUrl} onChange={e => setProfile(prev => ({ ...prev, bannerUrl: e.target.value }))} placeholder="https://..." className={inputClass} />
+            </div>
+          </div>
+
+          {/* Social links */}
+          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
+            <h3 className="text-sm font-semibold text-zinc-300 mb-3">Redes sociales</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {['instagram', 'tiktok', 'spotify', 'youtube', 'soundcloud'].map(key => (
+                <div key={key}>
+                  <label className="block text-xs text-zinc-500 mb-1 capitalize">{key}</label>
+                  <input
+                    type="url"
+                    value={(profile.socialLinks as any)[key] || ''}
+                    onChange={e => setProfile(prev => ({ ...prev, socialLinks: { ...prev.socialLinks, [key]: e.target.value } }))}
+                    placeholder={`https://${key}.com/...`}
+                    className={inputClass}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Save */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-8 py-3 rounded-2xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-60"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+            {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
+          </button>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

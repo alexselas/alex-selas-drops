@@ -18,6 +18,8 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
     { label: 'Colaboradores', section: 'colabs' },
   ];
 
+  const isActive = (s: Section) => currentSection === s || (s === 'colabs' && currentSection === 'colab-page');
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-zinc-800/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,7 +37,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
                 key={item.section}
                 onClick={() => onNavigate(item.section)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                  currentSection === item.section
+                  isActive(item.section)
                     ? 'text-yellow-400 bg-yellow-400/10'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
                 }`}
@@ -91,7 +93,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
                     setMobileOpen(false);
                   }}
                   className={`block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    currentSection === item.section
+                    isActive(item.section)
                       ? 'text-yellow-400 bg-yellow-400/10'
                       : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
                   }`}

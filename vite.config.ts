@@ -110,6 +110,22 @@ export default defineConfig(({ mode }) => {
           target: 'https://alex-selas-drops.vercel.app',
           changeOrigin: true,
         },
+        '/api/collab-login': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/collab-register': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/collab-profile': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
+        '/api/collab-profiles': {
+          target: 'https://alex-selas-drops.vercel.app',
+          changeOrigin: true,
+        },
         '/api/upload': {
           target: 'https://alex-selas-drops.vercel.app',
           changeOrigin: true,

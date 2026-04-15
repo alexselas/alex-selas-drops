@@ -1,4 +1,4 @@
-export type Category = 'sesiones' | 'remixes' | 'mashups' | 'librerias';
+export type Category = 'sesiones' | 'remixes' | 'mashups' | 'packs' | 'librerias';
 
 export interface Track {
   id: string;
@@ -19,6 +19,32 @@ export interface Track {
   featured: boolean;
   tags: string[];
   collaborator?: boolean;
+  collaboratorId?: string;
+  packId?: string;
+  packName?: string;
+}
+
+export interface CollaboratorProfile {
+  bio: string;
+  photoUrl: string;
+  bannerUrl: string;
+  artistName: string;
+  socialLinks: {
+    instagram?: string;
+    tiktok?: string;
+    spotify?: string;
+    youtube?: string;
+    soundcloud?: string;
+  };
+  colorPrimary: string;
+  colorSecondary: string;
+}
+
+export interface Collaborator {
+  id: string;
+  name: string;
+  photoUrl: string;
+  profile?: CollaboratorProfile;
 }
 
 export interface CartItem {
@@ -37,4 +63,4 @@ export interface Order {
 
 export type SortOption = 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'title';
 
-export type Section = 'home' | 'catalog' | 'colabs' | 'admin';
+export type Section = 'home' | 'catalog' | 'colabs' | 'colab-admin' | 'colab-page' | 'admin';

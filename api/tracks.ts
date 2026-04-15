@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
-const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','http://localhost:3000'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
+const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}function verifyCollabToken(h:string|undefined):{valid:boolean;collaboratorId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('collab.'))return{valid:false};const s=process.env.ADMIN_SECRET||'dev-secret';const p=t.split('.');if(p.length!==4)return{valid:false};const[,cid,ts,hm]=p;if(!cid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return{valid:false};const py=`collab.${cid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,collaboratorId:cid};}catch{return{valid:false};}}function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','http://localhost:3000'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',
@@ -50,16 +50,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET') {
       const tracks = await getTracks();
       const isAdmin = verifyAdminToken(req.headers.authorization);
-      return res.status(200).json(isAdmin ? tracks : stripFileUrls(tracks));
+      const collab = verifyCollabToken(req.headers.authorization);
+      if (isAdmin) return res.status(200).json(tracks);
+      if (collab.valid) return res.status(200).json(tracks);
+      return res.status(200).json(stripFileUrls(tracks));
     }
 
-    // All write operations require admin auth
-    if (!verifyAdminToken(req.headers.authorization)) {
+    // Check admin or collaborator auth
+    const isAdmin = verifyAdminToken(req.headers.authorization);
+    const collab = verifyCollabToken(req.headers.authorization);
+
+    if (!isAdmin && !collab.valid) {
       return res.status(401).json({ error: 'No autorizado' });
     }
 
     if (req.method === 'POST') {
       const data = req.body;
+      // Collaborators: force their ID onto the track
+      if (collab.valid && collab.collaboratorId) {
+        data.collaborator = true;
+        data.collaboratorId = collab.collaboratorId;
+      }
       const tracks = await getTracks();
       const newTrack = { ...data, id: data.id || `track-${Date.now()}` };
       tracks.unshift(newTrack);
@@ -73,12 +84,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const tracks = await getTracks();
       const idx = tracks.findIndex((t: any) => t.id === data.id);
       if (idx === -1) return res.status(404).json({ error: 'Track no encontrado' });
+      // Collaborators can only edit their own tracks
+      if (collab.valid && !isAdmin && tracks[idx].collaboratorId !== collab.collaboratorId) {
+        return res.status(403).json({ error: 'No puedes editar este track' });
+      }
       tracks[idx] = { ...tracks[idx], ...data };
       await redis.set(KV_KEY, tracks);
       return res.status(200).json(tracks[idx]);
     }
 
     if (req.method === 'PATCH') {
+      if (!isAdmin) return res.status(403).json({ error: 'Solo admin puede reordenar' });
       const data = req.body;
       if (!Array.isArray(data)) return res.status(400).json({ error: 'Se esperaba un array' });
       await redis.set(KV_KEY, data);
@@ -89,6 +105,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const id = req.query.id as string;
       if (!id) return res.status(400).json({ error: 'Falta id' });
       const tracks = await getTracks();
+      // Collaborators can only delete their own tracks
+      if (collab.valid && !isAdmin) {
+        const track = tracks.find((t: any) => t.id === id);
+        if (!track || track.collaboratorId !== collab.collaboratorId) {
+          return res.status(403).json({ error: 'No puedes eliminar este track' });
+        }
+      }
       const filtered = tracks.filter((t: any) => t.id !== id);
       await redis.set(KV_KEY, filtered);
       return res.status(200).json({ success: true });

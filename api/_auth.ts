@@ -2,6 +2,36 @@ import crypto from 'crypto';
 
 const TOKEN_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
 
+export function verifyCollabToken(authHeader: string | undefined): { valid: boolean; collaboratorId?: string } {
+  try {
+    if (!authHeader?.startsWith('Bearer ')) return { valid: false };
+    const token = authHeader.slice(7);
+    if (!token.startsWith('collab.')) return { valid: false };
+    const secret = process.env.ADMIN_SECRET || 'dev-secret';
+
+    const parts = token.split('.');
+    if (parts.length !== 4) return { valid: false };
+    const [, collaboratorId, timestamp, hmac] = parts;
+    if (!collaboratorId || !timestamp || !hmac) return { valid: false };
+
+    const age = Date.now() - Number(timestamp);
+    if (isNaN(age) || age > TOKEN_MAX_AGE || age < 0) return { valid: false };
+
+    const payload = `collab.${collaboratorId}.${timestamp}`;
+    const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+    if (hmac.length !== expected.length) return { valid: false };
+    if (!crypto.timingSafeEqual(Buffer.from(hmac, 'hex'), Buffer.from(expected, 'hex'))) return { valid: false };
+
+    return { valid: true, collaboratorId };
+  } catch {
+    return { valid: false };
+  }
+}
+
+export function verifyAnyToken(authHeader: string | undefined): boolean {
+  return verifyAdminToken(authHeader) || verifyCollabToken(authHeader).valid;
+}
+
 export function verifyAdminToken(authHeader: string | undefined): boolean {
   try {
     if (!authHeader?.startsWith('Bearer ')) return false;

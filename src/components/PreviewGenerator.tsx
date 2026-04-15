@@ -1,11 +1,19 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Scissors, Play, Pause, Loader2, Volume2, VolumeX } from 'lucide-react';
+
+export interface PreviewGeneratorHandle {
+  generate: () => Promise<Blob | null>;
+  isReady: () => boolean;
+  stop: () => void;
+}
 
 interface PreviewGeneratorProps {
   fileUrl: string;
   fileBlob?: Blob | null;
   onPreviewReady: (blob: Blob, filename: string) => void;
   adminToken: string;
+  hideGenerateButton?: boolean;
+  onPlayStart?: () => void;
 }
 
 // Convert AudioBuffer to MP3 using lamejs loaded from local file in a web worker
@@ -75,7 +83,7 @@ function audioBufferToMp3(buffer: AudioBuffer, kbps: number): Promise<Blob> {
   });
 }
 
-export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken }: PreviewGeneratorProps) {
+export const PreviewGenerator = forwardRef<PreviewGeneratorHandle, PreviewGeneratorProps>(function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken, hideGenerateButton, onPlayStart }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [loading, setLoading] = useState(false);
@@ -111,10 +119,55 @@ export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken
       setDuration(Math.min(60, Math.floor(buffer.duration)));
     } catch (e) {
       console.error('Error loading audio:', e);
-      alert('Error al cargar el audio. Asegurate de subir primero el archivo completo.');
     }
     setLoading(false);
   }, [fileUrl, fileBlob]);
+
+  // Auto-load audio when fileBlob is available
+  useEffect(() => {
+    if (fileBlob && !audioBuffer && !loading) {
+      loadAudio();
+    }
+  }, [fileBlob, audioBuffer, loading, loadAudio]);
+
+  // Expose generate(), isReady() and stop() to parent via ref
+  useImperativeHandle(ref, () => ({
+    isReady: () => !!audioBuffer && !generating,
+    stop: () => stopPlayback(),
+    generate: async () => {
+      if (!audioBuffer) return null;
+      setGenerating(true);
+      try {
+        const sampleRate = audioBuffer.sampleRate;
+        const numChannels = Math.min(audioBuffer.numberOfChannels, 2);
+        const offline = new OfflineAudioContext(numChannels, Math.floor(duration * sampleRate), sampleRate);
+        const source = offline.createBufferSource();
+        source.buffer = audioBuffer;
+        const gainNode = offline.createGain();
+        const gain = gainNode.gain;
+        gain.setValueAtTime(1.0, 0);
+        for (let t = 7; t < duration; t += 7) {
+          gain.setValueAtTime(1.0, t - 0.1);
+          gain.linearRampToValueAtTime(0.15, t + 0.5);
+          gain.linearRampToValueAtTime(1.0, t + 2.0);
+        }
+        const fadeStart = Math.max(0, duration - 3);
+        gain.setValueAtTime(1.0, fadeStart);
+        gain.linearRampToValueAtTime(0.0, duration);
+        source.connect(gainNode);
+        gainNode.connect(offline.destination);
+        source.start(0, startTime, duration);
+        const renderedBuffer = await offline.startRendering();
+        const mp3Blob = await audioBufferToMp3(renderedBuffer, 128);
+        setGenerating(false);
+        return mp3Blob;
+      } catch (e) {
+        console.error('Error generating preview:', e);
+        setGenerating(false);
+        return null;
+      }
+    },
+  }), [audioBuffer, startTime, duration, generating]);
 
   // Draw waveform
   useEffect(() => {
@@ -165,7 +218,7 @@ export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken
       ctx.stroke();
     }
 
-    for (let t = 15; t < duration; t += 15) {
+    for (let t = 7; t < duration; t += 7) {
       const markerX = ((startTime + t) / audioBuffer.duration) * W;
       ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
       const duckW = (2 / audioBuffer.duration) * W;
@@ -183,7 +236,7 @@ export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken
     if (!audioBuffer || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const ratio = x / canvasRef.current.width;
+    const ratio = x / rect.width;
     const newStart = Math.max(0, Math.min(ratio * audioBuffer.duration, audioBuffer.duration - duration));
     setStartTime(Math.round(newStart));
     stopPlayback();
@@ -193,6 +246,7 @@ export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken
 
   const startPlayback = () => {
     if (!audioBuffer || !ctxRef.current) return;
+    onPlayStart?.();
     const ctx = ctxRef.current;
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
@@ -240,8 +294,8 @@ export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken
       const gain = gainNode.gain;
       gain.setValueAtTime(1.0, 0);
 
-      // Ducking every 15s
-      for (let t = 15; t < duration; t += 15) {
+      // Ducking every 7s
+      for (let t = 7; t < duration; t += 7) {
         gain.setValueAtTime(1.0, t - 0.1);
         gain.linearRampToValueAtTime(0.15, t + 0.5);
         gain.linearRampToValueAtTime(1.0, t + 2.0);
@@ -274,21 +328,17 @@ export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken
   if (!fileUrl && !fileBlob) {
     return (
       <div className="p-4 border border-zinc-800 rounded-xl text-center text-sm text-zinc-500">
-        Sube primero el archivo completo para generar la preview
+        Sube primero la canción para generar la preview
       </div>
     );
   }
 
   if (!audioBuffer) {
     return (
-      <button
-        onClick={loadAudio}
-        disabled={loading}
-        className="w-full p-4 border border-dashed border-yellow-400/30 rounded-xl text-sm text-yellow-400 hover:bg-yellow-400/5 transition-colors flex items-center justify-center gap-2"
-      >
-        {loading ? <Loader2 size={16} className="animate-spin" /> : <Scissors size={16} />}
-        {loading ? 'Cargando audio...' : 'Generar preview desde el track completo'}
-      </button>
+      <div className="p-4 border border-zinc-800 rounded-xl text-center text-sm text-zinc-500 flex items-center justify-center gap-2">
+        <Loader2 size={16} className="animate-spin text-yellow-400" />
+        Cargando audio...
+      </div>
     );
   }
 
@@ -309,7 +359,7 @@ export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken
 
       <div className="flex items-center gap-2 text-[9px] text-zinc-600">
         <span className="flex items-center gap-1"><span className="w-2 h-2 bg-yellow-400 rounded-sm inline-block" /> Seleccion</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500/50 rounded-sm inline-block" /> Ducking cada 15s</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500/50 rounded-sm inline-block" /> Ducking cada 7s</span>
         <span>Haz clic en la onda para mover el inicio</span>
       </div>
 
@@ -336,24 +386,26 @@ export function PreviewGenerator({ fileUrl, fileBlob, onPreviewReady, adminToken
 
       <div className="flex items-center gap-3 text-[10px] text-zinc-500">
         <span className="flex items-center gap-1"><Volume2 size={10} /> Fundido final 3s</span>
-        <span className="flex items-center gap-1"><VolumeX size={10} /> Ducking anti-copia cada 15s</span>
+        <span className="flex items-center gap-1"><VolumeX size={10} /> Ducking anti-copia cada 7s</span>
       </div>
 
       <div className="flex gap-2">
-        <button onClick={togglePlayback}
+        <button type="button" onClick={togglePlayback}
           className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 hover:border-zinc-500 transition-colors flex items-center gap-2">
           {isPlaying ? <Pause size={14} /> : <Play size={14} />}
           {isPlaying ? 'Parar' : 'Escuchar'}
         </button>
-        <button onClick={generatePreview} disabled={generating}
-          className="flex-1 py-2 bg-yellow-400 text-black font-black text-xs uppercase tracking-widest rounded-lg hover:bg-yellow-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-          {generating ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
-          {generating ? generatingStep : 'Generar preview MP3'}
-        </button>
+        {!hideGenerateButton && (
+          <button type="button" onClick={generatePreview} disabled={generating}
+            className="flex-1 py-2 bg-yellow-400 text-black font-black text-xs uppercase tracking-widest rounded-lg hover:bg-yellow-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+            {generating ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
+            {generating ? generatingStep : 'Generar preview MP3'}
+          </button>
+        )}
       </div>
     </div>
   );
-}
+});
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);

@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Upload, Image, FileAudio, Music, Trash2, CheckCircle, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import type { Track, Category } from '../types';
 import { analyzeAudio } from '../lib/audioAnalyzer';
-import { PreviewGenerator } from './PreviewGenerator';
+import { PreviewGenerator, type PreviewGeneratorHandle } from './PreviewGenerator';
 
 interface AdminTrackFormProps {
   track: Track | null;
   onSave: (data: Omit<Track, 'id'> & { id?: string }) => void;
   onCancel: () => void;
   adminToken?: string;
+  defaultArtist?: string;
+  hideCollaboratorCheckbox?: boolean;
 }
 
 type UploadStatus = 'idle' | 'uploading' | 'done' | 'error';
@@ -46,7 +48,7 @@ function FileDropZone({
     if (currentUrl) setStatus('done');
   }, [currentUrl]);
 
-  const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || '';
+  const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || sessionStorage.getItem('alex-selas-drops-collab-token') || '';
 
   const uploadFile = async (file: File) => {
     setFileName(file.name);
@@ -237,14 +239,16 @@ function FileDropZone({
   );
 }
 
-export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: AdminTrackFormProps) {
+export default function AdminTrackForm({ track, onSave, onCancel, adminToken, defaultArtist, hideCollaboratorCheckbox }: AdminTrackFormProps) {
+  const previewGenRef = useRef<PreviewGeneratorHandle>(null);
   const [trackFileBlob, setTrackFileBlob] = useState<Blob | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [previewLocalUrl, setPreviewLocalUrl] = useState('');
   const [uploadingPreview, setUploadingPreview] = useState(false);
   const [form, setForm] = useState({
     title: '',
-    artist: 'Alex Selas',
+    artist: defaultArtist || 'Alex Selas',
     authors: '',
     category: 'sesiones' as Category,
     price: 9.99,
@@ -311,7 +315,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
     if (!form.title) return;
     setAiLoading(true);
     try {
-      const adminToken = sessionStorage.getItem('alex-selas-drops-token') || '';
+      const adminToken = sessionStorage.getItem('alex-selas-drops-token') || sessionStorage.getItem('alex-selas-drops-collab-token') || '';
       const res = await fetch('/api/generate-description', {
         method: 'POST',
         headers: {
@@ -339,8 +343,46 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const uploadPreviewBlob = async (blob: Blob): Promise<string> => {
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'X-Filename': `preview-${Date.now()}.mp3`,
+          'X-Folder': 'previews',
+          'Authorization': `Bearer ${adminToken || ''}`,
+        },
+        body: blob,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.url || '';
+      }
+    } catch {}
+    return '';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+
+    let finalPreviewUrl = form.previewUrl;
+
+    // If preview blob exists but not uploaded yet, upload it
+    if (previewBlob && !form.previewUrl) {
+      finalPreviewUrl = await uploadPreviewBlob(previewBlob);
+    }
+
+    // If still no preview, auto-generate from PreviewGenerator
+    if (!finalPreviewUrl && previewGenRef.current?.isReady()) {
+      const blob = await previewGenRef.current.generate();
+      if (blob) {
+        finalPreviewUrl = await uploadPreviewBlob(blob);
+      }
+    }
+
+    setSubmitting(false);
+
     onSave({
       ...(track ? { id: track.id } : {}),
       title: form.title,
@@ -355,7 +397,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
       releaseDate: form.releaseDate,
       description: form.description,
       coverUrl: form.coverUrl,
-      previewUrl: form.previewUrl,
+      previewUrl: finalPreviewUrl,
       fileUrl: form.fileUrl,
       featured: form.featured,
       collaborator: form.collaborator,
@@ -398,87 +440,56 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
             <Upload className="w-4 h-4 text-yellow-400" />
             Archivos
           </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <FileDropZone
-              label="Portada (imagen)"
-              accept="image/jpeg,image/png,image/webp"
-              hint="JPG, PNG o WebP"
-              icon={Image}
-              currentUrl={form.coverUrl}
-              isImage
-              folder="covers"
-              onUploaded={url => setForm(prev => ({ ...prev, coverUrl: url }))}
-              onClear={() => setForm(prev => ({ ...prev, coverUrl: '' }))}
-            />
-            {/* Preview Generator from full track */}
-            {(form.previewUrl || previewLocalUrl) ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                    Preview {previewLocalUrl && !form.previewUrl ? '(escucha y sube)' : ''}
-                  </span>
-                  <button onClick={() => { setForm(prev => ({ ...prev, previewUrl: '' })); setPreviewBlob(null); setPreviewLocalUrl(''); }} className="text-[10px] text-red-400 hover:text-red-300">Eliminar</button>
-                </div>
-                <audio src={previewLocalUrl || form.previewUrl} controls className="w-full h-8" />
-                {previewBlob && !form.previewUrl && (
-                  <button
-                    onClick={async () => {
-                      setUploadingPreview(true);
-                      try {
-                        const res = await fetch('/api/upload', {
-                          method: 'POST',
-                          headers: {
-                            'X-Filename': `preview-${Date.now()}.mp3`,
-                            'X-Folder': 'previews',
-                            'Authorization': `Bearer ${adminToken || ''}`,
-                          },
-                          body: previewBlob,
-                        });
-                        if (res.ok) {
-                          const data = await res.json();
-                          console.log('Upload response:', data);
-                          setForm(prev => ({ ...prev, previewUrl: data.url }));
-                          setPreviewBlob(null);
-                        } else {
-                          const err = await res.text();
-                          console.error('Upload failed:', res.status, err);
-                          alert('Error al subir la preview: ' + res.status);
-                        }
-                      } catch (e) { console.error('Upload error:', e); alert('Error de conexion'); }
-                      setUploadingPreview(false);
-                    }}
-                    disabled={uploadingPreview}
-                    className="w-full py-2 bg-yellow-400 text-black font-black text-[10px] uppercase tracking-widest rounded-lg hover:bg-yellow-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {uploadingPreview ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                    {uploadingPreview ? 'Subiendo...' : 'Subir preview a la nube'}
-                  </button>
-                )}
+          {/* 1. Canción */}
+          <FileDropZone
+            label="Canción (archivo completo 320kbps)"
+            accept="audio/mpeg,audio/mp3,application/zip"
+            hint="MP3 o ZIP"
+            icon={FileAudio}
+            currentUrl={form.fileUrl}
+            folder="tracks"
+            onUploaded={url => setForm(prev => ({ ...prev, fileUrl: url }))}
+            onClear={() => { setForm(prev => ({ ...prev, fileUrl: '' })); setTrackFileBlob(null); }}
+            onFileSelected={(file) => { setTrackFileBlob(file); handleAudioAnalysis(file); }}
+          />
+
+          {/* 2. Portada */}
+          <FileDropZone
+            label="Portada (imagen)"
+            accept="image/jpeg,image/png,image/webp"
+            hint="JPG, PNG o WebP"
+            icon={Image}
+            currentUrl={form.coverUrl}
+            isImage
+            folder="covers"
+            onUploaded={url => setForm(prev => ({ ...prev, coverUrl: url }))}
+            onClear={() => setForm(prev => ({ ...prev, coverUrl: '' }))}
+          />
+
+          {/* 3. Preview — auto-generada al publicar */}
+          {(form.previewUrl || previewLocalUrl) ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Preview {previewLocalUrl && !form.previewUrl ? '(se subirá al publicar)' : ''}
+                </span>
+                <button onClick={() => { setForm(prev => ({ ...prev, previewUrl: '' })); setPreviewBlob(null); setPreviewLocalUrl(''); }} className="text-[10px] text-red-400 hover:text-red-300">Eliminar</button>
               </div>
-            ) : (
-              <PreviewGenerator
-                fileUrl={form.fileUrl}
-                fileBlob={trackFileBlob}
-                adminToken={adminToken || ''}
-                onPreviewReady={(blob, _filename) => {
-                  const localUrl = URL.createObjectURL(blob);
-                  setPreviewBlob(blob);
-                  setPreviewLocalUrl(localUrl);
-                }}
-              />
-            )}
-            <FileDropZone
-              label="Archivo completo (320kbps)"
-              accept="audio/mpeg,audio/mp3,application/zip"
-              hint="MP3 o ZIP"
-              icon={FileAudio}
-              currentUrl={form.fileUrl}
-              folder="tracks"
-              onUploaded={url => setForm(prev => ({ ...prev, fileUrl: url }))}
-              onClear={() => { setForm(prev => ({ ...prev, fileUrl: '' })); setTrackFileBlob(null); }}
-              onFileSelected={(file) => { setTrackFileBlob(file); handleAudioAnalysis(file); }}
+              <audio src={previewLocalUrl || form.previewUrl} controls className="w-full h-8" />
+            </div>
+          ) : (
+            <PreviewGenerator
+              ref={previewGenRef}
+              fileUrl={form.fileUrl}
+              fileBlob={trackFileBlob}
+              adminToken={adminToken || ''}
+              onPreviewReady={(blob, _filename) => {
+                const localUrl = URL.createObjectURL(blob);
+                setPreviewBlob(blob);
+                setPreviewLocalUrl(localUrl);
+              }}
             />
-          </div>
+          )}
         </div>
 
         {/* Analyzing indicator */}
@@ -625,15 +636,17 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
                 />
                 <span className="text-sm text-zinc-400">Destacado</span>
               </label>
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.collaborator}
-                  onChange={e => setForm({ ...form, collaborator: e.target.checked })}
-                  className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-violet-400 focus:ring-violet-400/25 cursor-pointer"
-                />
-                <span className="text-sm text-zinc-400">Colaborador</span>
-              </label>
+              {!hideCollaboratorCheckbox && (
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.collaborator}
+                    onChange={e => setForm({ ...form, collaborator: e.target.checked })}
+                    className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-violet-400 focus:ring-violet-400/25 cursor-pointer"
+                  />
+                  <span className="text-sm text-zinc-400">Colaborador</span>
+                </label>
+              )}
             </div>
           </div>
         </div>
@@ -642,33 +655,37 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs text-zinc-500">Descripción</label>
-            <button
-              type="button"
-              onClick={generateDescription}
-              disabled={aiLoading || !form.title}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
-                aiLoading
-                  ? 'bg-yellow-400/10 text-yellow-400/50 cursor-wait'
-                  : !form.title
-                    ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
-                    : 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 active:scale-95'
-              }`}
-            >
-              {aiLoading ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Sparkles className="w-3 h-3" />
-              )}
-              {aiLoading ? 'Generando...' : 'Generar con IA'}
-            </button>
+            {!hideCollaboratorCheckbox && (
+              <button
+                type="button"
+                onClick={generateDescription}
+                disabled={aiLoading || !form.title}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
+                  aiLoading
+                    ? 'bg-yellow-400/10 text-yellow-400/50 cursor-wait'
+                    : !form.title
+                      ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                      : 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 active:scale-95'
+                }`}
+              >
+                {aiLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3 h-3" />
+                )}
+                {aiLoading ? 'Generando...' : 'Generar con IA'}
+              </button>
+            )}
           </div>
           <textarea
             value={form.description}
             onChange={e => setForm({ ...form, description: e.target.value })}
-            placeholder="Escribe unas notas y la IA creará una descripción profesional, o escríbela tú directamente..."
+            placeholder={hideCollaboratorCheckbox ? 'Describe tu track...' : 'Escribe unas notas y la IA creará una descripción profesional, o escríbela tú directamente...'}
             className={`${inputClass} h-28 resize-none`}
           />
-          <p className="text-[10px] text-zinc-600 mt-1">Puedes escribir notas básicas y darle a "Generar con IA" para obtener una descripción profesional</p>
+          {!hideCollaboratorCheckbox && (
+            <p className="text-[10px] text-zinc-600 mt-1">Puedes escribir notas básicas y darle a "Generar con IA" para obtener una descripción profesional</p>
+          )}
         </div>
 
         {/* === TAGS === */}
@@ -687,9 +704,11 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken }: 
         <div className="flex items-center gap-3 pt-2 border-t border-zinc-800/50">
           <button
             type="submit"
-            className="px-8 py-3 rounded-2xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] active:scale-95 transition-transform"
+            disabled={submitting}
+            className="px-8 py-3 rounded-2xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-60 disabled:cursor-wait flex items-center gap-2"
           >
-            {track ? 'Guardar Cambios' : 'Publicar Track'}
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {submitting ? 'Generando preview...' : (track ? 'Guardar Cambios' : 'Publicar Track')}
           </button>
           <button
             type="button"
