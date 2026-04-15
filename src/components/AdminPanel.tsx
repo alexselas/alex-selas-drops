@@ -1281,7 +1281,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
               </h3>
               <div
                 className={`relative w-full rounded-lg overflow-hidden cursor-pointer group border mb-2 transition-colors ${bannerDragOver ? 'border-yellow-400/50 bg-yellow-400/5' : 'border-zinc-700'}`}
-                style={{ aspectRatio: '16/9' }}
+                style={{ aspectRatio: '1920/720' }}
                 onClick={() => bannerRef.current?.click()}
                 onDragOver={e => { e.preventDefault(); setBannerDragOver(true); }}
                 onDragLeave={() => setBannerDragOver(false)}
@@ -1299,7 +1299,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                   <div className="w-full h-full bg-zinc-800/50 flex flex-col items-center justify-center gap-1">
                     <Upload className="w-5 h-5 text-zinc-600 group-hover:text-yellow-400 transition-colors" />
                     <span className="text-[9px] text-zinc-600">Subir foto</span>
-                    <span className="text-[9px] text-zinc-600">1600 × 900 px</span>
+                    <span className="text-[9px] text-zinc-600">1920 × 720 px</span>
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

@@ -10,7 +10,7 @@ interface ImageCropperProps {
 
 export default function ImageCropper({ imageUrl, shape = 'circle', onCrop, onCancel }: ImageCropperProps) {
   const W = shape === 'banner' ? Math.min(600, typeof window !== 'undefined' ? window.innerWidth - 40 : 560) : 300;
-  const H = shape === 'banner' ? Math.round(W * 9 / 16) : 300;
+  const H = shape === 'banner' ? Math.round(W * 720 / 1920) : 300;
 
   const [naturalW, setNaturalW] = useState(0);
   const [naturalH, setNaturalH] = useState(0);
@@ -105,8 +105,8 @@ export default function ImageCropper({ imageUrl, shape = 'circle', onCrop, onCan
     if (!img) return;
 
     const canvas = document.createElement('canvas');
-    const outW = shape === 'banner' ? 1600 : 512;
-    const outH = shape === 'banner' ? 900 : 512;
+    const outW = shape === 'banner' ? 1920 : 512;
+    const outH = shape === 'banner' ? 720 : 512;
     canvas.width = outW;
     canvas.height = outH;
     const ctx = canvas.getContext('2d')!;
