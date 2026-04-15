@@ -158,8 +158,10 @@ export default function CollabPage({
         </div>
       </div>
 
-      {/* ====== CONTENT — black background like Home ====== */}
-      <div className="relative z-10 bg-zinc-950">
+      {/* ====== CONTENT — fade from hero to black ====== */}
+      <div className="relative z-10">
+      <div className="h-32 bg-gradient-to-b from-transparent to-zinc-950" />
+      <div className="bg-zinc-950">
       <CollabContent
         myTracks={myTracks}
         featuredTracks={featuredTracks}
@@ -170,6 +172,7 @@ export default function CollabPage({
         onAddToCart={onAddToCart}
         onDetail={onDetail}
       />
+      </div>
       </div>
     </div>
   );
