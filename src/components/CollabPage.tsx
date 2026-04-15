@@ -156,47 +156,76 @@ export default function CollabPage({
         </div>
       </div>
 
-      {/* ====== FEATURED ====== */}
+      {/* ====== FEATURED — same style as Home ====== */}
       {featuredTracks.length > 0 && (
         <div className="relative z-10 max-w-5xl mx-auto px-4 pt-8 pb-2">
           <h2 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
             Destacados
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {featuredTracks.map(track => (
-              <motion.div
-                key={track.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="rounded-2xl overflow-hidden border border-zinc-800/50 backdrop-blur-sm cursor-pointer group"
-                style={{ backgroundColor: 'rgba(20,20,20,0.85)' }}
-                onClick={() => onDetail(track)}
-              >
-                {track.coverUrl ? (
-                  <div className="relative aspect-square">
-                    <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
-                    <button
-                      onClick={e => { e.stopPropagation(); onPlay(track); }}
-                      className="absolute bottom-2 right-2 w-10 h-10 rounded-full gradient-bg flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      {currentTrackId === track.id && isPlaying ? <Pause className="w-4 h-4 text-black" /> : <Play className="w-4 h-4 text-black ml-0.5" />}
-                    </button>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {featuredTracks.map(track => {
+              const isCurrentTrack = currentTrackId === track.id;
+              return (
+                <motion.div
+                  key={track.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="group relative bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 overflow-hidden hover:border-yellow-400/20 flex flex-col"
+                >
+                  {/* Cover */}
+                  <div className="relative aspect-square bg-[#111] cursor-pointer overflow-hidden flex-shrink-0" onClick={() => onDetail(track)}>
+                    {track.coverUrl ? (
+                      <img src={track.coverUrl} alt={track.title} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1e1e1e] to-[#141414]">
+                        <Music className="w-12 h-12 text-zinc-800" />
+                      </div>
+                    )}
+                    {/* Play overlay */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        onClick={e => { e.stopPropagation(); onPlay(track); }}
+                        className="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform"
+                      >
+                        {isCurrentTrack && isPlaying ? <Pause className="w-5 h-5 text-black" /> : <Play className="w-5 h-5 text-black ml-0.5" />}
+                      </button>
+                    </div>
+                    {/* Playing indicator */}
+                    {isCurrentTrack && isPlaying && (
+                      <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-black/70 text-yellow-400 text-[10px] font-medium">
+                        Reproduciendo
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="aspect-square bg-zinc-800 flex items-center justify-center">
-                    <Music className="w-8 h-8 text-zinc-600" />
+                  {/* Info */}
+                  <div className="p-3 flex flex-col flex-1">
+                    <h3 className="font-semibold text-sm text-zinc-50 truncate group-hover:text-yellow-400 transition-colors">{track.title}</h3>
+                    <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                      {track.authors ? <><span className="text-zinc-400">{track.authors}</span> &middot; </> : null}
+                      {track.genre}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-zinc-500">
+                      {track.bpm > 0 && <span>{track.bpm} BPM</span>}
+                    </div>
+                    <div className="flex items-center justify-between mt-auto pt-2.5">
+                      <span className="text-base font-bold gradient-text">{formatPrice(track.price)}</span>
+                      <button
+                        onClick={() => onAddToCart(track)}
+                        disabled={isInCart(track.id)}
+                        className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          isInCart(track.id)
+                            ? 'bg-green-500/20 text-green-400 cursor-default'
+                            : 'bg-zinc-800 text-zinc-300 hover:gradient-bg hover:text-black active:scale-95'
+                        }`}
+                      >
+                        {isInCart(track.id) ? 'Añadido' : 'Añadir'}
+                      </button>
+                    </div>
                   </div>
-                )}
-                <div className="p-3">
-                  <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-zinc-500 truncate">{track.genre}</p>
-                    <span className="text-xs font-bold gradient-text">{formatPrice(track.price)}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       )}
