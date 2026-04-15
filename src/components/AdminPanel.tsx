@@ -18,6 +18,7 @@ type AdminTab = 'dashboard' | 'tracks' | 'orders' | 'settings' | 'collabs';
 interface AdminPanelProps {
   tracks: Track[];
   onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => Promise<void> | void;
+  onAddTracksBatch: (data: (Omit<Track, 'id'> & { id?: string })[]) => Promise<void> | void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => Promise<void> | void;
   onDeleteTrack: (id: string) => Promise<void> | void;
   onReorderTracks: (tracks: Track[]) => void;
@@ -33,7 +34,7 @@ interface Order {
   date: string;
 }
 
-export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDeleteTrack, onReorderTracks, onLogout, adminToken }: AdminPanelProps) {
+export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack, onReorderTracks, onLogout, adminToken }: AdminPanelProps) {
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -297,7 +298,7 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                 if (editingPackTracks) {
                   for (const t of packTracks) await onUpdateTrack(t);
                 } else {
-                  for (const t of packTracks) await onAddTrack(t);
+                  await onAddTracksBatch(packTracks);
                 }
                 setIsAddingPack(false);
                 setEditingPackTracks(null);
@@ -820,7 +821,7 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
 
       {/* ============ COLABORADORES ============ */}
       {tab === 'collabs' && (
-        <CollabManager adminToken={adminToken} tracks={tracks} onAddTrack={onAddTrack} onUpdateTrack={onUpdateTrack} onDeleteTrack={onDeleteTrack} />
+        <CollabManager adminToken={adminToken} tracks={tracks} onAddTrack={onAddTrack} onAddTracksBatch={onAddTracksBatch} onUpdateTrack={onUpdateTrack} onDeleteTrack={onDeleteTrack} />
       )}
     </div>
   );
@@ -831,13 +832,14 @@ interface CollabManagerProps {
   adminToken?: string;
   tracks: Track[];
   onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
+  onAddTracksBatch: (data: (Omit<Track, 'id'> & { id?: string })[]) => Promise<void> | void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
   onDeleteTrack: (id: string) => void;
 }
 
 interface CollabEntry { id: string; name: string; }
 
-function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDeleteTrack }: CollabManagerProps) {
+function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack }: CollabManagerProps) {
   const [allCollabs, setAllCollabs] = useState<CollabEntry[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [collabSubTab, setCollabSubTab] = useState<'profile' | 'tracks'>('tracks');
@@ -1022,7 +1024,13 @@ function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDelete
               defaultArtist={profile.artistName || collabEntry?.name || ''}
               hideCollaboratorCheckbox
               onSavePack={async (packTracks) => {
-                for (const t of packTracks) handleTrackSave(t);
+                const enriched = packTracks.map(t => ({
+                  ...t,
+                  collaborator: true,
+                  collaboratorId: selectedId,
+                  artist: t.artist || profile.artistName || collabEntry?.name || selectedId,
+                }));
+                await onAddTracksBatch(enriched);
                 setIsAddingPack(false);
               }}
               onCancel={() => setIsAddingPack(false)}

@@ -87,18 +87,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const data = req.body;
-      // Collaborators: force their ID onto the track
-      if (collab.valid && collab.collaboratorId) {
-        data.collaborator = true;
-        data.collaboratorId = collab.collaboratorId;
-      }
+      const body = req.body;
       const tracks = await getTracks();
-      const newTrack = { ...data, id: data.id || `track-${Date.now()}` };
-      enforceFeaturedLimit(tracks, newTrack);
-      tracks.unshift(newTrack);
+
+      // Support batch: if body is an array, add all tracks at once
+      const items = Array.isArray(body) ? body : [body];
+      const newTracks: any[] = [];
+      for (const data of items) {
+        if (collab.valid && collab.collaboratorId) {
+          data.collaborator = true;
+          data.collaboratorId = collab.collaboratorId;
+        }
+        const newTrack = { ...data, id: data.id || `track-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` };
+        enforceFeaturedLimit(tracks, newTrack);
+        tracks.unshift(newTrack);
+        newTracks.push(newTrack);
+      }
       await redis.set(KV_KEY, tracks);
-      return res.status(200).json(newTrack);
+      return res.status(200).json(Array.isArray(body) ? newTracks : newTracks[0]);
     }
 
     if (req.method === 'PUT') {

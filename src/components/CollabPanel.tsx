@@ -16,6 +16,7 @@ interface CollabPanelProps {
   collaborator: Collaborator;
   tracks: Track[];
   onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
+  onAddTracksBatch: (data: (Omit<Track, 'id'> & { id?: string })[]) => Promise<void> | void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
   onDeleteTrack: (id: string) => void;
   onReorderTracks: (tracks: Track[]) => void;
@@ -27,6 +28,7 @@ export default function CollabPanel({
   collaborator,
   tracks,
   onAddTrack,
+  onAddTracksBatch,
   onUpdateTrack,
   onDeleteTrack,
   onReorderTracks,
@@ -173,7 +175,13 @@ export default function CollabPanel({
               if (editingPackTracks) {
                 for (const t of packTracks) handleSave({ ...t, id: t.id });
               } else {
-                for (const t of packTracks) handleSave(t);
+                const enriched = packTracks.map(t => ({
+                  ...t,
+                  collaborator: true,
+                  collaboratorId: collaborator.id,
+                  artist: t.artist || collaborator.name,
+                }));
+                await onAddTracksBatch(enriched);
               }
               setIsAddingPack(false);
               setEditingPackTracks(null);

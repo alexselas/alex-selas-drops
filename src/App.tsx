@@ -223,9 +223,28 @@ export default function App() {
       const newTrack = await res.json();
       setTracks(prev => [newTrack, ...prev]);
     } catch {
-      // Fallback local
       const newTrack = { ...data, id: data.id || `track-${Date.now()}` } as Track;
       setTracks(prev => [newTrack, ...prev]);
+    }
+  }, []);
+
+  const handleAddTracksBatch = useCallback(async (items: (Omit<Track, 'id'> & { id?: string })[]) => {
+    try {
+      const res = await fetch('/api/tracks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getActiveToken()}`,
+        },
+        body: JSON.stringify(items),
+      });
+      const newTracks = await res.json();
+      if (Array.isArray(newTracks)) {
+        setTracks(prev => [...newTracks, ...prev]);
+      }
+    } catch {
+      const newTracks = items.map((d, i) => ({ ...d, id: d.id || `track-${Date.now()}-${i}` } as Track));
+      setTracks(prev => [...newTracks, ...prev]);
     }
   }, []);
 
@@ -713,6 +732,7 @@ export default function App() {
                 })()}
                 tracks={tracks}
                 onAddTrack={handleAddTrack}
+                onAddTracksBatch={handleAddTracksBatch}
                 onUpdateTrack={handleUpdateTrack}
                 onDeleteTrack={handleDeleteTrack}
                 onReorderTracks={handleReorderTracks}
@@ -770,6 +790,7 @@ export default function App() {
               <AdminPanel
                 tracks={tracks}
                 onAddTrack={handleAddTrack}
+                onAddTracksBatch={handleAddTracksBatch}
                 onUpdateTrack={handleUpdateTrack}
                 onDeleteTrack={handleDeleteTrack}
                 onReorderTracks={handleReorderTracks}
