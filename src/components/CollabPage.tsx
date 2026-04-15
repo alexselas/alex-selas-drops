@@ -90,7 +90,7 @@ export default function CollabPage({
         </button>
 
         {/* Hero content */}
-        <div className="max-w-5xl mx-auto px-6 pt-32 pb-10 sm:pt-40 sm:pb-14 flex flex-col items-center text-center">
+        <div className="max-w-7xl mx-auto px-6 pt-32 pb-10 sm:pt-40 sm:pb-14 flex flex-col items-center text-center">
           {/* Name */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -232,7 +232,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
 
   if (myTracks.length === 0) {
     return (
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-10 pb-28">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-10 pb-28">
         <div className="text-center py-20 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800/50">
           <Music className="w-14 h-14 text-zinc-700 mx-auto mb-4" />
           <p className="text-zinc-400 text-lg font-medium">Próximamente</p>
@@ -247,7 +247,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
       {/* ====== FEATURED ====== */}
       {featuredTracks.length > 0 && (
         <section className="relative z-10 py-8">
-          <div className="max-w-5xl mx-auto px-4">
+          <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center gap-3 mb-6">
               <Sparkles className="w-6 h-6 text-yellow-400" />
               <h2 className="text-3xl font-bold text-zinc-50">Destacados</h2>
@@ -271,7 +271,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
       )}
 
       {/* ====== ALL TRACKS ====== */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-6 pb-28">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-28">
         {/* Promo banner */}
         <div className="relative overflow-hidden rounded-2xl mb-8">
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500" />
