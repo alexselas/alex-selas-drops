@@ -473,8 +473,43 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                             </div>
                             {isExpanded && (
                               <div className="bg-[#111] border border-zinc-800/50 border-t-0 rounded-b-xl divide-y divide-zinc-800/30 max-h-[400px] overflow-y-auto">
-                                {pack.tracks.map((track, idx) => (
-                                  <div key={track.id} className="flex items-center gap-3 px-5 py-3 group/track hover:bg-zinc-800/30 transition-colors">
+                                {pack.tracks.map((track, idx) => {
+                                  const packTrackDragging = dragId === track.id;
+                                  const packTrackDragOver = dragOverId === track.id;
+                                  return (
+                                  <div
+                                    key={track.id}
+                                    draggable
+                                    onDragStart={e => { e.stopPropagation(); setDragId(track.id); e.dataTransfer.effectAllowed = 'move'; }}
+                                    onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; if (dragOverId !== track.id) setDragOverId(track.id); }}
+                                    onDragLeave={() => { if (dragOverId === track.id) setDragOverId(null); }}
+                                    onDrop={e => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (dragId && dragId !== track.id) {
+                                        const r = [...tracks];
+                                        const fromIdx = r.findIndex(t => t.id === dragId);
+                                        const toIdx = r.findIndex(t => t.id === track.id);
+                                        if (fromIdx !== -1 && toIdx !== -1) {
+                                          const [moved] = r.splice(fromIdx, 1);
+                                          r.splice(toIdx, 0, moved);
+                                          onReorderTracks(r);
+                                        }
+                                      }
+                                      setDragId(null);
+                                      setDragOverId(null);
+                                    }}
+                                    className={`flex items-center gap-3 px-5 py-3 transition-all ${
+                                      packTrackDragging ? 'opacity-40 bg-zinc-900/30' :
+                                      packTrackDragOver ? 'bg-yellow-400/10' :
+                                      'hover:bg-zinc-800/30'
+                                    }`}
+                                    style={{ cursor: 'grab' }}
+                                  >
+                                    <div className="flex-shrink-0 text-zinc-700 hover:text-zinc-400 transition-colors cursor-grab active:cursor-grabbing">
+                                      <GripVertical className="w-3.5 h-3.5" />
+                                    </div>
                                     <span className="text-[11px] text-zinc-600 font-bold w-5 text-center flex-shrink-0">{idx + 1}</span>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm text-zinc-200 truncate">{track.title}</p>
@@ -511,7 +546,8 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                                       </button>
                                     </div>
                                   </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
