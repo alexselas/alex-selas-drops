@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         title: title || '',
         artist: authors ? `${authors}` : (artist || ''),
         performerInfo: artist || '',
-        album: 'Alex Selas Drops',
+        album: artist ? `${artist} Drops` : 'Alex Selas Drops',
         genre: genre || '',
         year: new Date().getFullYear().toString(),
         comment: { language: 'spa', text: 'alexselasdrops.com' },

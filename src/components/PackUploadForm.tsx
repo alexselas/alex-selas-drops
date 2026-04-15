@@ -16,6 +16,8 @@ interface PackUploadFormProps {
 interface PackTrack {
   file: File | null;
   title: string;
+  artist: string;
+  authors: string;
   bpm: number;
   key: string;
   duration: number;
@@ -48,7 +50,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
 
   const [tracks, setTracks] = useState<PackTrack[]>(
     isEditing
-      ? existingTracks!.map(t => ({ file: null, title: t.title, bpm: t.bpm, key: t.key || '', duration: t.duration, genre: t.genre, fileUrl: t.fileUrl, previewUrl: t.previewUrl, analyzing: false }))
+      ? existingTracks!.map(t => ({ file: null, title: t.title, artist: t.artist || artist, authors: t.authors || authors, bpm: t.bpm, key: t.key || '', duration: t.duration, genre: t.genre, fileUrl: t.fileUrl, previewUrl: t.previewUrl, analyzing: false }))
       : []
   );
   const [submitting, setSubmitting] = useState(false);
@@ -95,6 +97,8 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
     const newTracks: PackTrack[] = newFiles.map(file => ({
       file,
       title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
+      artist,
+      authors,
       bpm: 0, key: '', duration: 0, genre: '',
       fileUrl: '', previewUrl: '', analyzing: true,
     }));
@@ -212,8 +216,8 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
     const result: (Omit<Track, 'id'> & { id?: string })[] = currentTracks.map((t, i) => ({
       id: existingTracks?.[i]?.id,
       title: t.title || `${packTitle} - ${i + 1}`,
-      artist,
-      authors,
+      artist: t.artist || artist,
+      authors: t.authors || authors,
       category,
       price: i === 0 ? price : 0,
       bpm: t.bpm,
@@ -295,8 +299,8 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
             <input type="text" value={packTitle} onChange={e => setPackTitle(e.target.value)} placeholder="Mi Pack Vol. 1" className={inputClass} required />
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Productor</label>
-            <input type="text" value={artist} onChange={e => { if (!hideCollaboratorCheckbox) setArtist(e.target.value); }} readOnly={!!hideCollaboratorCheckbox} className={`${inputClass} ${hideCollaboratorCheckbox ? 'opacity-60 cursor-not-allowed' : ''}`} />
+            <label className="block text-xs text-zinc-500 mb-1">Productor (por defecto)</label>
+            <input type="text" value={artist} onChange={e => setArtist(e.target.value)} className={inputClass} />
           </div>
           <div>
             <label className="block text-xs text-zinc-500 mb-1">Autores originales</label>
@@ -380,13 +384,32 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
                       {playingIdx === i ? <Pause className="w-3.5 h-3.5 text-yellow-400" /> : <Play className="w-3.5 h-3.5 text-zinc-400 ml-0.5" />}
                     </button>
 
-                    {/* Title input */}
-                    <input
-                      type="text"
-                      value={t.title}
-                      onChange={e => updateTrack(i, 'title', e.target.value)}
-                      className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50"
-                    />
+                    {/* Info fields */}
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <input
+                        type="text"
+                        value={t.title}
+                        onChange={e => updateTrack(i, 'title', e.target.value)}
+                        placeholder="Título"
+                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50"
+                      />
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={t.artist}
+                          onChange={e => updateTrack(i, 'artist', e.target.value)}
+                          placeholder="Productor"
+                          className="flex-1 px-3 py-1 rounded-lg bg-zinc-800/30 border border-zinc-800 text-zinc-300 text-xs focus:outline-none focus:border-yellow-400/50"
+                        />
+                        <input
+                          type="text"
+                          value={t.authors}
+                          onChange={e => updateTrack(i, 'authors', e.target.value)}
+                          placeholder="Autores originales"
+                          className="flex-1 px-3 py-1 rounded-lg bg-zinc-800/30 border border-zinc-800 text-zinc-300 text-xs focus:outline-none focus:border-yellow-400/50"
+                        />
+                      </div>
+                    </div>
 
                     {/* Status */}
                     {t.analyzing ? (
