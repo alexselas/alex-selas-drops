@@ -201,6 +201,11 @@ export default function App() {
   const [activeCollabId, setActiveCollabId] = useState(getInitialCollabPageId);
   const [collabProfiles, setCollabProfiles] = useState<Record<string, any>>({});
 
+  // 4 random tracks for colabs page — only recalculate when tracks change, not on re-renders
+  const colabRandomFeatured = useMemo(() => {
+    return [...tracks].sort(() => Math.random() - 0.5).slice(0, 4);
+  }, [tracks]);
+
   // Catalog filters
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all' | 'packs'>('all');
   const [search, setSearch] = useState('');
@@ -801,35 +806,31 @@ export default function App() {
               )}
 
               {/* 4 random featured tracks from all tracks */}
-              {(() => {
-                const shuffled = [...tracks].sort(() => Math.random() - 0.5);
-                const randomFeatured = shuffled.slice(0, 4);
-                return randomFeatured.length > 0 && (
-                  <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-6">
-                      <Sparkles className="w-5 h-5 text-yellow-400" />
-                      <h2 className="text-2xl font-bold text-zinc-50">Destacados</h2>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      {randomFeatured.map(track => (
-                        <TrackCard
-                          key={track.id}
-                          track={track}
-                          isPlaying={player.isPlaying}
-                          isCurrentTrack={player.currentTrack?.id === track.id}
-                          isInCart={cart.isInCart(track.id)}
-                          onPlay={() => player.play(track)}
-                          onAddToCart={() => cart.addItem(track)}
-                          onDetail={() => {
-                            setSelectedTrack(track);
-                            window.history.pushState({}, '', `/track/${track.id}`);
-                          }}
-                        />
-                      ))}
-                    </div>
+              {colabRandomFeatured.length > 0 && (
+                <div className="mb-10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <h2 className="text-2xl font-bold text-zinc-50">Destacados</h2>
                   </div>
-                );
-              })()}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {colabRandomFeatured.map(track => (
+                      <TrackCard
+                        key={track.id}
+                        track={track}
+                        isPlaying={player.isPlaying}
+                        isCurrentTrack={player.currentTrack?.id === track.id}
+                        isInCart={cart.isInCart(track.id)}
+                        onPlay={() => player.play(track)}
+                        onAddToCart={() => cart.addItem(track)}
+                        onDetail={() => {
+                          setSelectedTrack(track);
+                          window.history.pushState({}, '', `/track/${track.id}`);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Collaborator tracks — full catalog like Home */}
               {colabTracks.length > 0 && (
