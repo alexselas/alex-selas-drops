@@ -752,8 +752,8 @@ export default function App() {
                   </div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="flex flex-col items-center mb-5">
-                  <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] gradient-text leading-[0.9]">MUSIC</h1>
-                  <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.25em] text-white/90 leading-[0.9] mt-1">DROPS</h2>
+                  <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] text-white leading-[0.9]">MUSIC</h1>
+                  <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.25em] gradient-text leading-[0.9] mt-1">DROPS</h2>
                 </motion.div>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7, delay: 0.25 }}>
                   <p className="text-sm sm:text-base text-zinc-400 font-medium tracking-[0.25em] uppercase">
@@ -875,22 +875,22 @@ export default function App() {
             {/* Hero */}
             <section className="relative min-h-[50vh] sm:min-h-[55vh] flex items-center justify-center overflow-hidden">
               <div className="absolute inset-0">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/10 rounded-full blur-[200px]" />
-                <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-yellow-400/8 rounded-full blur-[160px]" />
-                <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-fuchsia-500/8 rounded-full blur-[140px]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-yellow-400/8 rounded-full blur-[200px]" />
+                <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-amber-500/8 rounded-full blur-[160px]" />
+                <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-yellow-300/6 rounded-full blur-[140px]" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0a0a0a_70%)]" />
               </div>
-              <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(rgba(168,85,247,.2) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,.2) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
+              <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(250,204,21,.2) 1px, transparent 1px), linear-gradient(90deg, rgba(250,204,21,.2) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
               <div className="relative z-10 flex flex-col items-center text-center px-4 w-full max-w-3xl mx-auto py-20 sm:py-24">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="mb-6">
-                  <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full border border-violet-400/25 bg-violet-400/5">
-                    <Zap className="w-4 h-4 text-violet-400" />
-                    <span className="text-sm text-violet-400 font-semibold tracking-wide">Creator Studio con IA</span>
+                  <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full border border-yellow-400/25 bg-yellow-400/5">
+                    <Zap className="w-4 h-4 text-yellow-400" />
+                    <span className="text-sm text-yellow-400 font-semibold tracking-wide">Herramientas de IA para DJs</span>
                   </div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="mb-6">
                   <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-[0.1em] leading-[0.9]">
-                    <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent">CLUB</span>
+                    <span className="gradient-text">CLUB</span>
                     <span className="text-white">360</span>
                   </h1>
                 </motion.div>
@@ -902,7 +902,7 @@ export default function App() {
                     href="https://360club-studio.vercel.app/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold text-lg shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105 active:scale-95 transition-all"
+                    className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg shadow-yellow-400/25 hover:shadow-yellow-400/40 hover:scale-105 active:scale-95 transition-all"
                   >
                     Únete ahora
                     <ArrowRight className="w-5 h-5" />
@@ -929,10 +929,10 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 + i * 0.06 }}
-                    className="bg-[#141414] rounded-2xl border border-zinc-800/50 p-5 hover:border-violet-500/30 hover:bg-violet-500/5 transition-all group"
+                    className="bg-[#141414] rounded-2xl border border-zinc-800/50 p-5 hover:border-yellow-400/30 hover:bg-yellow-400/5 transition-all group"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center mb-3 group-hover:bg-violet-500/20 transition-colors">
-                      <feat.icon className="w-5 h-5 text-violet-400" />
+                    <div className="w-10 h-10 rounded-xl bg-yellow-400/10 flex items-center justify-center mb-3 group-hover:bg-yellow-400/20 transition-colors">
+                      <feat.icon className="w-5 h-5 text-yellow-400" />
                     </div>
                     <h3 className="text-sm font-bold text-zinc-100 mb-1">{feat.title}</h3>
                     <p className="text-xs text-zinc-500 leading-relaxed">{feat.desc}</p>
@@ -945,19 +945,19 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.9 }}
-                className="mt-12 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-[22px] border border-violet-500/20 p-8 sm:p-12 text-center"
+                className="mt-12 bg-gradient-to-br from-yellow-400/10 to-amber-500/10 rounded-[22px] border border-yellow-400/20 p-8 sm:p-12 text-center"
               >
                 <h2 className="text-2xl sm:text-3xl font-bold text-zinc-50 mb-3">Crea contenido como un profesional</h2>
                 <p className="text-zinc-400 mb-8 max-w-lg mx-auto">
-                  Accede a todas las herramientas de IA del Creator Studio y lleva tu imagen como DJ al siguiente nivel.
+                  Accede a todas las herramientas de IA de Club 360 y lleva tu imagen como DJ al siguiente nivel.
                 </p>
                 <a
                   href="https://360club-studio.vercel.app/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold text-lg shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105 active:scale-95 transition-all"
+                  className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg shadow-yellow-400/25 hover:shadow-yellow-400/40 hover:scale-105 active:scale-95 transition-all"
                 >
-                  Acceder al Creator Studio
+                  Acceder a Club 360
                   <ArrowRight className="w-5 h-5" />
                 </a>
               </motion.div>

@@ -14,10 +14,10 @@ interface NavbarProps {
 export default function Navbar({ currentSection, onNavigate, cartCount, onCartOpen, collabArtistName }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems: { label: string; section: Section }[] = [
+  const navItems: { section: Section; label: string; richLabel?: boolean }[] = [
     { label: 'Home', section: 'home' },
-    { label: 'Music Drops', section: 'colabs' },
-    { label: 'CLUB360', section: 'club360' },
+    { label: 'Music Drops', section: 'colabs', richLabel: true },
+    { label: 'Club 360', section: 'club360' },
   ];
 
   const isActive = (s: Section) => currentSection === s || (s === 'colabs' && currentSection === 'colab-page');
@@ -33,9 +33,9 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
               <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
             </button>
           ) : (currentSection === 'colabs') ? (
-            <button onClick={() => onNavigate('colabs')} className="flex items-center gap-2 group">
-              <span className="text-lg font-black uppercase tracking-wider bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent">MUSIC</span>
-              <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
+            <button onClick={() => onNavigate('colabs')} className="flex items-center gap-1.5 group">
+              <span className="text-lg font-black uppercase tracking-wider text-white">MUSIC</span>
+              <span className="text-lg font-black uppercase tracking-wider text-yellow-400">DROPS</span>
             </button>
           ) : (
             <button onClick={() => onNavigate('home')} className="flex items-center gap-3 group">
@@ -52,11 +52,18 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
                 onClick={() => onNavigate(item.section)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                   isActive(item.section)
-                    ? 'text-yellow-400 bg-yellow-400/10'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                    ? 'bg-yellow-400/10'
+                    : 'hover:bg-zinc-800/50'
                 }`}
               >
-                {item.label}
+                {item.richLabel ? (
+                  <span>
+                    <span className={isActive(item.section) ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}>Music </span>
+                    <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400 group-hover:text-zinc-200'}>Drops</span>
+                  </span>
+                ) : (
+                  <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400 hover:text-zinc-200'}>{item.label}</span>
+                )}
               </button>
             ))}
           </div>
@@ -108,11 +115,18 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
                   }}
                   className={`block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                     isActive(item.section)
-                      ? 'text-yellow-400 bg-yellow-400/10'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                      ? 'bg-yellow-400/10'
+                      : 'hover:bg-zinc-800/50'
                   }`}
                 >
-                  {item.label}
+                  {item.richLabel ? (
+                    <span>
+                      <span className={isActive(item.section) ? 'text-white' : 'text-zinc-400'}>Music </span>
+                      <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400'}>Drops</span>
+                    </span>
+                  ) : (
+                    <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400'}>{item.label}</span>
+                  )}
                 </button>
               ))}
             </div>
