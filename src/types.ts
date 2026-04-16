@@ -63,4 +63,4 @@ export interface Order {
 
 export type SortOption = 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'title';
 
-export type Section = 'home' | 'catalog' | 'colabs' | 'colab-admin' | 'colab-page' | 'admin';
+export type Section = 'home' | 'catalog' | 'colabs' | 'colab-admin' | 'colab-page' | 'admin' | 'club360';

@@ -17,6 +17,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
   const navItems: { label: string; section: Section }[] = [
     { label: 'Home', section: 'home' },
     { label: 'Music Drops', section: 'colabs' },
+    { label: 'CLUB360', section: 'club360' },
   ];
 
   const isActive = (s: Section) => currentSection === s || (s === 'colabs' && currentSection === 'colab-page');
