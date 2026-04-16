@@ -74,14 +74,15 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
 
   useEffect(() => { fetchOrders('all'); }, []);
 
-  // Stats (all tracks)
+  // Stats (only own tracks, not collaborator uploads)
+  const myTracks = tracks.filter(t => !t.collaboratorId);
   const stats = {
-    total: tracks.length,
-    sesiones: tracks.filter(t => t.category === 'sesiones').length,
-    remixes: tracks.filter(t => t.category === 'remixes').length,
-    mashups: tracks.filter(t => t.category === 'mashups').length,
-    librerias: tracks.filter(t => t.category === 'librerias').length,
-    featured: tracks.filter(t => t.featured).length,
+    total: myTracks.length,
+    sesiones: myTracks.filter(t => t.category === 'sesiones').length,
+    remixes: myTracks.filter(t => t.category === 'remixes').length,
+    mashups: myTracks.filter(t => t.category === 'mashups').length,
+    librerias: myTracks.filter(t => t.category === 'librerias').length,
+    featured: myTracks.filter(t => t.featured).length,
     revenue: ordersRevenue,
     orders: orders.length,
   };
@@ -107,8 +108,9 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     librerias: Library,
   };
 
-  // Filter tracks for list
+  // Filter tracks for list (exclude collaborator tracks — those are in their own tab)
   const filteredTracks = tracks.filter(t => {
+    if (t.collaboratorId) return false;
     if (trackFilter === 'packs') {
       if (!t.packId) return false;
     } else if (trackFilter !== 'all') {
