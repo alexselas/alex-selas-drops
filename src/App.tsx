@@ -746,7 +746,7 @@ export default function App() {
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-yellow-400/30 bg-yellow-400/5 mb-6">
                     <Music className="w-4 h-4 text-yellow-400" />
-                    <span className="text-sm text-yellow-400 font-medium">Lo mejor de todos los artistas</span>
+                    <span className="text-sm text-yellow-400 font-medium">La comunidad de los DJs</span>
                   </div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1 }} className="flex flex-col items-center mb-4">
@@ -754,12 +754,13 @@ export default function App() {
                   <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[0.3em] text-white/90 -mt-1">DROPS</h2>
                 </motion.div>
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.3 }} className="text-sm sm:text-base text-zinc-500 font-medium tracking-[0.2em] uppercase">
-                  DJs &middot; Productores &middot; Sesiones &middot; Remixes &middot; Mashups
+                  Remixes &middot; Mashups &middot; Hype Intros &middot; Sesiones
                 </motion.p>
               </div>
             </section>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+              <h3 className="text-xl font-bold text-zinc-50 mb-6">Nuestros productores</h3>
               {/* Collaborator avatars — compact row, sorted alphabetically */}
               {dynamicCollabs.length > 0 ? (
                 <div className="flex flex-wrap gap-3 mb-10">
