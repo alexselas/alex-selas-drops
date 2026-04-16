@@ -884,8 +884,8 @@ export default function App() {
               <div className="relative z-10 flex flex-col items-center text-center px-4 w-full max-w-3xl mx-auto py-20 sm:py-24">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="mb-6">
                   <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full border border-violet-400/25 bg-violet-400/5">
-                    <Crown className="w-4 h-4 text-violet-400" />
-                    <span className="text-sm text-violet-400 font-semibold tracking-wide">La comunidad exclusiva para DJs</span>
+                    <Zap className="w-4 h-4 text-violet-400" />
+                    <span className="text-sm text-violet-400 font-semibold tracking-wide">Creator Studio con IA</span>
                   </div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="mb-6">
@@ -895,11 +895,11 @@ export default function App() {
                   </h1>
                 </motion.div>
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7, delay: 0.2 }} className="text-lg sm:text-xl text-zinc-400 max-w-xl mb-8 leading-relaxed">
-                  Tu espacio privado donde la música, la formación y las oportunidades se encuentran. Únete a una comunidad de DJs que crecen juntos.
+                  Crea contenido profesional para tu carrera como DJ con inteligencia artificial. Flyers, estrategias de marketing, letras, videoclips, análisis viral y mucho más.
                 </motion.p>
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}>
                   <a
-                    href="https://curso-360.vercel.app"
+                    href="https://360club-studio.vercel.app/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold text-lg shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105 active:scale-95 transition-all"
@@ -911,29 +911,31 @@ export default function App() {
               </div>
             </section>
 
-            {/* Features */}
+            {/* Módulos */}
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 -mt-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[
-                  { icon: Headphones, title: 'Formación continua', desc: 'Acceso a cursos, masterclasses y contenido exclusivo para mejorar tu técnica y tu carrera como DJ.' },
-                  { icon: Users, title: 'Comunidad privada', desc: 'Conecta con otros DJs, comparte experiencias, colabora en proyectos y crece junto a una comunidad que entiende tu pasión.' },
-                  { icon: Zap, title: 'Creator Studio', desc: 'Herramientas de IA para crear contenido profesional: flyers, estrategias de marketing, letras, análisis viral y mucho más.' },
-                  { icon: Star, title: 'Oportunidades reales', desc: 'Accede a eventos, bookings y oportunidades laborales exclusivas para miembros del club.' },
-                  { icon: Music, title: 'Music Drops', desc: 'Publica y vende tus tracks, remixes y mashups en nuestra plataforma. Monetiza tu música.' },
-                  { icon: Crown, title: 'Soporte personalizado', desc: 'Asesoramiento directo de Alex Selas y el equipo de DJAcademy para impulsar tu carrera.' },
+                  { icon: Star, title: 'Creador', desc: 'Genera prompts para imágenes y vídeos profesionales con IA.' },
+                  { icon: Music, title: 'Videoclips', desc: 'Planes de producción completos para tus videoclips musicales.' },
+                  { icon: Headphones, title: 'Estudio', desc: 'Fotos de estudio y promos de DJ con calidad profesional.' },
+                  { icon: Zap, title: 'Diseño', desc: 'Posters, flyers y cartelería para tus eventos y sesiones.' },
+                  { icon: Crown, title: 'Música IA', desc: 'Letras, prompts para Suno AI y producción musical con IA.' },
+                  { icon: Users, title: 'Marketing', desc: 'Estrategias virales y planes de contenido para redes sociales.' },
+                  { icon: Search, title: 'Análisis', desc: 'Analiza vídeos virales y genera kits de producción.' },
+                  { icon: Headphones, title: 'Podcasts', desc: 'Genera temas, guiones y esquemas para tus episodios.' },
                 ].map((feat, i) => (
                   <motion.div
                     key={feat.title}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 + i * 0.08 }}
-                    className="bg-[#141414] rounded-2xl border border-zinc-800/50 p-6 hover:border-violet-500/30 hover:bg-violet-500/5 transition-all group"
+                    transition={{ duration: 0.5, delay: 0.4 + i * 0.06 }}
+                    className="bg-[#141414] rounded-2xl border border-zinc-800/50 p-5 hover:border-violet-500/30 hover:bg-violet-500/5 transition-all group"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-violet-500/10 flex items-center justify-center mb-4 group-hover:bg-violet-500/20 transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center mb-3 group-hover:bg-violet-500/20 transition-colors">
                       <feat.icon className="w-5 h-5 text-violet-400" />
                     </div>
-                    <h3 className="text-base font-bold text-zinc-100 mb-2">{feat.title}</h3>
-                    <p className="text-sm text-zinc-500 leading-relaxed">{feat.desc}</p>
+                    <h3 className="text-sm font-bold text-zinc-100 mb-1">{feat.title}</h3>
+                    <p className="text-xs text-zinc-500 leading-relaxed">{feat.desc}</p>
                   </motion.div>
                 ))}
               </div>
@@ -945,17 +947,17 @@ export default function App() {
                 transition={{ duration: 0.6, delay: 0.9 }}
                 className="mt-12 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-[22px] border border-violet-500/20 p-8 sm:p-12 text-center"
               >
-                <h2 className="text-2xl sm:text-3xl font-bold text-zinc-50 mb-3">Empieza tu camino como DJ profesional</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-zinc-50 mb-3">Crea contenido como un profesional</h2>
                 <p className="text-zinc-400 mb-8 max-w-lg mx-auto">
-                  Únete a CLUB360 y accede a todo lo que necesitas para llevar tu carrera al siguiente nivel.
+                  Accede a todas las herramientas de IA del Creator Studio y lleva tu imagen como DJ al siguiente nivel.
                 </p>
                 <a
-                  href="https://curso-360.vercel.app"
+                  href="https://360club-studio.vercel.app/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold text-lg shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105 active:scale-95 transition-all"
                 >
-                  Únete a CLUB360
+                  Acceder al Creator Studio
                   <ArrowRight className="w-5 h-5" />
                 </a>
               </motion.div>
