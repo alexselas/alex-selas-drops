@@ -22,7 +22,7 @@ import CollabLogin from './components/CollabLogin';
 import CollabPanel from './components/CollabPanel';
 import CollabPage from './components/CollabPage';
 import Footer from './components/Footer';
-import { Search, ArrowUpDown, LayoutGrid, List, Music, ShoppingCart, Play, Pause, Check, Package, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { Search, ArrowUpDown, LayoutGrid, List, Music, ShoppingCart, Play, Pause, Check, Package, ChevronDown, ChevronUp, Clock, Sparkles } from 'lucide-react';
 import { formatPrice, formatDuration } from './lib/utils';
 
 /* Collab tracks catalog — same layout as Home */
@@ -264,6 +264,13 @@ export default function App() {
     }
   }, [collabAdmin.isAuthenticated, loadTracks]);
 
+  // Stop music when entering admin panels
+  useEffect(() => {
+    if (section === 'admin' || section === 'colab-admin') {
+      player.stop();
+    }
+  }, [section]);
+
   // Navigate — always update URL
   const navigate = useCallback((s: Section, collabId?: string) => {
     setSection(s);
@@ -294,9 +301,9 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Filtered tracks for catalog (exclude collaborator tracks)
+  // Filtered tracks for catalog
   const filteredTracks = useMemo(() => {
-    let result = tracks.filter(t => !t.collaborator);
+    let result = [...tracks];
 
     // Category
     if (categoryFilter === 'packs') {
@@ -764,6 +771,37 @@ export default function App() {
                 </div>
               )}
 
+              {/* 4 random featured tracks from all tracks */}
+              {(() => {
+                const shuffled = [...tracks].sort(() => Math.random() - 0.5);
+                const randomFeatured = shuffled.slice(0, 4);
+                return randomFeatured.length > 0 && (
+                  <div className="mb-10">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Sparkles className="w-5 h-5 text-yellow-400" />
+                      <h2 className="text-2xl font-bold text-zinc-50">Destacados</h2>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {randomFeatured.map(track => (
+                        <TrackCard
+                          key={track.id}
+                          track={track}
+                          isPlaying={player.isPlaying}
+                          isCurrentTrack={player.currentTrack?.id === track.id}
+                          isInCart={cart.isInCart(track.id)}
+                          onPlay={() => player.play(track)}
+                          onAddToCart={() => cart.addItem(track)}
+                          onDetail={() => {
+                            setSelectedTrack(track);
+                            window.history.pushState({}, '', `/track/${track.id}`);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Collaborator tracks — full catalog like Home */}
               {colabTracks.length > 0 && (
                 <CollabTracksSection
@@ -927,20 +965,22 @@ export default function App() {
         }}
       />
 
-      {/* Global Audio Player */}
-      <AudioPlayer
-        currentTrack={player.currentTrack}
-        isPlaying={player.isPlaying}
-        progress={player.progress}
-        currentTime={player.currentTime}
-        duration={player.duration}
-        onPlayPause={() => {
-          if (player.currentTrack) {
-            player.play(player.currentTrack);
-          }
-        }}
-        onSeek={player.seek}
-      />
+      {/* Global Audio Player — hidden on admin panels */}
+      {section !== 'admin' && section !== 'colab-admin' && (
+        <AudioPlayer
+          currentTrack={player.currentTrack}
+          isPlaying={player.isPlaying}
+          progress={player.progress}
+          currentTime={player.currentTime}
+          duration={player.duration}
+          onPlayPause={() => {
+            if (player.currentTrack) {
+              player.play(player.currentTrack);
+            }
+          }}
+          onSeek={player.seek}
+        />
+      )}
     </div>
   );
 }

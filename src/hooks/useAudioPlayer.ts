@@ -112,6 +112,19 @@ export function useAudioPlayer() {
     }
   }, []);
 
+  const stop = useCallback(() => {
+    audioRef.current?.pause();
+    if (audioRef.current) audioRef.current.currentTime = 0;
+    setIsPlaying(false);
+    setCurrentTrack(null);
+    setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
+    if (watermarkIntervalRef.current) {
+      clearInterval(watermarkIntervalRef.current);
+    }
+  }, []);
+
   const seek = useCallback((percent: number) => {
     const audio = audioRef.current;
     if (!audio || !audio.duration) return;
@@ -127,6 +140,7 @@ export function useAudioPlayer() {
     currentTime,
     play,
     pause,
+    stop,
     seek,
   };
 }
