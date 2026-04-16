@@ -26,7 +26,7 @@ export default function FeaturedTracks({
 }: FeaturedTracksProps) {
   const [openPackId, setOpenPackId] = useState<string | null>(null);
 
-  const featured = tracks.filter(t => t.featured && !t.collaborator);
+  const featured = tracks.filter(t => t.featured && !t.collaboratorId);
 
   // Build display items: standalone tracks + 1 entry per pack
   type DisplayItem = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string; category: string };

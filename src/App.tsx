@@ -310,7 +310,7 @@ export default function App() {
 
   // Filtered tracks for catalog (exclude collaborator-only tracks from home)
   const filteredTracks = useMemo(() => {
-    let result = tracks.filter(t => !t.collaborator);
+    let result = tracks.filter(t => !t.collaboratorId);
 
     // Category
     if (categoryFilter === 'packs') {
