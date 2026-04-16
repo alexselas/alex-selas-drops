@@ -308,9 +308,9 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Filtered tracks for catalog
+  // Filtered tracks for catalog (exclude collaborator-only tracks from home)
   const filteredTracks = useMemo(() => {
-    let result = [...tracks];
+    let result = tracks.filter(t => !t.collaborator);
 
     // Category
     if (categoryFilter === 'packs') {
