@@ -16,7 +16,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
 
   const navItems: { label: string; section: Section }[] = [
     { label: 'Home', section: 'home' },
-    { label: 'Colaboradores', section: 'colabs' },
+    { label: 'Music Drops', section: 'colabs' },
   ];
 
   const isActive = (s: Section) => currentSection === s || (s === 'colabs' && currentSection === 'colab-page');
@@ -29,6 +29,11 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
           {collabArtistName ? (
             <button onClick={() => onNavigate('colabs')} className="flex items-center gap-3 group">
               <span className="text-lg font-black text-white uppercase tracking-wide">{collabArtistName}</span>
+              <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
+            </button>
+          ) : (currentSection === 'colabs') ? (
+            <button onClick={() => onNavigate('colabs')} className="flex items-center gap-2 group">
+              <span className="text-lg font-black uppercase tracking-wider bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent">MUSIC</span>
               <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
             </button>
           ) : (

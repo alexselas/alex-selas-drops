@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import type { Track, Category, SortOption, Section } from './types';
 import { demoTracks } from './data/tracks';
 import { collaborators } from './data/collaborators';
@@ -732,10 +732,34 @@ export default function App() {
             }))
             .sort((a, b) => a.name.localeCompare(b.name, 'es'));
           return (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-              <h1 className="text-3xl font-bold text-zinc-50 mb-3">Colaboradores</h1>
-              <p className="text-zinc-500 mb-10">DJs y productores que colaboran con Alex Selas</p>
+            <>
+            {/* MUSIC DROPS Hero Banner */}
+            <section className="relative min-h-[40vh] sm:min-h-[45vh] flex items-center justify-center overflow-hidden py-10">
+              <div className="absolute inset-0">
+                <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[180px]" />
+                <div className="absolute bottom-1/4 left-1/3 w-[500px] h-[500px] bg-yellow-400/8 rounded-full blur-[150px]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/10 rounded-full blur-[100px]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0a0a0a_70%)]" />
+              </div>
+              <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(250,204,21,.2) 1px, transparent 1px), linear-gradient(90deg, rgba(250,204,21,.2) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+              <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
+                <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-yellow-400/30 bg-yellow-400/5 mb-6">
+                    <Music className="w-4 h-4 text-yellow-400" />
+                    <span className="text-sm text-yellow-400 font-medium">Lo mejor de todos los artistas</span>
+                  </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1 }} className="flex flex-col items-center mb-4">
+                  <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-[0.2em] gradient-text leading-none">MUSIC</h1>
+                  <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[0.3em] text-white/90 -mt-1">DROPS</h2>
+                </motion.div>
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.3 }} className="text-sm sm:text-base text-zinc-500 font-medium tracking-[0.2em] uppercase">
+                  DJs &middot; Productores &middot; Sesiones &middot; Remixes &middot; Mashups
+                </motion.p>
+              </div>
+            </section>
 
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
               {/* Collaborator avatars — compact row, sorted alphabetically */}
               {dynamicCollabs.length > 0 ? (
                 <div className="flex flex-wrap gap-3 mb-10">
@@ -820,7 +844,7 @@ export default function App() {
               <div className="bg-[#141414] rounded-[22px] border border-zinc-800/50 p-8 sm:p-12 text-center">
                 <h2 className="text-2xl font-bold text-zinc-50 mb-3">¿Quieres colaborar?</h2>
                 <p className="text-zinc-500 mb-6 max-w-md mx-auto">
-                  Si eres DJ o productor y quieres vender tus tracks en Alex Selas Drops, escríbenos con tu propuesta.
+                  Si eres DJ o productor y quieres vender tus tracks en Music Drops, escríbenos con tu propuesta.
                 </p>
                 <a
                   href="https://www.instagram.com/alexselas"
@@ -836,6 +860,7 @@ export default function App() {
                 <Footer onAdmin={() => navigate('admin')} />
               </div>
             </div>
+            </>
           );
         })()}
 
