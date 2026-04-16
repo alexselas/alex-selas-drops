@@ -734,28 +734,30 @@ export default function App() {
           return (
             <>
             {/* MUSIC DROPS Hero Banner */}
-            <section className="relative min-h-[40vh] sm:min-h-[45vh] flex items-center justify-center overflow-hidden py-10">
+            <section className="relative min-h-[42vh] sm:min-h-[48vh] flex items-center justify-center overflow-hidden">
               <div className="absolute inset-0">
-                <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[180px]" />
-                <div className="absolute bottom-1/4 left-1/3 w-[500px] h-[500px] bg-yellow-400/8 rounded-full blur-[150px]" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/10 rounded-full blur-[100px]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0a0a0a_70%)]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-yellow-400/6 rounded-full blur-[200px]" />
+                <div className="absolute top-1/3 right-1/3 w-[400px] h-[400px] bg-violet-500/8 rounded-full blur-[160px]" />
+                <div className="absolute bottom-1/3 left-1/4 w-[350px] h-[350px] bg-amber-500/8 rounded-full blur-[140px]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0a0a0a_75%)]" />
               </div>
-              <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(250,204,21,.2) 1px, transparent 1px), linear-gradient(90deg, rgba(250,204,21,.2) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-              <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-                <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-yellow-400/30 bg-yellow-400/5 mb-6">
+              <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(250,204,21,.2) 1px, transparent 1px), linear-gradient(90deg, rgba(250,204,21,.2) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+              <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 w-full max-w-3xl mx-auto py-16 sm:py-20">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="mb-6">
+                  <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full border border-yellow-400/25 bg-yellow-400/5">
                     <Music className="w-4 h-4 text-yellow-400" />
-                    <span className="text-sm text-yellow-400 font-medium">La comunidad de los DJs</span>
+                    <span className="text-sm text-yellow-400 font-semibold tracking-wide">La comunidad de los DJs</span>
                   </div>
                 </motion.div>
-                <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1 }} className="flex flex-col items-center mb-4">
-                  <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-[0.2em] gradient-text leading-none">MUSIC</h1>
-                  <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[0.3em] text-white/90 -mt-1">DROPS</h2>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="flex flex-col items-center mb-5">
+                  <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] gradient-text leading-[0.9]">MUSIC</h1>
+                  <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.25em] text-white/90 leading-[0.9] mt-1">DROPS</h2>
                 </motion.div>
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.3 }} className="text-sm sm:text-base text-zinc-500 font-medium tracking-[0.2em] uppercase">
-                  Remixes &middot; Mashups &middot; Hype Intros &middot; Sesiones
-                </motion.p>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7, delay: 0.25 }}>
+                  <p className="text-sm sm:text-base text-zinc-400 font-medium tracking-[0.25em] uppercase">
+                    Remixes &middot; Mashups &middot; Hype Intros &middot; Sesiones
+                  </p>
+                </motion.div>
               </div>
             </section>
 
@@ -770,18 +772,18 @@ export default function App() {
                       <button
                         key={collab.id}
                         onClick={() => navigate('colab-page', collab.id)}
-                        className="flex items-center gap-3 bg-[#141414] rounded-xl border border-zinc-800/50 px-4 py-3 hover:border-yellow-400/30 hover:bg-yellow-400/5 transition-all"
+                        className="flex items-center gap-3 bg-yellow-400/5 rounded-xl border border-yellow-400/20 px-4 py-3 hover:border-yellow-400/50 hover:bg-yellow-400/10 transition-all"
                       >
                         {collab.photoUrl ? (
-                          <img src={collab.photoUrl} alt={collab.name} className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400/30 flex-shrink-0" />
+                          <img src={collab.photoUrl} alt={collab.name} className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400/40 flex-shrink-0" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-yellow-400/20 bg-yellow-400/5 flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-yellow-400/40 bg-yellow-400/10 flex-shrink-0">
                             <span className="text-sm font-bold text-yellow-400">{collab.name.charAt(0)}</span>
                           </div>
                         )}
                         <div className="text-left">
-                          <h3 className="text-sm font-bold text-zinc-100 leading-tight">{collab.name}</h3>
-                          <p className="text-[11px] text-zinc-600">
+                          <h3 className="text-sm font-bold text-yellow-300 leading-tight">{collab.name}</h3>
+                          <p className="text-[11px] text-yellow-400/50">
                             {collabTrackCount > 0 ? `${collabTrackCount} track${collabTrackCount !== 1 ? 's' : ''}` : 'Próximamente'}
                           </p>
                         </div>
