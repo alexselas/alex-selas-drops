@@ -483,6 +483,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
               fileUrl={form.fileUrl}
               fileBlob={trackFileBlob}
               adminToken={adminToken || ''}
+              hideGenerateButton
               onPreviewReady={(blob, _filename) => {
                 const localUrl = URL.createObjectURL(blob);
                 setPreviewBlob(blob);
@@ -708,7 +709,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
             className="px-8 py-3 rounded-2xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-60 disabled:cursor-wait flex items-center gap-2"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {submitting ? 'Generando preview...' : (track ? 'Guardar Cambios' : 'Publicar Track')}
+            {submitting ? 'Generando preview...' : (track ? 'Guardar Cambios' : 'Generar preview y publicar')}
           </button>
           <button
             type="button"
