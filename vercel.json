@@ -23,6 +23,11 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
+    {
+      "source": "/collab/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(whatsapp|facebookexternalhit|facebookcatalog|twitterbot|linkedinbot|slackbot|telegrambot|discordbot).*" }],
+      "destination": "/api/og-collab?id=:id"
+    },
     { "source": "/((?!api/|.*\\.(?:png|jpg|jpeg|svg|ico|webp|css|js|woff2?|ttf|mp3|wav)$).*)", "destination": "/index.html" }
   ]
 }

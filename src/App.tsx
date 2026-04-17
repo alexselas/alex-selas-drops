@@ -280,17 +280,23 @@ export default function App() {
 
   // Update document title based on section
   useEffect(() => {
-    const titles: Record<Section, string> = {
-      home: 'AlexSelas.es',
-      catalog: 'AlexSelas.es',
-      colabs: 'Music Drops',
-      'colab-page': 'Music Drops',
-      'colab-admin': 'Music Drops',
-      club360: 'Club360',
-      admin: 'AlexSelas.es',
-    };
-    document.title = titles[section] || 'AlexSelas.es';
-  }, [section]);
+    if (section === 'colab-page' && activeCollabId) {
+      const prof = collabProfiles[activeCollabId];
+      const name = prof?.artistName || activeCollabId;
+      document.title = `${name} — Music Drops`;
+    } else {
+      const titles: Record<Section, string> = {
+        home: 'AlexSelas.es',
+        catalog: 'AlexSelas.es',
+        colabs: 'Music Drops',
+        'colab-page': 'Music Drops',
+        'colab-admin': 'Music Drops',
+        club360: 'Club360',
+        admin: 'AlexSelas.es',
+      };
+      document.title = titles[section] || 'AlexSelas.es';
+    }
+  }, [section, activeCollabId, collabProfiles]);
 
   // Navigate — always update URL
   const navigate = useCallback((s: Section, collabId?: string) => {
