@@ -162,7 +162,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
 function pathToSection(path: string): Section {
   if (path === '/admin') return 'admin';
   if (path === '/colab-admin') return 'colab-admin';
-  if (path === '/colaboradores') return 'colabs';
+  if (path === '/MusicDrops' || path === '/colaboradores') return 'colabs';
   if (path === '/club360') return 'club360';
   if (path.match(/^\/collab\/[a-z0-9-]+$/)) return 'colab-page';
   return 'home';
@@ -174,10 +174,10 @@ function getInitialSection(): Section {
 
 function sectionToPath(s: Section, collabId?: string): string {
   switch (s) {
-    case 'colabs': return '/colaboradores';
+    case 'colabs': return '/MusicDrops';
     case 'admin': return '/admin';
     case 'colab-admin': return '/colab-admin';
-    case 'colab-page': return collabId ? `/collab/${collabId}` : '/colaboradores';
+    case 'colab-page': return collabId ? `/collab/${collabId}` : '/MusicDrops';
     case 'club360': return '/club360';
     default: return '/';
   }
@@ -276,6 +276,20 @@ export default function App() {
     if (section === 'admin' || section === 'colab-admin') {
       player.stop();
     }
+  }, [section]);
+
+  // Update document title based on section
+  useEffect(() => {
+    const titles: Record<Section, string> = {
+      home: 'AlexSelas.es',
+      catalog: 'AlexSelas.es',
+      colabs: 'Music Drops',
+      'colab-page': 'Music Drops',
+      'colab-admin': 'Music Drops',
+      club360: 'Club360',
+      admin: 'AlexSelas.es',
+    };
+    document.title = titles[section] || 'AlexSelas.es';
   }, [section]);
 
   // Navigate — always update URL
