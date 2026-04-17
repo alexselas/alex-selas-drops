@@ -920,7 +920,7 @@ export default function App() {
                 </motion.p>
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}>
                   <a
-                    href="https://360club-studio.vercel.app/"
+                    href="https://www.club360.es/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg shadow-yellow-400/25 hover:shadow-yellow-400/40 hover:scale-105 active:scale-95 transition-all"
@@ -973,7 +973,7 @@ export default function App() {
                   Accede a todas las herramientas de IA de Club 360 y lleva tu imagen como DJ al siguiente nivel.
                 </p>
                 <a
-                  href="https://360club-studio.vercel.app/"
+                  href="https://www.club360.es/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg shadow-yellow-400/25 hover:shadow-yellow-400/40 hover:scale-105 active:scale-95 transition-all"
