@@ -121,9 +121,9 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
           }),
         });
       } catch {}
+      setPurchasedItems([...items]);
       setVerifiedSessionId('free');
       setStep('success');
-      onClearCart();
       return;
     }
 
@@ -210,9 +210,9 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
           >
             <CheckCircle className="w-10 h-10 text-green-400" />
           </motion.div>
-          <h2 className="text-3xl font-bold text-zinc-50 mb-3">Pago completado</h2>
+          <h2 className="text-3xl font-bold text-zinc-50 mb-3">{verifiedSessionId === 'free' ? 'Descarga lista' : 'Pago completado'}</h2>
           <p className="text-zinc-400 mb-8">
-            Tus descargas están listas. Gracias por tu compra.
+            {verifiedSessionId === 'free' ? 'Tus tracks gratuitos están listos para descargar.' : 'Tus descargas están listas. Gracias por tu compra.'}
           </p>
           <div className="space-y-3 mb-8">
             {displayItems.map(item => (

@@ -613,12 +613,7 @@ export default function App() {
                 <p className="text-zinc-500 mb-6 max-w-md mx-auto">
                   Si eres DJ o productor y quieres vender tus tracks en MusicDrop, escríbenos con tu propuesta.
                 </p>
-                <a
-                  href="mailto:soporte@club360.es"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-105 active:scale-95 transition-transform"
-                >
-                  soporte@club360.es
-                </a>
+                <p className="text-yellow-400 font-semibold text-lg select-all">soporte@club360.es</p>
               </div>
 
               <div className="mt-16">
