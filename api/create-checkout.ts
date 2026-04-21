@@ -82,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ url: session.url, sessionId: session.id });
   } catch (error: any) {
-    console.error('Stripe checkout error:', error);
-    return res.status(500).json({ error: 'Error al crear sesión de pago' });
+    console.error('Stripe checkout error:', error?.message || error);
+    return res.status(500).json({ error: error?.message || 'Error al crear sesión de pago' });
   }
 }
