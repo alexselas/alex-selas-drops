@@ -23,13 +23,19 @@ function verifyAdminToken(authHeader: string | undefined): boolean {
 function corsHeaders(req: { headers: { origin?: string } }) {
   const allowedOrigins = ['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'];
   const origin = req.headers.origin || '';
-  const headers: Record<string, string> = { 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
+  const headers: Record<string, string> = { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
   if (allowedOrigins.includes(origin)) headers['Access-Control-Allow-Origin'] = origin;
   return headers;
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+import { Redis } from '@upstash/redis';
 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL || '',
+  token: process.env.KV_REST_API_TOKEN || '',
+});
+const FREE_ORDERS_KEY = 'free-orders';
 
 function getStartTimestamp(period: string): number {
   const now = new Date();
@@ -58,6 +64,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // POST — register free order (no auth needed, it's from the client)
+  if (req.method === 'POST') {
+    try {
+      const { tracks, trackIds } = req.body;
+      const freeOrders = ((await redis.get(FREE_ORDERS_KEY)) || []) as any[];
+      freeOrders.push({
+        id: `FREE-${Date.now().toString(36).toUpperCase()}`,
+        tracks: tracks || [],
+        trackIds: trackIds || [],
+        amount: 0,
+        date: new Date().toISOString().split('T')[0],
+        status: 'free',
+      });
+      // Keep max 500 free orders
+      if (freeOrders.length > 500) freeOrders.splice(0, freeOrders.length - 500);
+      await redis.set(FREE_ORDERS_KEY, freeOrders);
+      return res.status(200).json({ ok: true });
+    } catch {
+      return res.status(500).json({ error: 'Error al registrar pedido' });
+    }
+  }
+
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   // Admin auth required — orders are sensitive data
@@ -94,11 +123,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: s.payment_status,
       }));
 
+    // Add free orders from Redis
+    const freeOrders = ((await redis.get(FREE_ORDERS_KEY)) || []) as any[];
+    const freeOrdersMapped = freeOrders
+      .filter(fo => {
+        if (created <= 0) return true;
+        const foDate = new Date(fo.date).getTime() / 1000;
+        return foDate >= created;
+      })
+      .map(fo => ({
+        id: fo.id,
+        sessionId: '',
+        tracks: fo.tracks || [],
+        email: 'Descarga gratuita',
+        amount: 0,
+        currency: 'eur',
+        date: fo.date,
+        status: 'free',
+      }));
+
+    const allOrders = [...orders, ...freeOrdersMapped].sort((a, b) => b.date.localeCompare(a.date));
     const totalRevenue = orders.reduce((sum, o) => sum + o.amount, 0);
 
     return res.status(200).json({
-      orders,
-      total: orders.length,
+      orders: allOrders,
+      total: allOrders.length,
       revenue: totalRevenue,
     });
   } catch (error: any) {

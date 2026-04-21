@@ -108,9 +108,19 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
 
     savePurchasedItems(items);
 
-    // If all items are free, skip payment
+    // If all items are free, skip payment and register free order
     const effectiveTotal = Math.round(total * (1 - discount) * 100) / 100;
     if (effectiveTotal <= 0) {
+      try {
+        await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tracks: items.map(i => i.track.title),
+            trackIds: items.map(i => i.track.id),
+          }),
+        });
+      } catch {}
       setVerifiedSessionId('free');
       setStep('success');
       return;
