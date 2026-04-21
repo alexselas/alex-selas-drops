@@ -5,8 +5,8 @@ const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):
 function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-04-30.basil',
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
