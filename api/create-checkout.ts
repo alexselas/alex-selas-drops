@@ -52,9 +52,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         throw new Error(`Track no encontrado: ${item.id}`);
       }
 
-      const serverPrice = serverTrack.price;
-      if (typeof serverPrice !== 'number' || serverPrice <= 0) {
-        throw new Error(`Precio no válido para track: ${item.id}`);
+      const serverPrice = typeof serverTrack.price === 'number' ? serverTrack.price : 0;
+      if (serverPrice <= 0) {
+        return null; // Skip free tracks
       }
 
       return {
@@ -68,10 +68,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
         quantity: 1,
       };
-    });
+    }).filter(Boolean);
+
+    if (line_items.length === 0) {
+      return res.status(400).json({ error: 'No hay items con precio válido' });
+    }
 
     const session = await stripe.checkout.sessions.create({
-      line_items,
+      line_items: line_items as any[],
       mode: 'payment',
       success_url: `${safeOrigin}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${safeOrigin}?payment=cancelled`,
