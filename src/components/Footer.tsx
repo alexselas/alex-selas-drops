@@ -11,7 +11,7 @@ export default function Footer({ onAdmin }: FooterProps) {
           <div className="flex items-center gap-1.5">
             <span className="text-sm font-black uppercase tracking-wider text-white">MUSIC</span>
             <span className="text-sm font-black uppercase tracking-wider text-yellow-400">DROP</span>
-            <span className="text-[9px] font-semibold text-zinc-600 tracking-wide ml-1">by DJAcademy</span>
+            <span className="text-[9px] font-semibold text-zinc-600 tracking-wide ml-1">by 360DJAcademy</span>
           </div>
 
           {/* Links */}

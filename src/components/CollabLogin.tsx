@@ -314,7 +314,7 @@ export default function CollabLogin({ collaborators, onLogin, onRegister }: Coll
         </p>
 
         <p className="text-center text-xs text-zinc-600 mt-4">
-          Acceso exclusivo para colaboradores de Alex Selas Drop
+          Acceso exclusivo para colaboradores de MusicDrop
         </p>
       </motion.div>
     </div>

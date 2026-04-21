@@ -49,7 +49,7 @@ export default function CollabPage({
   const featuredTracks = myTracks.filter(t => t.featured);
 
   const defaultOwnerProfile = {
-    bio: 'DJ & Producer — Fundador de Music Drop y DJAcademy',
+    bio: 'DJ & Producer — Fundador de Music Drop y 360DJAcademy',
     photoUrl: '/logo.png',
     bannerUrl: '',
     artistName: 'Alex Selas',
