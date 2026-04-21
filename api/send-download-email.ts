@@ -9,7 +9,6 @@ function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-
 const resend = new Resend(process.env.RESEND_API_KEY || '');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
-});
 
 interface TrackInfo {
   title: string;

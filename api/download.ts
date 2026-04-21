@@ -12,8 +12,6 @@ function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
-});
-
 export const config = {
   api: {
     responseLimit: false,
@@ -70,10 +68,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         title: sanitizeTag(title || ''),
         artist: authors ? sanitizeTag(authors) : sanitizeTag(artist || ''),
         performerInfo: sanitizeTag(artist || ''),
-        album: sanitizeTag(artist ? `${artist} Drops` : 'Alex Selas Drops'),
+        album: 'MusicDrop',
         genre: sanitizeTag(genre || '', 100),
         year: new Date().getFullYear().toString(),
-        comment: { language: 'spa', text: 'alexselasdrops.com' },
+        comment: { language: 'spa', text: 'musicdrop.es' },
       };
 
       // Add BPM if available (validated)

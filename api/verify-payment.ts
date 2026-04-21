@@ -7,7 +7,6 @@ function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
-});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders(req);

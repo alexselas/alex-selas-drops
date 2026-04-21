@@ -30,7 +30,6 @@ function corsHeaders(req: { headers: { origin?: string } }) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
-});
 
 function getStartTimestamp(period: string): number {
   const now = new Date();
