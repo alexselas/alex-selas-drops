@@ -14,7 +14,7 @@ const ratelimit = new Ratelimit({
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const allowedOrigins = ['https://alex-selas-drops.vercel.app'];
+  const allowedOrigins = ['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'];
   const origin = req.headers.origin || '';
   if (allowedOrigins.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

@@ -7,7 +7,7 @@ const redis = new Redis({
 });
 
 const PROFILES_KEY = 'collab-profiles';
-const SITE_URL = 'https://www.alexselas.es';
+const SITE_URL = 'https://www.musicdrop.es';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = req.query.id as string;
