@@ -45,7 +45,7 @@ export default function Hero({ onNavigate }: HeroProps) {
         >
           <img src="/logo.png" alt="Alex Selas" className="h-20 sm:h-32 md:h-44 w-auto" />
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-[0.25em] gradient-text -mt-1">
-            DROPS
+            DROP
           </h1>
           <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-[0.3em] uppercase mt-3">
             Sesiones &middot; Remixes &middot; Mashups &middot; Librerías

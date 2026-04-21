@@ -10,7 +10,7 @@ export default function Footer({ onAdmin }: FooterProps) {
           {/* Brand */}
           <div className="flex items-center gap-2.5">
             <img src="/logo.png" alt="Alex Selas" className="h-8 w-auto" />
-            <span className="text-[10px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
+            <span className="text-[10px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROP</span>
           </div>
 
           {/* Links */}

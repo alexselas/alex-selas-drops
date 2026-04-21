@@ -246,7 +246,7 @@ export function useStoryGenerator() {
 
       ctx.font = 'bold 22px Inter, Arial, sans-serif';
       ctx.fillStyle = '#FACC15';
-      ctx.fillText('DROPS', W / 2, H - 150);
+      ctx.fillText('DROP', W / 2, H - 150);
     }
 
     // "Desliza hacia arriba" CTA

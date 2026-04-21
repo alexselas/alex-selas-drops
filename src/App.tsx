@@ -283,18 +283,18 @@ export default function App() {
     if (section === 'colab-page' && activeCollabId) {
       const prof = collabProfiles[activeCollabId];
       const name = activeCollabId === 'alex-selas' ? 'Alex Selas' : (prof?.artistName || activeCollabId);
-      document.title = `${name} — Music Drops`;
+      document.title = `${name} — Music Drop`;
     } else {
       const titles: Record<Section, string> = {
-        home: 'Music Drops',
-        catalog: 'Music Drops',
-        colabs: 'Music Drops',
-        'colab-page': 'Music Drops',
-        'colab-admin': 'Music Drops',
+        home: 'Music Drop',
+        catalog: 'Music Drop',
+        colabs: 'Music Drop',
+        'colab-page': 'Music Drop',
+        'colab-admin': 'Music Drop',
         club360: 'Club360',
-        admin: 'Music Drops — Admin',
+        admin: 'Music Drop — Admin',
       };
-      document.title = titles[section] || 'Music Drops';
+      document.title = titles[section] || 'Music Drop';
     }
   }, [section, activeCollabId, collabProfiles]);
 
@@ -468,9 +468,9 @@ export default function App() {
 
       {/* Main content */}
       <main className="pt-16">
-        {/* (Home section removed — Music Drops is now the landing page) */}
+        {/* (Home section removed — Music Drop is now the landing page) */}
 
-        {/* ============ MUSIC DROPS (landing page) ============ */}
+        {/* ============ MUSIC DROP (landing page) ============ */}
         {section === 'colabs' && !showCheckout && (() => {
           // All tracks for catalog (Alex Selas's + collaborators')
           const allCatalogTracks = tracks;
@@ -490,7 +490,7 @@ export default function App() {
           ];
           return (
             <>
-            {/* MUSIC DROPS Hero Banner */}
+            {/* MUSIC DROP Hero Banner */}
             <section className="relative min-h-[42vh] sm:min-h-[48vh] flex items-center justify-center overflow-hidden">
               <div className="absolute inset-0">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-yellow-400/6 rounded-full blur-[200px]" />
@@ -508,7 +508,7 @@ export default function App() {
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="flex flex-col items-center mb-5">
                   <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] text-white leading-[0.9]">MUSIC</h1>
-                  <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.25em] gradient-text leading-[0.9] mt-1">DROPS</h2>
+                  <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.25em] gradient-text leading-[0.9] mt-1">DROP</h2>
                 </motion.div>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7, delay: 0.25 }}>
                   <p className="text-sm sm:text-base text-zinc-400 font-medium tracking-[0.25em] uppercase">
@@ -595,7 +595,7 @@ export default function App() {
               <div className="bg-[#141414] rounded-[22px] border border-zinc-800/50 p-8 sm:p-12 text-center">
                 <h2 className="text-2xl font-bold text-zinc-50 mb-3">¿Quieres colaborar?</h2>
                 <p className="text-zinc-500 mb-6 max-w-md mx-auto">
-                  Si eres DJ o productor y quieres vender tus tracks en Music Drops, escríbenos con tu propuesta.
+                  Si eres DJ o productor y quieres vender tus tracks en Music Drop, escríbenos con tu propuesta.
                 </p>
                 <a
                   href="https://www.instagram.com/alexselas"

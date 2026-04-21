@@ -15,7 +15,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems: { section: Section; label: string; richLabel?: boolean }[] = [
-    { label: 'Music Drops', section: 'colabs', richLabel: true },
+    { label: 'Music Drop', section: 'colabs', richLabel: true },
     { label: 'Club 360', section: 'club360' },
   ];
 
@@ -29,12 +29,12 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
           {collabArtistName ? (
             <button onClick={() => onNavigate('colabs')} className="flex items-center gap-3 group">
               <span className="text-lg font-black text-white uppercase tracking-wide">{collabArtistName}</span>
-              <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
+              <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROP</span>
             </button>
           ) : (
             <button onClick={() => onNavigate('colabs')} className="flex items-center gap-1.5 group">
               <span className="text-lg font-black uppercase tracking-wider text-white">MUSIC</span>
-              <span className="text-lg font-black uppercase tracking-wider text-yellow-400">DROPS</span>
+              <span className="text-lg font-black uppercase tracking-wider text-yellow-400">DROP</span>
             </button>
           )}
 
@@ -53,7 +53,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
                 {item.richLabel ? (
                   <span>
                     <span className={isActive(item.section) ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}>Music </span>
-                    <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400 group-hover:text-zinc-200'}>Drops</span>
+                    <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400 group-hover:text-zinc-200'}>Drop</span>
                   </span>
                 ) : (
                   <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400 hover:text-zinc-200'}>{item.label}</span>
@@ -116,7 +116,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
                   {item.richLabel ? (
                     <span>
                       <span className={isActive(item.section) ? 'text-white' : 'text-zinc-400'}>Music </span>
-                      <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400'}>Drops</span>
+                      <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400'}>Drop</span>
                     </span>
                   ) : (
                     <span className={isActive(item.section) ? 'text-yellow-400' : 'text-zinc-400'}>{item.label}</span>

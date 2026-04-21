@@ -52,7 +52,7 @@ export default function CollabPage({
     if (isOwner) {
       // Alex Selas — hardcoded profile (owner)
       setProfile({
-        bio: 'DJ & Producer — Fundador de Music Drops y DJAcademy',
+        bio: 'DJ & Producer — Fundador de Music Drop y DJAcademy',
         photoUrl: '/logo.png',
         bannerUrl: '',
         artistName: 'Alex Selas',
