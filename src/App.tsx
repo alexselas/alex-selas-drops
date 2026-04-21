@@ -474,18 +474,20 @@ export default function App() {
         {section === 'colabs' && !showCheckout && (() => {
           // All tracks for catalog (Alex Selas's + collaborators')
           const allCatalogTracks = tracks;
-          // Build dynamic collaborator list from API profiles, sorted alphabetically
+          // Build dynamic collaborator list from API profiles (exclude alex-selas, he's hardcoded first)
+          const alexProf = collabProfiles['alex-selas'] as any;
           const dynamicCollabs = Object.entries(collabProfiles)
+            .filter(([id]) => id !== 'alex-selas')
             .map(([id, prof]: [string, any]) => ({
               id,
               name: prof.artistName || id,
               photoUrl: prof.photoUrl || '',
             }))
             .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-          // Alex Selas as first producer (owner tracks = tracks without collaboratorId)
+          // Alex Selas as first producer — use saved profile if available
           const alexTrackCount = tracks.filter(t => !t.collaboratorId).length;
           const allProducers = [
-            { id: 'alex-selas', name: 'Alex Selas', photoUrl: '/logo.png' },
+            { id: 'alex-selas', name: alexProf?.artistName || 'Alex Selas', photoUrl: alexProf?.photoUrl || '/logo.png' },
             ...dynamicCollabs,
           ];
           return (

@@ -48,28 +48,28 @@ export default function CollabPage({
     : tracks.filter(t => t.collaboratorId === collaboratorId);
   const featuredTracks = myTracks.filter(t => t.featured);
 
+  const defaultOwnerProfile = {
+    bio: 'DJ & Producer — Fundador de Music Drop y DJAcademy',
+    photoUrl: '/logo.png',
+    bannerUrl: '',
+    artistName: 'Alex Selas',
+    socialLinks: {
+      instagram: 'https://www.instagram.com/alexselas',
+      spotify: 'https://open.spotify.com/artist/2wrFBhL6npjdRjl7e9675f',
+    },
+    colorPrimary: '#FACC15',
+    colorSecondary: '#EAB308',
+  };
+
   useEffect(() => {
-    if (isOwner) {
-      // Alex Selas — hardcoded profile (owner)
-      setProfile({
-        bio: 'DJ & Producer — Fundador de Music Drop y DJAcademy',
-        photoUrl: '/logo.png',
-        bannerUrl: '',
-        artistName: 'Alex Selas',
-        socialLinks: {
-          instagram: 'https://www.instagram.com/alexselas',
-          spotify: 'https://open.spotify.com/artist/alexselas',
-        },
-        colorPrimary: '#FACC15',
-        colorSecondary: '#EAB308',
-      });
-      setLoading(false);
-      return;
-    }
-    fetch(`/api/collab-profile?id=${collaboratorId}`)
+    // Always fetch from API — for owner, use saved profile or fallback to defaults
+    fetch(`/api/collab-profile?id=${isOwner ? 'alex-selas' : collaboratorId}`)
       .then(r => r.json())
-      .then(data => { if (data) setProfile(data); })
-      .catch(() => {})
+      .then(data => {
+        if (data) setProfile(data);
+        else if (isOwner) setProfile(defaultOwnerProfile);
+      })
+      .catch(() => { if (isOwner) setProfile(defaultOwnerProfile); })
       .finally(() => setLoading(false));
   }, [collaboratorId, isOwner]);
 
