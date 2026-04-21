@@ -101,19 +101,27 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
     }
   }, []);
 
-  // Stripe checkout
+  // Stripe checkout (or free download if total is 0)
   const handleStripeCheckout = async () => {
     setStep('processing');
     setErrorMsg('');
 
     savePurchasedItems(items);
 
+    // If all items are free, skip payment
+    const effectiveTotal = Math.round(total * (1 - discount) * 100) / 100;
+    if (effectiveTotal <= 0) {
+      setVerifiedSessionId('free');
+      setStep('success');
+      return;
+    }
+
     try {
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: items.map(i => ({
+          items: items.filter(i => i.track.price > 0).map(i => ({
             id: i.track.id,
             title: i.track.title,
             price: Math.round((i.track.price * (1 - discount)) * 100) / 100,

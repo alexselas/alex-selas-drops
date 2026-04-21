@@ -37,18 +37,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'URL de archivo no válida' });
     }
 
-    // Verify Stripe payment — session_id is required
+    // Verify payment — session_id required (or 'free' for free tracks)
     if (!session_id) {
       return res.status(403).json({ error: 'Falta verificación de pago' });
     }
 
-    try {
-      const session = await stripe.checkout.sessions.retrieve(session_id);
-      if (session.payment_status !== 'paid') {
-        return res.status(403).json({ error: 'Pago no confirmado' });
+    if (session_id !== 'free') {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(session_id);
+        if (session.payment_status !== 'paid') {
+          return res.status(403).json({ error: 'Pago no confirmado' });
+        }
+      } catch {
+        return res.status(403).json({ error: 'Sesión de pago no válida' });
       }
-    } catch {
-      return res.status(403).json({ error: 'Sesión de pago no válida' });
     }
 
     // Fetch the original MP3 file
