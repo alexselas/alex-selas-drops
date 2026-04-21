@@ -8,10 +8,10 @@ export default function Footer({ onAdmin }: FooterProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Brand */}
-          <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="Alex Selas" className="h-8 w-auto" />
-            <span className="text-[10px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROP</span>
-            <span className="text-[9px] font-semibold text-zinc-600 tracking-wide">by DJAcademy</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-black uppercase tracking-wider text-white">MUSIC</span>
+            <span className="text-sm font-black uppercase tracking-wider text-yellow-400">DROP</span>
+            <span className="text-[9px] font-semibold text-zinc-600 tracking-wide ml-1">by DJAcademy</span>
           </div>
 
           {/* Links */}
