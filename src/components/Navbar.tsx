@@ -15,7 +15,6 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems: { section: Section; label: string; richLabel?: boolean }[] = [
-    { label: 'Home', section: 'home' },
     { label: 'Music Drops', section: 'colabs', richLabel: true },
     { label: 'Club 360', section: 'club360' },
   ];
@@ -32,15 +31,10 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
               <span className="text-lg font-black text-white uppercase tracking-wide">{collabArtistName}</span>
               <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
             </button>
-          ) : (currentSection === 'colabs') ? (
+          ) : (
             <button onClick={() => onNavigate('colabs')} className="flex items-center gap-1.5 group">
               <span className="text-lg font-black uppercase tracking-wider text-white">MUSIC</span>
               <span className="text-lg font-black uppercase tracking-wider text-yellow-400">DROPS</span>
-            </button>
-          ) : (
-            <button onClick={() => onNavigate('home')} className="flex items-center gap-3 group">
-              <img src="/logo.png" alt="Alex Selas" className="h-9 w-auto" />
-              <span className="text-[11px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROPS</span>
             </button>
           )}
 

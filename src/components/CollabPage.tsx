@@ -42,16 +42,36 @@ export default function CollabPage({
   const [profile, setProfile] = useState<CollaboratorProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const myTracks = tracks.filter(t => t.collaboratorId === collaboratorId);
+  const isOwner = collaboratorId === 'alex-selas';
+  const myTracks = isOwner
+    ? tracks.filter(t => !t.collaboratorId)
+    : tracks.filter(t => t.collaboratorId === collaboratorId);
   const featuredTracks = myTracks.filter(t => t.featured);
 
   useEffect(() => {
+    if (isOwner) {
+      // Alex Selas — hardcoded profile (owner)
+      setProfile({
+        bio: 'DJ & Producer — Fundador de Music Drops y DJAcademy',
+        photoUrl: '/logo.png',
+        bannerUrl: '',
+        artistName: 'Alex Selas',
+        socialLinks: {
+          instagram: 'https://www.instagram.com/alexselas',
+          spotify: 'https://open.spotify.com/artist/alexselas',
+        },
+        colorPrimary: '#FACC15',
+        colorSecondary: '#EAB308',
+      });
+      setLoading(false);
+      return;
+    }
     fetch(`/api/collab-profile?id=${collaboratorId}`)
       .then(r => r.json())
       .then(data => { if (data) setProfile(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [collaboratorId]);
+  }, [collaboratorId, isOwner]);
 
   const c1 = '#FACC15';
   const c2 = '#EAB308';
