@@ -11,9 +11,11 @@ interface CollabProfileFormProps {
   collaboratorId: string;
   collaboratorName: string;
   collabToken: string;
+  adminEditCollabId?: string;
 }
 
-export default function CollabProfileForm({ collaboratorId, collaboratorName, collabToken }: CollabProfileFormProps) {
+export default function CollabProfileForm({ collaboratorId, collaboratorName, collabToken, adminEditCollabId }: CollabProfileFormProps) {
+  const profileId = adminEditCollabId || collaboratorId;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -41,14 +43,14 @@ export default function CollabProfileForm({ collaboratorId, collaboratorName, co
   });
 
   useEffect(() => {
-    fetch(`/api/collab-profile?id=${collaboratorId}`)
+    fetch(`/api/collab-profile?id=${profileId}`)
       .then(r => r.json())
       .then(data => {
         if (data) setForm(prev => ({ ...prev, ...data }));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [collaboratorId]);
+  }, [profileId]);
 
   // When file is selected, open the cropper
   const handleFileSelected = (file: File) => {
@@ -127,12 +129,16 @@ export default function CollabProfileForm({ collaboratorId, collaboratorName, co
     setSaving(true);
     setSaved(false);
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${collabToken}`,
+      };
+      if (adminEditCollabId) {
+        headers['X-Admin-Edit-Collab'] = adminEditCollabId;
+      }
       await fetch('/api/collab-profile', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${collabToken}`,
-        },
+        headers,
         body: JSON.stringify(form),
       });
       setSaved(true);

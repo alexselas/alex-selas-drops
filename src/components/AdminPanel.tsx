@@ -13,6 +13,7 @@ import { collaborators } from '../data/collaborators';
 import AdminTrackForm from './AdminTrackForm';
 import PackUploadForm from './PackUploadForm';
 import ImageCropper from './ImageCropper';
+import CollabProfileForm from './CollabProfileForm';
 
 type AdminTab = 'dashboard' | 'tracks' | 'orders' | 'settings' | 'collabs';
 
@@ -127,7 +128,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tracks', label: 'Tracks', icon: ListMusic },
     { id: 'orders', label: 'Pedidos', icon: ShoppingBag },
-    { id: 'settings', label: 'Ajustes', icon: Settings },
+    { id: 'settings', label: 'Perfil', icon: User },
     { id: 'collabs', label: 'Colaboradores', icon: Users },
   ];
 
@@ -734,90 +735,14 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
         </motion.div>
       )}
 
-      {/* ============ SETTINGS ============ */}
+      {/* ============ PERFIL ============ */}
       {tab === 'settings' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-2xl">
-          {/* Profile */}
-          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
-            <h3 className="text-sm font-semibold text-zinc-300 mb-4">Perfil</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Nombre</label>
-                <input
-                  type="text"
-                  defaultValue="Alex Selas"
-                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Email</label>
-                <input
-                  type="email"
-                  placeholder="tu@email.com"
-                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-400 text-sm cursor-not-allowed"
-                  disabled
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Payments */}
-          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
-            <h3 className="text-sm font-semibold text-zinc-300 mb-4">Pagos</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-violet-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-zinc-300 font-medium">Stripe</p>
-                    <p className="text-xs text-zinc-500">Tarjetas de crédito/débito</p>
-                  </div>
-                </div>
-                {import.meta.env.VITE_STRIPE_PUBLIC_KEY && !import.meta.env.VITE_STRIPE_PUBLIC_KEY.includes('TU_CLAVE') ? (
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400">Conectado</span>
-                ) : (
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400">Pendiente</span>
-                )}
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-yellow-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-zinc-300 font-medium">PayPal</p>
-                    <p className="text-xs text-zinc-500">Pago directo con PayPal</p>
-                  </div>
-                </div>
-                {import.meta.env.VITE_PAYPAL_CLIENT_ID && import.meta.env.VITE_PAYPAL_CLIENT_ID !== 'sb' ? (
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400">Conectado</span>
-                ) : (
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400">Sandbox (test)</span>
-                )}
-              </div>
-            </div>
-            <p className="text-xs text-zinc-600 mt-3">Las claves se configuran en las variables de entorno de Vercel</p>
-          </div>
-
-          {/* Watermark */}
-          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
-            <h3 className="text-sm font-semibold text-zinc-300 mb-4">Marca de agua</h3>
-            <p className="text-sm text-zinc-400 mb-3">
-              El archivo <code className="text-yellow-400 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">watermark.mp3</code> se
-              reproduce cada 7 segundos durante los previews.
-            </p>
-            <div className="p-3 rounded-xl bg-zinc-800/30 text-sm text-zinc-500">
-              Sube tu cuña de audio (~3 seg) como <code className="text-yellow-400">/public/watermark.mp3</code>
-            </div>
-          </div>
-
-          {/* Save */}
-          <button className="px-6 py-3 rounded-xl gradient-bg text-white font-semibold shadow-lg hover:scale-[1.02] transition-transform">
-            Guardar cambios
-          </button>
-        </motion.div>
+        <CollabProfileForm
+          collaboratorId="alex-selas"
+          collaboratorName="Alex Selas"
+          collabToken={getAdminToken()}
+          adminEditCollabId="alex-selas"
+        />
       )}
 
       {/* ============ COLABORADORES ============ */}
