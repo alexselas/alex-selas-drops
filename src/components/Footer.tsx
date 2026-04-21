@@ -11,6 +11,7 @@ export default function Footer({ onAdmin }: FooterProps) {
           <div className="flex items-center gap-2.5">
             <img src="/logo.png" alt="Alex Selas" className="h-8 w-auto" />
             <span className="text-[10px] font-extrabold gradient-bg text-black px-2 py-0.5 rounded-lg tracking-wide">DROP</span>
+            <span className="text-[9px] font-semibold text-zinc-600 tracking-wide">by DJAcademy</span>
           </div>
 
           {/* Links */}

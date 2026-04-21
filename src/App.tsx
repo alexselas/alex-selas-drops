@@ -509,6 +509,7 @@ export default function App() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="flex flex-col items-center mb-5">
                   <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] text-white leading-[0.9]">MUSIC</h1>
                   <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.25em] gradient-text leading-[0.9] mt-1">DROP</h2>
+                  <p className="text-xs sm:text-sm text-zinc-500 font-medium tracking-widest mt-2">by DJAcademy</p>
                 </motion.div>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7, delay: 0.25 }}>
                   <p className="text-sm sm:text-base text-zinc-400 font-medium tracking-[0.25em] uppercase">

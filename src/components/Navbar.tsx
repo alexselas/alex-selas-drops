@@ -35,6 +35,7 @@ export default function Navbar({ currentSection, onNavigate, cartCount, onCartOp
             <button onClick={() => onNavigate('colabs')} className="flex items-center gap-1.5 group">
               <span className="text-lg font-black uppercase tracking-wider text-white">MUSIC</span>
               <span className="text-lg font-black uppercase tracking-wider text-yellow-400">DROP</span>
+              <span className="text-[9px] font-semibold text-zinc-500 tracking-wide ml-1">by DJAcademy</span>
             </button>
           )}
 
