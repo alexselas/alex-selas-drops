@@ -123,6 +123,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
       } catch {}
       setVerifiedSessionId('free');
       setStep('success');
+      onClearCart();
       return;
     }
 

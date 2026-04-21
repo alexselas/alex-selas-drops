@@ -614,12 +614,10 @@ export default function App() {
                   Si eres DJ o productor y quieres vender tus tracks en MusicDrop, escríbenos con tu propuesta.
                 </p>
                 <a
-                  href="https://www.instagram.com/alexselas"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="mailto:soporte@club360.es"
                   className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-105 active:scale-95 transition-transform"
                 >
-                  Contactar por Instagram
+                  soporte@club360.es
                 </a>
               </div>
 
