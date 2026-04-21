@@ -553,6 +553,19 @@ export default function App() {
                 })}
               </div>
 
+              {/* Promo banner */}
+              <div className="relative overflow-hidden rounded-2xl mb-10">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500" />
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
+                <div className="relative px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+                  <div className="text-center sm:text-left">
+                    <p className="text-black/90 font-bold text-lg sm:text-xl">Descuento en tu primera compra</p>
+                    <p className="text-black/60 text-sm mt-0.5">Introduce este código en el carrito</p>
+                  </div>
+                  <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg">WELCOME20</span>
+                </div>
+              </div>
+
               {/* 4 random featured tracks from all tracks */}
               {colabRandomFeatured.length > 0 && (
                 <div className="mb-10">
