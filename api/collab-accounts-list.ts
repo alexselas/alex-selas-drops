@@ -44,11 +44,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const accounts = ((await redis.get('collab-accounts')) || []) as { email: string; collaboratorId: string }[];
     const profiles = ((await redis.get('collab-profiles')) || {}) as Record<string, any>;
 
-    const result = accounts.map(a => ({
-      collaboratorId: a.collaboratorId,
-      email: a.email,
-      artistName: profiles[a.collaboratorId]?.artistName || '',
-    }));
+    // Start with registered accounts
+    const seen = new Set<string>();
+    const result: { collaboratorId: string; email: string; artistName: string }[] = [];
+
+    for (const a of accounts) {
+      seen.add(a.collaboratorId);
+      result.push({
+        collaboratorId: a.collaboratorId,
+        email: a.email,
+        artistName: profiles[a.collaboratorId]?.artistName || '',
+      });
+    }
+
+    // Also include collaborators that have profiles but no account (e.g. created via admin)
+    for (const [id, prof] of Object.entries(profiles)) {
+      if (id === 'alex-selas') continue; // skip owner profile
+      if (!seen.has(id)) {
+        result.push({
+          collaboratorId: id,
+          email: '',
+          artistName: (prof as any)?.artistName || id,
+        });
+      }
+    }
 
     return res.status(200).json({ accounts: result });
   } catch (error: any) {
