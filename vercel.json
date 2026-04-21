@@ -8,7 +8,7 @@
       "headers": [
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://alexselas.es https://www.alexselas.es http://localhost:4000" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://alexselas.es https://www.alexselas.es https://*.vercel.app http://localhost:*" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
       ]
