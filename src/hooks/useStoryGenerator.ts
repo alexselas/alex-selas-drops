@@ -90,7 +90,7 @@ export function useStoryGenerator() {
     ctx.fillText(catLabel, W / 2, badgeY + 8);
 
     // === COVER ART ===
-    const coverSize = 700;
+    const coverSize = 580;
     const coverX = (W - coverSize) / 2;
     const coverY = badgeY + 55;
     const coverRadius = 24;
