@@ -47,68 +47,60 @@ export function useStoryGenerator() {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // === Layout: calculate everything to center vertically ===
-    const coverSize = 680;
+    // === TOP BANNER: MUSIC DROP ===
+    const bannerH = 110;
+    const bannerGrad = ctx.createLinearGradient(0, 0, W, 0);
+    bannerGrad.addColorStop(0, '#FACC15');
+    bannerGrad.addColorStop(0.5, '#FDE047');
+    bannerGrad.addColorStop(1, '#F59E0B');
+    ctx.fillStyle = bannerGrad;
+    ctx.fillRect(0, 0, W, bannerH);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 44px Inter, Arial, sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.fillText('MUSIC', W / 2 - 72, bannerH / 2);
+    ctx.fillText('DROP', W / 2 + 72, bannerH / 2);
+    // Dot separator
+    ctx.beginPath();
+    ctx.arc(W / 2, bannerH / 2, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.textBaseline = 'alphabetic';
+
+    // === CATEGORY BADGE ===
     const categoryLabels: Record<string, string> = {
       sesiones: 'SESIÓN', remixes: 'REMIX', mashups: 'MASHUP', librerias: 'LIBRERÍA',
     };
     const catLabel = categoryLabels[track.category] || track.category.toUpperCase();
+    const badgeY = bannerH + 65;
 
-    // Pre-calculate text lines
-    ctx.font = 'bold 52px Inter, Arial, sans-serif';
-    const titleLines = wrapText(ctx, track.title, W - 160);
-
-    // Estimate total content height
-    const brandH = 50;
-    const catH = 55;
-    const coverH = coverSize;
-    const titleH = titleLines.length * 64;
-    const artistH = 45;
-    const authorsH = track.authors ? 45 : 0;
-    const metaH = 50;
-    const priceH = track.price > 0 ? 60 : 0;
-    const waveH = 60;
-    const gaps = 40 * 6;
-    const totalH = brandH + catH + coverH + titleH + artistH + authorsH + metaH + priceH + waveH + gaps;
-    const startY = Math.max(80, (H - totalH) / 2);
-
-    let y = startY;
-
-    // === MUSIC DROP branding ===
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 30px Inter, Arial, sans-serif';
-    ctx.fillStyle = '#ffffff';
-    const musicW = ctx.measureText('MUSIC ').width;
-    ctx.fillText('MUSIC ', W / 2 - 30, y);
-    ctx.fillStyle = '#FACC15';
-    ctx.fillText('DROP', W / 2 + musicW / 2 - 10, y);
-    y += brandH + 30;
-
-    // === CATEGORY BADGE ===
-    ctx.font = 'bold 20px Inter, Arial, sans-serif';
-    const badgeW = ctx.measureText(catLabel).width + 44;
-    const badgeH = 36;
+    ctx.font = 'bold 24px Inter, Arial, sans-serif';
+    const badgeW = ctx.measureText(catLabel).width + 50;
+    const badgeH2 = 42;
     ctx.fillStyle = 'rgba(250,204,21,0.10)';
     ctx.beginPath();
-    ctx.roundRect((W - badgeW) / 2, y - badgeH / 2, badgeW, badgeH, 18);
+    ctx.roundRect((W - badgeW) / 2, badgeY - badgeH2 / 2, badgeW, badgeH2, 21);
     ctx.fill();
     ctx.strokeStyle = 'rgba(250,204,21,0.25)';
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.fillStyle = '#FACC15';
-    ctx.fillText(catLabel, W / 2, y + 6);
-    y += catH + 25;
+    ctx.textAlign = 'center';
+    ctx.fillText(catLabel, W / 2, badgeY + 8);
 
     // === COVER ART ===
+    const coverSize = 700;
     const coverX = (W - coverSize) / 2;
+    const coverY = badgeY + 55;
     const coverRadius = 24;
 
     // Glow
-    const glowGrad = ctx.createRadialGradient(W / 2, y + coverSize / 2, 0, W / 2, y + coverSize / 2, coverSize * 0.65);
+    const glowGrad = ctx.createRadialGradient(W / 2, coverY + coverSize / 2, 0, W / 2, coverY + coverSize / 2, coverSize * 0.65);
     glowGrad.addColorStop(0, 'rgba(250,204,21,0.05)');
     glowGrad.addColorStop(1, 'rgba(250,204,21,0)');
     ctx.fillStyle = glowGrad;
-    ctx.fillRect(0, y - 80, W, coverSize + 160);
+    ctx.fillRect(0, coverY - 60, W, coverSize + 120);
 
     // Shadow
     ctx.save();
@@ -117,89 +109,73 @@ export function useStoryGenerator() {
     ctx.shadowOffsetY = 12;
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.roundRect(coverX, y, coverSize, coverSize, coverRadius);
+    ctx.roundRect(coverX, coverY, coverSize, coverSize, coverRadius);
     ctx.fill();
     ctx.restore();
 
     // Draw cover
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(coverX, y, coverSize, coverSize, coverRadius);
+    ctx.roundRect(coverX, coverY, coverSize, coverSize, coverRadius);
     ctx.clip();
     if (track.coverUrl) {
       try {
         const coverImg = await loadImage(track.coverUrl);
-        ctx.drawImage(coverImg, coverX, y, coverSize, coverSize);
+        ctx.drawImage(coverImg, coverX, coverY, coverSize, coverSize);
       } catch {
-        drawCoverPlaceholder(ctx, coverX, y, coverSize, track, titleSeed);
+        drawCoverPlaceholder(ctx, coverX, coverY, coverSize, track, titleSeed);
       }
     } else {
-      drawCoverPlaceholder(ctx, coverX, y, coverSize, track, titleSeed);
+      drawCoverPlaceholder(ctx, coverX, coverY, coverSize, track, titleSeed);
     }
     ctx.restore();
     ctx.strokeStyle = 'rgba(250,204,21,0.12)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(coverX, y, coverSize, coverSize, coverRadius);
+    ctx.roundRect(coverX, coverY, coverSize, coverSize, coverRadius);
     ctx.stroke();
-    y += coverSize + 50;
 
-    // === TITLE ===
-    ctx.font = 'bold 52px Inter, Arial, sans-serif';
+    // === TRACK INFO — distributed in remaining space ===
+    const infoTop = coverY + coverSize + 60;
+    const infoBottom = H - 80;
+    const infoSpace = infoBottom - infoTop;
+
+    // Pre-calc
+    ctx.font = 'bold 56px Inter, Arial, sans-serif';
+    const titleLines = wrapText(ctx, track.title, W - 140);
+
+    // Title at top of info zone
+    let y = infoTop;
+    ctx.font = 'bold 56px Inter, Arial, sans-serif';
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     titleLines.forEach((line, i) => {
-      ctx.fillText(line, W / 2, y + i * 64);
+      ctx.fillText(line, W / 2, y + i * 68);
     });
-    y += titleH + 16;
+    y += titleLines.length * 68 + 24;
 
-    // === ARTIST ===
-    ctx.font = '500 34px Inter, Arial, sans-serif';
+    // Artist
+    ctx.font = '500 36px Inter, Arial, sans-serif';
     ctx.fillStyle = '#a1a1aa';
     ctx.fillText(track.artist, W / 2, y);
-    y += artistH;
+    y += 50;
 
-    // === ORIGINAL ARTISTS ===
+    // Original artists
     if (track.authors) {
-      ctx.font = '400 26px Inter, Arial, sans-serif';
+      ctx.font = '400 28px Inter, Arial, sans-serif';
       ctx.fillStyle = '#71717a';
       ctx.fillText(`Original: ${track.authors}`, W / 2, y);
-      y += authorsH;
+      y += 46;
     }
 
-    // === META PILL ===
-    y += 15;
-    const metaParts = [track.genre];
-    if (track.bpm > 0) metaParts.push(`${track.bpm} BPM`);
-    const metaText = metaParts.join('  ·  ');
-    ctx.font = '500 22px Inter, Arial, sans-serif';
-    const pillW = ctx.measureText(metaText).width + 44;
-    const pillH = 36;
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    ctx.beginPath();
-    ctx.roundRect((W - pillW) / 2, y - pillH / 2, pillW, pillH, 18);
-    ctx.fill();
-    ctx.fillStyle = '#a1a1aa';
-    ctx.fillText(metaText, W / 2, y + 7);
-    y += metaH + 10;
-
-    // === PRICE ===
-    if (track.price > 0) {
-      const priceText = `${track.price.toFixed(2).replace('.', ',')} €`;
-      ctx.font = 'bold 44px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#FACC15';
-      ctx.fillText(priceText, W / 2, y);
-      y += priceH + 10;
-    }
-
-    // === WAVEFORM ===
-    y += 10;
-    const barCount = 50;
-    const barWidth = 8;
-    const barGap = 6;
+    // === WAVEFORM — centered in remaining space ===
+    const waveY = y + (infoBottom - y) / 2;
+    const barCount = 60;
+    const barWidth = 9;
+    const barGap = 5;
     const totalBarsWidth = barCount * (barWidth + barGap) - barGap;
     const barsStartX = (W - totalBarsWidth) / 2;
-    const maxBarH = 45;
+    const maxBarH = 55;
 
     for (let i = 0; i < barCount; i++) {
       const x = barsStartX + i * (barWidth + barGap);
@@ -210,15 +186,22 @@ export function useStoryGenerator() {
       const opacity = 0.35 + bellCurve * 0.5;
       ctx.fillStyle = `rgba(250,204,21,${opacity})`;
       ctx.beginPath();
-      ctx.roundRect(x, y - h / 2, barWidth, h, 3);
+      ctx.roundRect(x, waveY - h / 2, barWidth, h, 3);
       ctx.fill();
     }
+
+    // Genre · BPM below waveform
+    const metaParts = [track.genre];
+    if (track.bpm > 0) metaParts.push(`${track.bpm} BPM`);
+    const metaText = metaParts.join('  ·  ');
+    ctx.font = '500 22px Inter, Arial, sans-serif';
+    ctx.fillStyle = '#52525b';
+    ctx.fillText(metaText, W / 2, waveY + maxBarH / 2 + 30);
 
     // === BOTTOM: musicdrop.es ===
     ctx.font = '500 20px Inter, Arial, sans-serif';
     ctx.fillStyle = '#3f3f46';
-    ctx.textAlign = 'center';
-    ctx.fillText('musicdrop.es', W / 2, H - 60);
+    ctx.fillText('musicdrop.es', W / 2, H - 50);
 
     // Convert to blob
     return new Promise<Blob>((resolve, reject) => {
