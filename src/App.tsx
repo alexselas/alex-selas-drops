@@ -524,7 +524,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
               <h3 className="text-xl font-bold text-zinc-50 mb-6">Nuestros productores</h3>
               {/* Producer avatars — Alex Selas first, then collaborators */}
-              <div className="flex flex-wrap gap-3 mb-10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-10">
                 {allProducers.map(collab => {
                   const trackCount = collab.id === 'alex-selas'
                     ? alexTrackCount
