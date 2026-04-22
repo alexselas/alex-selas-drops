@@ -39,91 +39,82 @@ export function useStoryGenerator() {
       titleSeed += track.title.charCodeAt(i) * (i + 1);
     }
 
-    // === BACKGROUND - Rich dark gradient ===
+    // === BACKGROUND ===
     const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
     bgGrad.addColorStop(0, '#0a0a0a');
-    bgGrad.addColorStop(0.3, '#111111');
-    bgGrad.addColorStop(0.7, '#0d0d0d');
+    bgGrad.addColorStop(0.5, '#0f0f0f');
     bgGrad.addColorStop(1, '#080808');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // === AMBIENT GLOW - Large soft yellow glow behind cover area ===
-    const glowCenterY = 560;
-    const glowRadius = 500;
-    const ambientGlow = ctx.createRadialGradient(W / 2, glowCenterY, 0, W / 2, glowCenterY, glowRadius);
-    ambientGlow.addColorStop(0, 'rgba(250,204,21,0.08)');
-    ambientGlow.addColorStop(0.5, 'rgba(250,204,21,0.03)');
-    ambientGlow.addColorStop(1, 'rgba(250,204,21,0)');
-    ctx.fillStyle = ambientGlow;
-    ctx.fillRect(0, 0, W, H);
-
-    // === TOP BAR - "NUEVO DROP" banner ===
-    const bannerH = 90;
-    const bannerGrad = ctx.createLinearGradient(0, 0, W, 0);
-    bannerGrad.addColorStop(0, '#FACC15');
-    bannerGrad.addColorStop(0.5, '#FDE047');
-    bannerGrad.addColorStop(1, '#F59E0B');
-    ctx.fillStyle = bannerGrad;
-    ctx.fillRect(0, 0, W, bannerH);
-
-    // Banner text
-    ctx.font = 'bold 34px Inter, Arial, sans-serif';
-    ctx.fillStyle = '#000000';
+    // === TOP: MUSIC DROP branding ===
+    const topY = 100;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('NUEVO DROP  //  MUSIC DROP', W / 2, bannerH / 2);
-    ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold 28px Inter, Arial, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('MUSIC', W / 2 - 50, topY);
+    ctx.fillStyle = '#FACC15';
+    ctx.fillText('DROP', W / 2 + 50, topY);
+    ctx.font = '500 14px Inter, Arial, sans-serif';
+    ctx.fillStyle = '#52525b';
+    ctx.fillText('by 360DJAcademy', W / 2, topY + 28);
+
+    // Thin separator line
+    ctx.fillStyle = 'rgba(250,204,21,0.15)';
+    ctx.fillRect(W / 2 - 100, topY + 50, 200, 1);
 
     // === CATEGORY BADGE ===
     const categoryLabels: Record<string, string> = {
       sesiones: 'SESION', remixes: 'REMIX', mashups: 'MASHUP', librerias: 'LIBRERIA',
     };
     const catLabel = categoryLabels[track.category] || track.category.toUpperCase();
-    const badgeY = bannerH + 60;
+    const badgeY = topY + 90;
 
-    ctx.font = 'bold 26px Inter, Arial, sans-serif';
-    const badgeW = ctx.measureText(catLabel).width + 60;
-    const badgeH = 48;
+    ctx.font = 'bold 22px Inter, Arial, sans-serif';
+    const badgeW = ctx.measureText(catLabel).width + 50;
+    const badgeH = 40;
     const badgeX = (W - badgeW) / 2;
 
-    // Badge background
-    ctx.fillStyle = 'rgba(250,204,21,0.12)';
+    ctx.fillStyle = 'rgba(250,204,21,0.10)';
     ctx.beginPath();
-    ctx.roundRect(badgeX, badgeY - badgeH / 2 - 6, badgeW, badgeH, 24);
+    ctx.roundRect(badgeX, badgeY - badgeH / 2, badgeW, badgeH, 20);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(250,204,21,0.35)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(250,204,21,0.30)';
+    ctx.lineWidth = 1;
     ctx.stroke();
-
-    // Badge text
     ctx.fillStyle = '#FACC15';
     ctx.textAlign = 'center';
-    ctx.fillText(catLabel, W / 2, badgeY + 4);
+    ctx.fillText(catLabel, W / 2, badgeY + 7);
 
     // === COVER ART ===
-    const coverSize = 660;
+    const coverSize = 620;
     const coverX = (W - coverSize) / 2;
-    const coverY = badgeY + 56;
-    const coverRadius = 28;
+    const coverY = badgeY + 50;
+    const coverRadius = 24;
 
-    // Shadow behind cover
+    // Ambient glow behind cover
+    const glowGrad = ctx.createRadialGradient(W / 2, coverY + coverSize / 2, 0, W / 2, coverY + coverSize / 2, coverSize * 0.7);
+    glowGrad.addColorStop(0, 'rgba(250,204,21,0.06)');
+    glowGrad.addColorStop(1, 'rgba(250,204,21,0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(0, coverY - 100, W, coverSize + 200);
+
+    // Shadow
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 80;
-    ctx.shadowOffsetY = 20;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 60;
+    ctx.shadowOffsetY = 15;
     ctx.fillStyle = '#000';
     ctx.beginPath();
     ctx.roundRect(coverX, coverY, coverSize, coverSize, coverRadius);
     ctx.fill();
     ctx.restore();
 
-    // Draw cover art
+    // Draw cover
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(coverX, coverY, coverSize, coverSize, coverRadius);
     ctx.clip();
-
     if (track.coverUrl) {
       try {
         const coverImg = await loadImage(track.coverUrl);
@@ -136,132 +127,96 @@ export function useStoryGenerator() {
     }
     ctx.restore();
 
-    // Cover border glow
-    ctx.strokeStyle = 'rgba(250,204,21,0.2)';
-    ctx.lineWidth = 2;
+    // Cover border
+    ctx.strokeStyle = 'rgba(250,204,21,0.15)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.roundRect(coverX, coverY, coverSize, coverSize, coverRadius);
     ctx.stroke();
 
     // === TRACK INFO ===
-    const infoY = coverY + coverSize + 56;
+    const infoY = coverY + coverSize + 60;
 
-    // Track title - big and bold
-    ctx.font = 'bold 62px Inter, Arial, sans-serif';
+    // Title
+    ctx.font = 'bold 56px Inter, Arial, sans-serif';
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    const titleLines = wrapText(ctx, track.title, W - 140);
+    const titleLines = wrapText(ctx, track.title, W - 160);
     titleLines.forEach((line, i) => {
-      ctx.fillText(line, W / 2, infoY + i * 74);
+      ctx.fillText(line, W / 2, infoY + i * 68);
     });
 
-    // Artist name
-    const artistY = infoY + titleLines.length * 74 + 16;
-    ctx.font = '500 38px Inter, Arial, sans-serif';
+    // Artist
+    const artistY = infoY + titleLines.length * 68 + 20;
+    ctx.font = '500 34px Inter, Arial, sans-serif';
     ctx.fillStyle = '#a1a1aa';
     ctx.fillText(track.artist, W / 2, artistY);
 
-    // Original artists (if remix/mashup)
-    let metaStartY = artistY + 20;
+    // Original artists
+    let nextY = artistY + 24;
     if (track.authors) {
-      metaStartY += 42;
-      ctx.font = '400 30px Inter, Arial, sans-serif';
+      nextY += 40;
+      ctx.font = '400 28px Inter, Arial, sans-serif';
       ctx.fillStyle = '#71717a';
-      ctx.fillText(`Original: ${track.authors}`, W / 2, metaStartY);
+      ctx.fillText(`Original: ${track.authors}`, W / 2, nextY);
     }
 
-    // === META PILLS - Genre · BPM ===
+    // === META: Genre · BPM ===
     const metaParts = [track.genre];
     if (track.bpm > 0) metaParts.push(`${track.bpm} BPM`);
     const metaText = metaParts.join('  ·  ');
-    const pillY = metaStartY + 52;
+    const pillY = nextY + 50;
 
-    ctx.font = '500 28px Inter, Arial, sans-serif';
-    const pillW = ctx.measureText(metaText).width + 56;
-    const pillH = 46;
+    ctx.font = '500 24px Inter, Arial, sans-serif';
+    const pillW = ctx.measureText(metaText).width + 48;
+    const pillH = 40;
     const pillX = (W - pillW) / 2;
-
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.beginPath();
-    ctx.roundRect(pillX, pillY - pillH / 2, pillW, pillH, 23);
+    ctx.roundRect(pillX, pillY - pillH / 2, pillW, pillH, 20);
     ctx.fill();
-
     ctx.fillStyle = '#a1a1aa';
-    ctx.textAlign = 'center';
-    ctx.fillText(metaText, W / 2, pillY + 9);
+    ctx.fillText(metaText, W / 2, pillY + 8);
 
-    // === WAVEFORM BARS (decorative, more realistic) ===
-    const barsY = pillY + 70;
-    const barCount = 60;
-    const barWidth = 10;
-    const barGap = 5;
+    // === PRICE ===
+    if (track.price > 0) {
+      const priceY = pillY + 60;
+      const priceText = `${track.price.toFixed(2).replace('.', ',')} €`;
+      ctx.font = 'bold 42px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#FACC15';
+      ctx.fillText(priceText, W / 2, priceY);
+    }
+
+    // === WAVEFORM ===
+    const barsY = track.price > 0 ? pillY + 130 : pillY + 80;
+    const barCount = 50;
+    const barWidth = 8;
+    const barGap = 6;
     const totalBarsWidth = barCount * (barWidth + barGap) - barGap;
     const barsStartX = (W - totalBarsWidth) / 2;
-    const maxBarH = 70;
+    const maxBarH = 50;
 
     for (let i = 0; i < barCount; i++) {
       const x = barsStartX + i * (barWidth + barGap);
-      // Create more natural waveform shape (bell curve with variation)
       const normalizedPos = i / barCount;
       const bellCurve = Math.exp(-Math.pow((normalizedPos - 0.5) * 3, 2));
       const variation = seededRandom(titleSeed + i) * 0.6 + 0.4;
-      const h = Math.max(6, bellCurve * variation * maxBarH);
-
-      const opacity = 0.5 + bellCurve * 0.5;
+      const h = Math.max(4, bellCurve * variation * maxBarH);
+      const opacity = 0.4 + bellCurve * 0.5;
       ctx.fillStyle = `rgba(250,204,21,${opacity})`;
       ctx.beginPath();
       ctx.roundRect(x, barsY - h / 2, barWidth, h, 3);
       ctx.fill();
     }
 
-    // === PRICE TAG (if applicable) ===
-    if (track.price > 0) {
-      const priceY = barsY + 64;
-      const priceText = `${track.price.toFixed(2).replace('.', ',')} €`;
-      ctx.font = 'bold 44px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#FACC15';
-      ctx.textAlign = 'center';
-      ctx.fillText(priceText, W / 2, priceY);
-    }
-
-    // === BOTTOM SECTION ===
-    // Bottom gradient overlay
-    const bottomGrad = ctx.createLinearGradient(0, H - 300, 0, H);
-    bottomGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    bottomGrad.addColorStop(1, 'rgba(250,204,21,0.04)');
-    ctx.fillStyle = bottomGrad;
-    ctx.fillRect(0, H - 300, W, 300);
-
-    // Logo
-    try {
-      const logo = await loadImage('/logo-white.png');
-      const logoH = 70;
-      const logoW = (logo.width / logo.height) * logoH;
-      ctx.drawImage(logo, (W - logoW) / 2, H - 220, logoW, logoH);
-    } catch {
-      ctx.font = 'bold 40px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'center';
-      ctx.fillText('MUSIC', W / 2, H - 185);
-
-      ctx.font = 'bold 22px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#FACC15';
-      ctx.fillText('DROP', W / 2, H - 150);
-
-      ctx.font = 'bold 12px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#71717a';
-      ctx.fillText('by 360DJAcademy', W / 2, H - 125);
-    }
-
-    // "Desliza hacia arriba" CTA
-    ctx.font = '500 24px Inter, Arial, sans-serif';
-    ctx.fillStyle = '#71717a';
+    // === BOTTOM: swipe text + accent line ===
+    ctx.font = '500 22px Inter, Arial, sans-serif';
+    ctx.fillStyle = '#52525b';
     ctx.textAlign = 'center';
-    ctx.fillText('▲  Desliza para escuchar  ▲', W / 2, H - 80);
+    ctx.fillText('▲  Desliza para escuchar  ▲', W / 2, H - 90);
 
-    // Bottom accent line
     ctx.fillStyle = '#FACC15';
-    ctx.fillRect(W / 2 - 60, H - 40, 120, 4);
+    ctx.fillRect(W / 2 - 50, H - 50, 100, 3);
 
     // Convert to blob
     return new Promise<Blob>((resolve, reject) => {
