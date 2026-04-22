@@ -72,7 +72,7 @@ export function useStoryGenerator() {
     ctx.fillStyle = '#000000';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('NUEVO DROP  //  ALEX SELAS', W / 2, bannerH / 2);
+    ctx.fillText('NUEVO DROP  //  MUSIC DROP', W / 2, bannerH / 2);
     ctx.textBaseline = 'alphabetic';
 
     // === CATEGORY BADGE ===
@@ -242,11 +242,15 @@ export function useStoryGenerator() {
       ctx.font = 'bold 40px Inter, Arial, sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
-      ctx.fillText('ALEX SELAS', W / 2, H - 185);
+      ctx.fillText('MUSIC', W / 2, H - 185);
 
       ctx.font = 'bold 22px Inter, Arial, sans-serif';
       ctx.fillStyle = '#FACC15';
       ctx.fillText('DROP', W / 2, H - 150);
+
+      ctx.font = 'bold 12px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#71717a';
+      ctx.fillText('by 360DJAcademy', W / 2, H - 125);
     }
 
     // "Desliza hacia arriba" CTA
