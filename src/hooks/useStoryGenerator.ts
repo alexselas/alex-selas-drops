@@ -48,7 +48,7 @@ export function useStoryGenerator() {
     ctx.fillRect(0, 0, W, H);
 
     // === TOP BANNER: MUSIC DROP ===
-    const bannerH = 110;
+    const bannerH = 160;
     const bannerGrad = ctx.createLinearGradient(0, 0, W, 0);
     bannerGrad.addColorStop(0, '#FACC15');
     bannerGrad.addColorStop(0.5, '#FDE047');
@@ -58,13 +58,13 @@ export function useStoryGenerator() {
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = 'bold 44px Inter, Arial, sans-serif';
+    ctx.font = 'bold 58px Inter, Arial, sans-serif';
     ctx.fillStyle = '#000000';
-    ctx.fillText('MUSIC', W / 2 - 72, bannerH / 2);
-    ctx.fillText('DROP', W / 2 + 72, bannerH / 2);
+    ctx.fillText('MUSIC', W / 2 - 95, bannerH / 2);
+    ctx.fillText('DROP', W / 2 + 95, bannerH / 2);
     // Dot separator
     ctx.beginPath();
-    ctx.arc(W / 2, bannerH / 2, 5, 0, Math.PI * 2);
+    ctx.arc(W / 2, bannerH / 2, 6, 0, Math.PI * 2);
     ctx.fill();
     ctx.textBaseline = 'alphabetic';
 
@@ -73,7 +73,7 @@ export function useStoryGenerator() {
       sesiones: 'SESIÓN', remixes: 'REMIX', mashups: 'MASHUP', librerias: 'LIBRERÍA',
     };
     const catLabel = categoryLabels[track.category] || track.category.toUpperCase();
-    const badgeY = bannerH + 65;
+    const badgeY = bannerH + 45;
 
     ctx.font = 'bold 24px Inter, Arial, sans-serif';
     const badgeW = ctx.measureText(catLabel).width + 50;
@@ -90,9 +90,9 @@ export function useStoryGenerator() {
     ctx.fillText(catLabel, W / 2, badgeY + 8);
 
     // === COVER ART ===
-    const coverSize = 580;
+    const coverSize = 660;
     const coverX = (W - coverSize) / 2;
-    const coverY = badgeY + 55;
+    const coverY = badgeY + 40;
     const coverRadius = 24;
 
     // Glow
@@ -136,7 +136,7 @@ export function useStoryGenerator() {
     ctx.stroke();
 
     // === TRACK INFO — distributed in remaining space ===
-    const infoTop = coverY + coverSize + 60;
+    const infoTop = coverY + coverSize + 40;
     const infoBottom = H - 80;
     const infoSpace = infoBottom - infoTop;
 
