@@ -216,35 +216,6 @@ export default function TrackDetail({
                 {isCurrentTrack && isPlaying ? 'Pausar Preview' : 'Escuchar Preview'}
               </button>
 
-              {/* Story generator button */}
-              <button
-                onClick={() => generateStory(track)}
-                disabled={storyStatus !== 'idle' && storyStatus !== 'done' && storyStatus !== 'error'}
-                className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border font-medium transition-all relative overflow-hidden ${
-                  storyStatus === 'done'
-                    ? 'border-green-500/40 text-green-400 bg-green-500/10'
-                    : storyStatus === 'error'
-                    ? 'border-red-500/40 text-red-400 bg-red-500/10'
-                    : storyStatus !== 'idle'
-                    ? 'border-yellow-400/30 text-yellow-400 cursor-wait'
-                    : 'border-zinc-700 text-zinc-300 hover:border-pink-500/40 hover:text-pink-400'
-                }`}
-              >
-                {storyStatus !== 'idle' && storyStatus !== 'done' && storyStatus !== 'error' && (
-                  <div
-                    className="absolute inset-0 bg-yellow-400/5 transition-all duration-300"
-                    style={{ width: `${storyProgress}%` }}
-                  />
-                )}
-                <span className="relative flex items-center gap-2">
-                  {storyStatus === 'idle' && <><Instagram className="w-5 h-5" /> Crear Story para Instagram</>}
-                  {storyStatus === 'drawing' && <><Loader2 className="w-5 h-5 animate-spin" /> Diseñando story...</>}
-                  {storyStatus === 'loading-ffmpeg' && <><Loader2 className="w-5 h-5 animate-spin" /> Preparando video...</>}
-                  {storyStatus === 'processing' && <><Loader2 className="w-5 h-5 animate-spin" /> Generando video... {storyProgress}%</>}
-                  {storyStatus === 'done' && <><CheckCircle className="w-5 h-5" /> Story descargada!</>}
-                  {storyStatus === 'error' && <><X className="w-5 h-5" /> Error — Inténtalo de nuevo</>}
-                </span>
-              </button>
             </div>
 
             {/* Info note */}
