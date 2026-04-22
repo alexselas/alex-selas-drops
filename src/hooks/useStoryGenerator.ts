@@ -50,9 +50,9 @@ export function useStoryGenerator() {
 
     // === COVER ART (positioned over the square placeholder in the bg) ===
     // The bg has: banner ~12%, then square centered ~55% width
-    const coverSize = 550;
+    const coverSize = 600;
     const coverX = (W - coverSize) / 2;
-    const coverY = 340;
+    const coverY = 385;
     const coverRadius = 22;
 
     ctx.save();
