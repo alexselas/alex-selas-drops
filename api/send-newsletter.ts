@@ -14,6 +14,7 @@ const redis = new Redis({ url: process.env.KV_REST_API_URL || '', token: process
 
 const FREE_ORDERS_KEY = 'free-orders';
 
+const LOGO_URL = 'https://zuct57sgk5d1hhzr.public.blob.vercel-storage.com/logo/360djacademy-logo-HHE18DFGmGmD6hSP9jtuyiSUTarGeE.png';
 const catLabels: Record<string, string> = { remixes: 'Remix', mashups: 'Mashup', hypeintros: 'Hype Intro', transiciones: 'Transicion', sesiones: 'Sesion', originales: 'Original', packs: 'Pack' };
 const catColors: Record<string, string> = { remixes: '#a855f7', mashups: '#facc15', hypeintros: '#f472b6', transiciones: '#22d3ee', sesiones: '#34d399', originales: '#fb923c', packs: '#60a5fa' };
 
@@ -30,20 +31,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { emails: clientEmails } = req.body || {};
+    const { emails: clientEmails, trackIds: selectedTrackIds } = req.body || {};
 
-    // 1. Get tracks uploaded in last 7 days
+    // 1. Get tracks
     const allTracks = await redis.get('tracks') as any[] | null;
     if (!allTracks) return res.status(500).json({ error: 'No tracks' });
 
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recentTracks = allTracks.filter((t: any) => {
-      const rd = new Date(t.releaseDate).getTime();
-      return rd >= sevenDaysAgo;
-    });
+    // Use selected tracks if provided, otherwise last 7 days
+    let recentTracks: any[];
+    if (Array.isArray(selectedTrackIds) && selectedTrackIds.length > 0) {
+      const idSet = new Set(selectedTrackIds);
+      recentTracks = allTracks.filter((t: any) => idSet.has(t.id));
+    } else {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      recentTracks = allTracks.filter((t: any) => new Date(t.releaseDate).getTime() >= sevenDaysAgo);
+    }
 
     if (recentTracks.length === 0) {
-      return res.status(400).json({ error: 'No hay tracks nuevos en los ultimos 7 dias' });
+      return res.status(400).json({ error: 'No hay tracks seleccionados' });
     }
 
     // Group packs
@@ -61,14 +66,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 2. Build track rows HTML
+    // 2. Build track rows HTML with real cover art
+    function coverImg(url: string, color: string) {
+      if (url && url.includes('.vercel-storage.com')) {
+        return `<img src="${url}" alt="" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" />`;
+      }
+      return `<div style="width: 48px; height: 48px; background: linear-gradient(135deg, ${color}, ${color}88); border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;"><span style="font-size: 22px;">&#9835;</span></div>`;
+    }
+
     const trackRows = items.map(item => {
       if (item.type === 'pack') {
         const color = catColors[item.category] || '#facc15';
         const priceStr = item.price > 0 ? `${item.price.toFixed(2)} &euro;` : 'FREE';
         const badge = item.price > 0 ? `<span style="background: rgba(250,204,21,0.1); color: #facc15; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">NEW</span>` : `<span style="background: rgba(34,197,94,0.1); color: #22c55e; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">FREE</span>`;
+        const cover = item.tracks[0]?.coverUrl || '';
         return `<div style="display: flex; align-items: center; background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;">
-          <div style="width: 48px; height: 48px; background: linear-gradient(135deg, ${color}, ${color}88); border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;"><span style="font-size: 22px;">&#9835;</span></div>
+          ${coverImg(cover, color)}
           <div style="margin-left: 14px; flex: 1;">
             <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${item.packName}</p>
             <p style="color: #71717a; font-size: 12px; margin: 0;">Pack &middot; ${item.tracks.length} tracks &middot; ${priceStr}</p>
@@ -83,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const bpmStr = t.bpm > 0 ? ` &middot; ${t.bpm} BPM` : '';
       const badge = t.price > 0 ? `<span style="background: rgba(250,204,21,0.1); color: #facc15; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">NEW</span>` : `<span style="background: rgba(34,197,94,0.1); color: #22c55e; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">FREE</span>`;
       return `<div style="display: flex; align-items: center; background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;">
-        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, ${color}, ${color}88); border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;"><span style="font-size: 22px;">&#9835;</span></div>
+        ${coverImg(t.coverUrl || '', color)}
         <div style="margin-left: 14px; flex: 1;">
           <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${t.title}</p>
           <p style="color: #71717a; font-size: 12px; margin: 0;">${label}${bpmStr} &middot; ${priceStr}</p>
@@ -98,11 +111,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       <div style="max-width: 560px; margin: 0 auto; padding: 40px 20px;">
         <div style="background-color: #0a0a0a; border-radius: 20px; overflow: hidden; border: 1px solid #1a1a1a;">
           <div style="background: linear-gradient(135deg, #1a1400 0%, #0a0a0a 50%, #0a0a0a 100%); padding: 40px 32px 24px; text-align: center;">
+            <img src="${LOGO_URL}" alt="360 DJ Academy" style="width: 120px; height: auto; margin: 0 auto 12px; display: block;" />
             <h1 style="color: #fafafa; font-size: 22px; margin: 0 0 4px; font-weight: 700; letter-spacing: 1px;">MUSIC <span style="background: linear-gradient(135deg, #facc15, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">DROP</span></h1>
-            <p style="color: #52525b; font-size: 11px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">by 360DJAcademy</p>
           </div>
           <div style="padding: 32px 32px 24px; text-align: center;">
-            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(250,204,21,0.15), rgba(245,158,11,0.05)); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;"><span style="font-size: 32px;">&#127911;</span></div>
             <h2 style="color: #fafafa; font-size: 26px; margin: 0 0 10px; font-weight: 700; line-height: 1.2;">Nuevos Drops Disponibles</h2>
             <p style="color: #a1a1aa; font-size: 15px; margin: 0; line-height: 1.5;">Hemos subido ${items.length} ${items.length === 1 ? 'novedad' : 'novedades'} a la tienda. Echa un vistazo.</p>
           </div>

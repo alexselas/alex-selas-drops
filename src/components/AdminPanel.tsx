@@ -157,6 +157,8 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [sendingNewsletter, setSendingNewsletter] = useState(false);
   const [newsletterResult, setNewsletterResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [selectedTracks, setSelectedTracks] = useState<Set<string>>(new Set());
+  const [showNewsletterPreview, setShowNewsletterPreview] = useState(false);
 
   // Init selected emails when newsletter emails change
   useEffect(() => { setSelectedEmails(new Set(newsletterEmails.map(e => e.email))); }, [orders]);
@@ -820,33 +822,56 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
             Los emails se extraen de los pedidos del periodo seleccionado en Pedidos ({ordersPeriod === 'today' ? 'Hoy' : ordersPeriod === 'week' ? 'Semana' : ordersPeriod === 'month' ? 'Mes' : ordersPeriod === 'year' ? 'Ano' : 'Todo'})
           </p>
 
-          {/* Send Newsletter */}
+          {/* Track selection for newsletter */}
           <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
-            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Enviar Newsletter</h3>
-            <p className="text-xs text-zinc-500 mb-4">Envia un email a los {selectedEmails.size} suscriptores seleccionados con los tracks subidos en los ultimos 7 dias.</p>
+            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Selecciona los tracks para la newsletter</h3>
+            <p className="text-xs text-zinc-500 mb-4">Elige que tracks aparecen en el email.</p>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto mb-4">
+              {tracks.map(t => (
+                <label key={t.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/30 cursor-pointer">
+                  <input type="checkbox" checked={selectedTracks.has(t.id)} onChange={e => { const n = new Set(selectedTracks); if (e.target.checked) n.add(t.id); else n.delete(t.id); setSelectedTracks(n); }} className="w-4 h-4 accent-yellow-400 cursor-pointer" />
+                  {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-zinc-800 flex-shrink-0" />}
+                  <span className="text-sm text-zinc-300 truncate flex-1">{t.packName && t.packId ? `[PACK] ${t.packName}` : t.title}</span>
+                  <span className="text-xs text-zinc-500">{formatPrice(t.price)}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-zinc-500 mb-4">{selectedTracks.size} tracks seleccionados</p>
+
             {newsletterResult && (
               <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm mb-4 ${newsletterResult.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
                 {newsletterResult.ok ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <Mail className="w-4 h-4 flex-shrink-0" />}
                 {newsletterResult.msg}
               </div>
             )}
-            <button
-              onClick={async () => {
-                if (selectedEmails.size === 0) { alert('Selecciona al menos un email'); return; }
-                if (!confirm(`Enviar newsletter a ${selectedEmails.size} suscriptores?`)) return;
-                setSendingNewsletter(true);
-                setNewsletterResult(null);
-                try {
-                  const r = await fetch('/api/send-newsletter', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}` },
-                    body: JSON.stringify({ emails: Array.from(selectedEmails) }),
-                  });
-                  const data = await r.json();
-                  if (data.ok) {
-                    setNewsletterResult({ ok: true, msg: `Enviado a ${data.sent} suscriptores (${data.newTracks} novedades)${data.errors > 0 ? ` · ${data.errors} errores` : ''}` });
-                  } else {
-                    setNewsletterResult({ ok: false, msg: data.error || 'Error al enviar' });
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { if (selectedTracks.size === 0 && selectedEmails.size === 0) { alert('Selecciona tracks y emails primero'); return; } setShowNewsletterPreview(true); }}
+                disabled={selectedTracks.size === 0 || selectedEmails.size === 0}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold hover:border-yellow-400/30 hover:text-white transition-colors disabled:opacity-30"
+              >
+                <Eye className="w-4 h-4" />
+                Crear Newsletter
+              </button>
+              <button
+                onClick={async () => {
+                  if (selectedEmails.size === 0) { alert('Selecciona al menos un email'); return; }
+                  if (selectedTracks.size === 0) { alert('Selecciona al menos un track'); return; }
+                  if (!confirm(`Enviar newsletter con ${selectedTracks.size} tracks a ${selectedEmails.size} suscriptores?`)) return;
+                  setSendingNewsletter(true);
+                  setNewsletterResult(null);
+                  try {
+                    const r = await fetch('/api/send-newsletter', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}` },
+                      body: JSON.stringify({ emails: Array.from(selectedEmails), trackIds: Array.from(selectedTracks) }),
+                    });
+                    const data = await r.json();
+                    if (data.ok) {
+                      setNewsletterResult({ ok: true, msg: `Enviado a ${data.sent} suscriptores (${data.newTracks} novedades)${data.errors > 0 ? ` · ${data.errors} errores` : ''}` });
+                    } else {
+                      setNewsletterResult({ ok: false, msg: data.error || 'Error al enviar' });
                   }
                 } catch {
                   setNewsletterResult({ ok: false, msg: 'Error de conexion' });
@@ -860,8 +885,56 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
               {sendingNewsletter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
               {sendingNewsletter ? 'Enviando...' : `Enviar Newsletter (${selectedEmails.size})`}
             </button>
+            </div>
           </div>
         </motion.div>
+      )}
+
+      {/* Newsletter Preview Modal */}
+      {showNewsletterPreview && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 overflow-y-auto py-8" onClick={() => setShowNewsletterPreview(false)}>
+          <div className="w-full max-w-xl bg-[#0a0a0a] rounded-2xl border border-zinc-800 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+              <h3 className="text-sm font-semibold text-zinc-300">Preview Newsletter</h3>
+              <button onClick={() => setShowNewsletterPreview(false)} className="text-zinc-500 hover:text-white">✕</button>
+            </div>
+            <div className="p-6 space-y-4" style={{ background: 'linear-gradient(135deg, #1a1400 0%, #0a0a0a 30%)' }}>
+              <div className="text-center">
+                <img src="https://zuct57sgk5d1hhzr.public.blob.vercel-storage.com/logo/360djacademy-logo-HHE18DFGmGmD6hSP9jtuyiSUTarGeE.png" alt="" className="w-24 mx-auto mb-3" />
+                <h2 className="text-xl font-bold text-white">MUSIC <span className="gradient-text">DROP</span></h2>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-white mb-1">Nuevos Drops Disponibles</h3>
+                <p className="text-sm text-zinc-400">{selectedTracks.size} novedades en la tienda</p>
+              </div>
+              <div className="h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
+              <div className="space-y-2">
+                {tracks.filter(t => selectedTracks.has(t.id)).map(t => (
+                  <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/50">
+                    {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex-shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-zinc-200 truncate">{t.packName && t.packId ? t.packName : t.title}</p>
+                      <p className="text-xs text-zinc-500">{t.genre}{t.bpm > 0 ? ` · ${t.bpm} BPM` : ''} · {formatPrice(t.price)}</p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${t.price > 0 ? 'bg-yellow-400/10 text-yellow-400' : 'bg-emerald-400/10 text-emerald-400'}`}>{t.price > 0 ? 'NEW' : 'FREE'}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-center pt-2">
+                <span className="inline-block px-8 py-3 rounded-xl gradient-bg text-black font-bold text-sm">Ver novedades en la tienda</span>
+              </div>
+              <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+              <div className="text-center">
+                <p className="text-xs text-zinc-500 mb-1">Anade 3+ tracks y usa el codigo:</p>
+                <span className="text-yellow-400 font-bold text-lg tracking-widest">DROPS20</span>
+                <p className="text-[10px] text-zinc-600 mt-1">20% de descuento</p>
+              </div>
+            </div>
+            <div className="p-4 border-t border-zinc-800 text-center text-xs text-zinc-600">
+              Se enviara a {selectedEmails.size} suscriptores
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ============ PERFIL ============ */}

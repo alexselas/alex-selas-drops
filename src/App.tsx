@@ -132,9 +132,9 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
                   <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p><span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span></div>
                   <p className="text-xs text-zinc-500 truncate">{item.artist} · {item.tracks.length} tracks · {item.genre}</p>
                 </div>
+                {isExp ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
                 <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(item.price)}</span>
                 <button onClick={e => { e.stopPropagation(); item.tracks.forEach(t => cart.addItem(t)); }} disabled={item.tracks.every(t => cart.isInCart(t.id))} className={`flex-shrink-0 p-2 rounded-lg transition-all ${item.tracks.every(t => cart.isInCart(t.id)) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
-                {isExp ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
               </div>
               {isExp && (
                 <div className="bg-[#111] border border-zinc-800/50 border-t-0 rounded-b-xl divide-y divide-zinc-800/30 max-h-[400px] overflow-y-auto">

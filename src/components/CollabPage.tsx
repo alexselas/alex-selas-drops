@@ -516,6 +516,7 @@ function PackRow({ item, expanded, onToggle, currentTrackId, isPlaying, isInCart
             {item.artist} · {item.tracks.length} tracks · {item.genre}
           </p>
         </div>
+        {expanded ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
         <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(item.price)}</span>
         <button
           onClick={e => { e.stopPropagation(); item.tracks.forEach(t => onAddToCart(t)); }}
@@ -526,7 +527,6 @@ function PackRow({ item, expanded, onToggle, currentTrackId, isPlaying, isInCart
         >
           <ShoppingCart className="w-4 h-4" />
         </button>
-        {expanded ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
       </div>
 
       {expanded && (
