@@ -90,6 +90,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
     try {
       const { tracks, trackIds, email } = req.body;
+      if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
+        return res.status(400).json({ error: 'No tracks provided' });
+      }
       const rawFreeOrders = await redis.get(FREE_ORDERS_KEY);
       const freeOrders = Array.isArray(rawFreeOrders) ? rawFreeOrders : [];
       const now = new Date();
