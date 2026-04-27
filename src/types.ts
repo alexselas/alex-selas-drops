@@ -1,4 +1,4 @@
-export type Category = 'sesiones' | 'remixes' | 'mashups' | 'hypeintros' | 'packs' | 'librerias';
+export type Category = 'sesiones' | 'remixes' | 'mashups' | 'hypeintros' | 'transiciones' | 'originales' | 'packs' | 'librerias';
 
 export interface Track {
   id: string;

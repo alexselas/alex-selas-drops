@@ -94,7 +94,8 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     remixes: myTracks.filter(t => t.category === 'remixes').length,
     mashups: myTracks.filter(t => t.category === 'mashups').length,
     hypeintros: myTracks.filter(t => t.category === 'hypeintros').length,
-    librerias: myTracks.filter(t => t.category === 'librerias').length,
+    transiciones: myTracks.filter(t => t.category === 'transiciones').length,
+    originales: myTracks.filter(t => t.category === 'originales').length,
     featured: myTracks.filter(t => t.featured).length,
     revenue: ordersRevenue,
     orders: orders.length,
@@ -105,7 +106,8 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     remixes: 'Remix',
     mashups: 'Mashup',
     hypeintros: 'Hype Intro',
-    librerias: 'Libreria',
+    transiciones: 'Transicion',
+    originales: 'Original',
   };
 
   const categoryColors: Record<string, string> = {
@@ -113,7 +115,8 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     remixes: 'text-violet-400',
     mashups: 'text-yellow-400',
     hypeintros: 'text-pink-400',
-    librerias: 'text-amber-400',
+    transiciones: 'text-cyan-400',
+    originales: 'text-orange-400',
   };
 
   const categoryIcons: Record<string, typeof Music> = {
@@ -401,8 +404,9 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                       <option value="remixes">Remixes</option>
                       <option value="mashups">Mashups</option>
                       <option value="hypeintros">Hype Intros</option>
+                      <option value="transiciones">Transiciones</option>
                       <option value="packs">Packs</option>
-                      <option value="librerias">Librerias</option>
+                      <option value="originales">Originales</option>
                     </select>
                   </div>
                 </div>

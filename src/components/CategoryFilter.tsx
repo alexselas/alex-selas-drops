@@ -1,25 +1,27 @@
-import { Disc3, Radio, Repeat, Layers, Library, Package, Zap } from 'lucide-react';
+import { Disc3, Radio, Repeat, Layers, Package, Zap, ArrowLeftRight, Mic } from 'lucide-react';
 import type { Category } from '../types';
 
 interface CategoryFilterProps {
   selected: Category | 'all' | 'packs';
   onSelect: (cat: Category | 'all' | 'packs') => void;
+  showOriginales?: boolean;
 }
 
-const categories: { value: Category | 'all' | 'packs'; label: string; icon: typeof Disc3 }[] = [
+const categories: { value: Category | 'all' | 'packs'; label: string; icon: typeof Disc3; onlyCollab?: boolean }[] = [
   { value: 'all', label: 'Todos', icon: Disc3 },
   { value: 'remixes', label: 'Remixes', icon: Repeat },
   { value: 'mashups', label: 'Mashups', icon: Layers },
   { value: 'hypeintros', label: 'Hype Intros', icon: Zap },
+  { value: 'transiciones', label: 'Transiciones', icon: ArrowLeftRight },
   { value: 'packs', label: 'Packs', icon: Package },
   { value: 'sesiones', label: 'Sesiones', icon: Radio },
-  { value: 'librerias', label: 'Librerias', icon: Library },
+  { value: 'originales', label: 'Originales', icon: Mic, onlyCollab: true },
 ];
 
-export default function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
+export default function CategoryFilter({ selected, onSelect, showOriginales }: CategoryFilterProps) {
   return (
     <div className="flex flex-wrap gap-2">
-      {categories.map(cat => {
+      {categories.filter(cat => !cat.onlyCollab || showOriginales).map(cat => {
         const Icon = cat.icon;
         const active = selected === cat.value;
         return (

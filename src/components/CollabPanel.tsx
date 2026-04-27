@@ -124,7 +124,8 @@ export default function CollabPanel({
     remixes: 'Remix',
     mashups: 'Mashup',
     hypeintros: 'Hype Intro',
-    librerias: 'Libreria',
+    transiciones: 'Transicion',
+    originales: 'Original',
   };
 
   const categoryColors: Record<string, string> = {
@@ -132,6 +133,8 @@ export default function CollabPanel({
     remixes: 'text-violet-400',
     mashups: 'text-yellow-400',
     hypeintros: 'text-pink-400',
+    transiciones: 'text-cyan-400',
+    originales: 'text-orange-400',
     librerias: 'text-amber-400',
   };
 
@@ -435,7 +438,8 @@ export default function CollabPanel({
                     <option value="remixes">Remixes</option>
                     <option value="mashups">Mashups</option>
                     <option value="hypeintros">Hype Intros</option>
-                    <option value="librerias">Librerias</option>
+                    <option value="transiciones">Transiciones</option>
+                    <option value="originales">Originales</option>
                   </select>
                 </div>
               </div>

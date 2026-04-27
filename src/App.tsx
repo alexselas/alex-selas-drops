@@ -41,7 +41,8 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
   const filtered = useMemo(() => {
     let r = [...colabTracks];
     if (catFilter === 'packs') r = r.filter(t => !!t.packId);
-    else if (catFilter !== 'all') r = r.filter(t => t.category === catFilter);
+    else if (catFilter === 'all') r = r.filter(t => t.category !== 'originales');
+    else r = r.filter(t => t.category === catFilter);
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter(t => t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q) || t.tags.some(tag => tag.toLowerCase().includes(q))); }
     switch (sort) {
       case 'newest': r.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()); break;
@@ -106,7 +107,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
                 </button>
                 {track.coverUrl ? <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><Music className="w-4 h-4 text-zinc-700" /></div>}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
+                  <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${({remixes:'bg-violet-400/10 text-violet-400',mashups:'bg-yellow-400/10 text-yellow-400',hypeintros:'bg-pink-400/10 text-pink-400',transiciones:'bg-cyan-400/10 text-cyan-400',sesiones:'bg-emerald-400/10 text-emerald-400',originales:'bg-orange-400/10 text-orange-400'} as Record<string,string>)[track.category] || 'bg-zinc-700/30 text-zinc-400'}`}>{({remixes:'REMIX',mashups:'MASHUP',hypeintros:'HYPE INTRO',transiciones:'TRANSICION',sesiones:'SESION',originales:'ORIGINAL'} as Record<string,string>)[track.category] || track.category.toUpperCase()}</span></div>
                   <p className="text-xs text-zinc-500 truncate">{collabName}{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}</p>
                 </div>
                 <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
@@ -338,7 +339,10 @@ export default function App() {
     // Category
     if (categoryFilter === 'packs') {
       result = result.filter(t => !!t.packId);
-    } else if (categoryFilter !== 'all') {
+    } else if (categoryFilter === 'all') {
+      // Hide 'originales' from "Todos" on main page
+      result = result.filter(t => t.category !== 'originales');
+    } else {
       result = result.filter(t => t.category === categoryFilter);
     }
 
