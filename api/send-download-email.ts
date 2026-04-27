@@ -57,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           <p style="color: #71717a; font-size: 12px; margin: 0;">${t.artist || ''}${t.bpm > 0 ? ` &middot; ${t.bpm} BPM` : ''} &middot; MP3 320kbps</p>
         </div>
         <div style="flex-shrink: 0; margin-left: 12px;">
-          <a href="${t.fileUrl}" style="display: inline-block; padding: 8px 16px; background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; font-weight: 700; text-decoration: none; border-radius: 10px; font-size: 12px;">Descargar</a>
+          <a href="https://musicdrop.es/api/download?trackId=${t.id}&session_id=${sessionId}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&authors=${encodeURIComponent(t.authors || '')}&genre=${encodeURIComponent(t.genre || '')}&bpm=${t.bpm || 0}&coverUrl=${encodeURIComponent(t.coverUrl || '')}" style="display: inline-block; padding: 8px 16px; background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; font-weight: 700; text-decoration: none; border-radius: 10px; font-size: 12px;">Descargar</a>
         </div>
       </div>`;
     }).join('');
