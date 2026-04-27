@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import { X, ShoppingBag, Tag, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, ShoppingBag, Tag, Check, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { CartItem as CartItemType } from '../types';
 import CartItem from './CartItem';
 import { formatPrice } from '../lib/utils';
 
-const DISCOUNT_CODES: Record<string, number> = {
-  'DROPS20': 0.20,
-  'WELCOME20': 0.20,
+const DISCOUNT_CODES: Record<string, { discount: number; minTracks: number }> = {
+  'DROPS20': { discount: 0.20, minTracks: 3 },
+  'WELCOME20': { discount: 0.20, minTracks: 3 },
 };
 
 interface CartDrawerProps {
@@ -22,21 +22,36 @@ interface CartDrawerProps {
 export default function CartDrawer({ isOpen, items, total, onClose, onRemove, onCheckout }: CartDrawerProps) {
   const [code, setCode] = useState('');
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
-  const [codeError, setCodeError] = useState(false);
+  const [codeError, setCodeError] = useState<string | false>(false);
 
-  const discount = appliedCode ? (DISCOUNT_CODES[appliedCode] || 0) : 0;
+  const paidItems = items.filter(i => i.track.price > 0);
+  // Auto-remove code if items drop below minimum
+  useEffect(() => {
+    if (appliedCode && DISCOUNT_CODES[appliedCode] && paidItems.length < DISCOUNT_CODES[appliedCode].minTracks) {
+      setAppliedCode(null);
+    }
+  }, [paidItems.length, appliedCode]);
+  const codeConfig = appliedCode ? DISCOUNT_CODES[appliedCode] : null;
+  const discount = codeConfig ? codeConfig.discount : 0;
   const discountAmount = total * discount;
   const finalTotal = total - discountAmount;
 
   const handleApplyCode = () => {
     const upper = code.trim().toUpperCase();
-    if (DISCOUNT_CODES[upper]) {
-      setAppliedCode(upper);
-      setCodeError(false);
-    } else {
-      setCodeError(true);
+    const config = DISCOUNT_CODES[upper];
+    if (!config) {
+      setCodeError('Codigo no valido');
       setAppliedCode(null);
+      return;
     }
+    if (paidItems.length < config.minTracks) {
+      const faltan = config.minTracks - paidItems.length;
+      setCodeError(`Anade ${faltan} track${faltan > 1 ? 's' : ''} de pago mas para usar este codigo (minimo ${config.minTracks})`);
+      setAppliedCode(null);
+      return;
+    }
+    setAppliedCode(upper);
+    setCodeError(false);
   };
 
   return (
@@ -98,6 +113,16 @@ export default function CartDrawer({ isOpen, items, total, onClose, onRemove, on
             {/* Footer */}
             {items.length > 0 && (
               <div className="p-4 border-t border-zinc-800/50 space-y-3">
+                {/* Incentive banner */}
+                {paidItems.length > 0 && paidItems.length < 3 && !appliedCode && (
+                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-yellow-400/5 border border-yellow-400/15">
+                    <span className="text-lg">&#127911;</span>
+                    <p className="text-xs text-yellow-400/80">
+                      <span className="font-semibold text-yellow-400">Anade {3 - paidItems.length} track{3 - paidItems.length > 1 ? 's' : ''} mas</span> y desbloquea un 20% de descuento con el codigo <span className="font-bold">DROPS20</span>
+                    </p>
+                  </div>
+                )}
+
                 {/* Discount code */}
                 {!appliedCode ? (
                   <div>
@@ -122,7 +147,10 @@ export default function CartDrawer({ isOpen, items, total, onClose, onRemove, on
                       </button>
                     </div>
                     {codeError && (
-                      <p className="text-red-400 text-xs mt-1.5 ml-1">Código no válido</p>
+                      <div className="flex items-start gap-1.5 mt-1.5 ml-1">
+                        <Lock className="w-3 h-3 text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-yellow-400 text-xs">{codeError}</p>
+                      </div>
                     )}
                   </div>
                 ) : (
