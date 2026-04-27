@@ -98,7 +98,7 @@ export default function FeaturedTracks({
                       <Package className="w-12 h-12 text-zinc-800" />
                     </div>
                   )}
-                  <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold backdrop-blur-sm bg-yellow-400/20 text-yellow-400">
+                  <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold backdrop-blur-sm bg-blue-400/20 text-blue-400">
                     PACK
                   </span>
                 </div>

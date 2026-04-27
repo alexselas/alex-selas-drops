@@ -26,14 +26,18 @@ export default function TrackCard({
     sesiones: 'bg-emerald-500/20 text-emerald-400',
     remixes: 'bg-violet-500/20 text-violet-400',
     mashups: 'bg-yellow-400/20 text-yellow-400',
-    librerias: 'bg-amber-500/20 text-amber-400',
+    hypeintros: 'bg-pink-400/20 text-pink-400',
+    transiciones: 'bg-cyan-400/20 text-cyan-400',
+    originales: 'bg-orange-400/20 text-orange-400',
   };
 
   const categoryLabels: Record<string, string> = {
-    sesiones: 'Sesión',
+    sesiones: 'Sesion',
     remixes: 'Remix',
     mashups: 'Mashup',
-    librerias: 'Librería',
+    hypeintros: 'Hype Intro',
+    transiciones: 'Transicion',
+    originales: 'Original',
   };
 
   return (

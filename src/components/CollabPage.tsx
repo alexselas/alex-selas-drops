@@ -321,7 +321,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
                           <Package className="w-12 h-12 text-zinc-800" />
                         </div>
                       )}
-                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold backdrop-blur-sm bg-yellow-400/20 text-yellow-400">PACK</span>
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold backdrop-blur-sm bg-blue-400/20 text-blue-400">PACK</span>
                     </div>
                     <div className="p-3 flex flex-col flex-1">
                       <h3 className="font-semibold text-sm text-zinc-50 truncate group-hover:text-yellow-400 transition-colors">{item.packName}</h3>
