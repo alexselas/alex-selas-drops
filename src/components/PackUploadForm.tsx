@@ -393,7 +393,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
                         type="text"
                         value={t.title}
                         onChange={e => updateTrack(i, 'title', e.target.value)}
-                        placeholder="Título"
+                        placeholder="Solo titulo, sin artistas"
                         className="w-full px-3 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50"
                       />
                       <input

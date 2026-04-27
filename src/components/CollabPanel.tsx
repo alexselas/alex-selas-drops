@@ -482,12 +482,11 @@ export default function CollabPanel({
                     }}
                   >
                     <div
-                      className={`flex items-center gap-4 p-4 border transition-all cursor-pointer group ${
+                      className={`flex items-center gap-4 p-4 border transition-all group ${
                         packDragging ? 'opacity-40 bg-zinc-900/30 border-zinc-800/30' :
                         packDragOver ? 'bg-yellow-400/5 border-yellow-400/30' :
                         'bg-zinc-900/50 border-zinc-800/50 hover:border-zinc-700/50'
-                      } ${isExpanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
-                      onClick={() => setExpandedPackId(isExpanded ? null : pack.packId)}
+                      } rounded-xl`}
                     >
                       <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
                         {pack.coverUrl ? (
@@ -522,88 +521,8 @@ export default function CollabPanel({
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                        {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
                       </div>
                     </div>
-                    {isExpanded && (
-                      <div className="bg-[#111] border border-zinc-800/50 border-t-0 rounded-b-xl divide-y divide-zinc-800/30 max-h-[400px] overflow-y-auto">
-                        {pack.tracks.map((track, idx) => {
-                          const ptDragging = dragId === track.id;
-                          const ptDragOver = dragOverId === track.id;
-                          return (
-                          <div
-                            key={track.id}
-                            draggable
-                            onDragStart={e => { e.stopPropagation(); setDragId(track.id); e.dataTransfer.effectAllowed = 'move'; }}
-                            onDragEnd={() => { setDragId(null); setDragOverId(null); }}
-                            onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; if (dragOverId !== track.id) setDragOverId(track.id); }}
-                            onDragLeave={() => { if (dragOverId === track.id) setDragOverId(null); }}
-                            onDrop={e => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (dragId && dragId !== track.id) {
-                                const r = [...tracks];
-                                const fromIdx = r.findIndex(t => t.id === dragId);
-                                const toIdx = r.findIndex(t => t.id === track.id);
-                                if (fromIdx !== -1 && toIdx !== -1) {
-                                  const [moved] = r.splice(fromIdx, 1);
-                                  r.splice(toIdx, 0, moved);
-                                  onReorderTracks(r);
-                                }
-                              }
-                              setDragId(null);
-                              setDragOverId(null);
-                            }}
-                            className={`flex items-center gap-3 px-5 py-3 transition-all ${
-                              ptDragging ? 'opacity-40 bg-zinc-900/30' :
-                              ptDragOver ? 'bg-yellow-400/10' :
-                              'hover:bg-zinc-800/30'
-                            }`}
-                            style={{ cursor: 'grab' }}
-                          >
-                            <div className="flex-shrink-0 text-zinc-700 hover:text-zinc-400 transition-colors cursor-grab active:cursor-grabbing">
-                              <GripVertical className="w-3.5 h-3.5" />
-                            </div>
-                            <span className="text-[11px] text-zinc-600 font-bold w-5 text-center flex-shrink-0">{idx + 1}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-zinc-200 truncate">{track.title}</p>
-                              <div className="flex items-center gap-2 text-[11px] text-zinc-600">
-                                {track.genre && <span>{track.genre}</span>}
-                                {track.bpm > 0 && <span>· {track.bpm} BPM</span>}
-                                {track.key && <span>· {track.key}</span>}
-                                {track.duration > 0 && <span>· {formatDuration(track.duration)}</span>}
-                              </div>
-                            </div>
-                            <span className="text-xs font-bold text-yellow-400/70 hidden sm:block flex-shrink-0">{formatPrice(track.price)}</span>
-                            <div className="flex items-center gap-1">
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.previewUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
-                                Preview {track.previewUrl ? '✓' : '—'}
-                              </span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.fileUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>
-                                Archivo {track.fileUrl ? '✓' : '—'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-0.5 flex-shrink-0">
-                              <button
-                                onClick={e => { e.stopPropagation(); setExpandedPackId(null); setEditingTrack(track); setIsAdding(false); setIsAddingPack(false); setEditingPackTracks(null); }}
-                                className="p-1.5 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
-                                title="Editar track"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={e => { e.stopPropagation(); onDeleteTrack(track.id); }}
-                                className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                                title="Eliminar track"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                          );
-                        })}
-                      </div>
-                    )}
                   </div>
                 );
               })}

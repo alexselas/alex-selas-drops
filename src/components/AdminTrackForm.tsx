@@ -509,12 +509,12 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           <h4 className="text-sm font-semibold text-zinc-300 mb-3">Información básica</h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Título *</label>
+              <label className="block text-xs text-zinc-500 mb-1">Titulo * (solo el nombre de la cancion, no pongas artistas)</label>
               <input
                 type="text"
                 value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
-                placeholder="Nombre del track"
+                placeholder="Ej: La Bicicleta Remix 125Bpm"
                 className={inputClass}
                 required
               />
