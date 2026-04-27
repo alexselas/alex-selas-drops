@@ -736,6 +736,37 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
           <p className="text-xs text-zinc-600 text-center">
             Pagina {ordersPage} de {totalOrderPages} · {orders.length} pedidos
           </p>
+
+          {/* Export report */}
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                const rows = [['Fecha', 'Tracks', 'Comprador', 'Total', 'Editor (70%)', 'Plataforma (30%)', 'Tipo'].join(',')];
+                for (const o of orders) {
+                  const tracks = o.tracks.join(' + ').replace(/,/g, ' ');
+                  const editor70 = (o.amount * 0.7).toFixed(2);
+                  const plat30 = (o.amount * 0.3).toFixed(2);
+                  const tipo = o.amount > 0 ? 'Pago' : 'Gratis';
+                  rows.push([o.date, `"${tracks}"`, o.email, o.amount.toFixed(2), editor70, plat30, tipo].join(','));
+                }
+                rows.push('');
+                rows.push(['', '', 'TOTALES', ordersRevenue.toFixed(2), (ordersRevenue * 0.7).toFixed(2), (ordersRevenue * 0.3).toFixed(2), ''].join(','));
+                const csv = rows.join('\n');
+                const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `MusicDrop_Informe_${ordersPeriod}_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              disabled={orders.length === 0}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold hover:border-yellow-400/30 hover:text-white transition-colors disabled:opacity-30"
+            >
+              <Download className="w-4 h-4" />
+              Exportar informe CSV
+            </button>
+          </div>
         </motion.div>
       )}
 

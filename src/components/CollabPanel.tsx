@@ -192,7 +192,7 @@ export default function CollabPanel({
       <div className="flex gap-1 p-1 bg-zinc-900/50 rounded-xl border border-zinc-800/50 mb-8">
         {([
           { id: 'tracks' as CollabTab, label: 'Tracks', icon: ListMusic },
-          { id: 'orders' as CollabTab, label: 'Pedidos', icon: ShoppingBag },
+          { id: 'orders' as CollabTab, label: 'Mis Ventas', icon: ShoppingBag },
           { id: 'profile' as CollabTab, label: 'Mi Perfil', icon: User },
         ]).map(t => {
           const Icon = t.icon;
@@ -213,31 +213,38 @@ export default function CollabPanel({
         })}
       </div>
 
-      {/* ============ PEDIDOS ============ */}
+      {/* ============ MIS VENTAS ============ */}
       {tab === 'orders' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          {/* Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {/* Summary with commission breakdown */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
               <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-2">
                 <ShoppingBag className="w-5 h-5 text-emerald-400" />
               </div>
               <div className="text-2xl font-bold text-zinc-50">{orders.length}</div>
-              <div className="text-xs text-zinc-500">Total pedidos</div>
+              <div className="text-xs text-zinc-500">Ventas</div>
             </div>
             <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
               <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center mb-2">
                 <DollarSign className="w-5 h-5 text-violet-400" />
               </div>
               <div className="text-2xl font-bold text-zinc-50">{formatPrice(ordersRevenue)}</div>
-              <div className="text-xs text-zinc-500">Ingresos</div>
+              <div className="text-xs text-zinc-500">Total vendido</div>
             </div>
             <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
               <div className="w-9 h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center mb-2">
                 <TrendingUp className="w-5 h-5 text-yellow-400" />
               </div>
-              <div className="text-2xl font-bold text-zinc-50">{orders.length > 0 ? formatPrice(ordersRevenue / orders.length) : '0,00 \u20AC'}</div>
-              <div className="text-xs text-zinc-500">Promedio</div>
+              <div className="text-2xl font-bold text-emerald-400">{formatPrice(ordersRevenue * 0.7)}</div>
+              <div className="text-xs text-zinc-500">Tu comision (70%)</div>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="w-9 h-9 rounded-lg bg-zinc-700/30 flex items-center justify-center mb-2">
+                <DollarSign className="w-5 h-5 text-zinc-500" />
+              </div>
+              <div className="text-2xl font-bold text-zinc-400">{formatPrice(ordersRevenue * 0.3)}</div>
+              <div className="text-xs text-zinc-500">Plataforma (30%)</div>
             </div>
           </div>
 
@@ -264,38 +271,32 @@ export default function CollabPanel({
             ))}
           </div>
 
-          {/* Order list */}
+          {/* Sales list */}
           <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden">
             <div className="p-4 border-b border-zinc-800/50">
-              <h3 className="text-sm font-semibold text-zinc-300">Historial de pedidos</h3>
+              <h3 className="text-sm font-semibold text-zinc-300">Historial de ventas</h3>
             </div>
 
             <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 text-xs text-zinc-500 font-medium border-b border-zinc-800/30">
-              <div className="col-span-1">ID</div>
-              <div className="col-span-4">Tracks</div>
-              <div className="col-span-3">Comprador</div>
-              <div className="col-span-2 text-right">Precio</div>
+              <div className="col-span-3">Tracks</div>
+              <div className="col-span-2">Precio venta</div>
+              <div className="col-span-3 text-right">Tu comision (70%)</div>
+              <div className="col-span-2 text-right">Plataforma (30%)</div>
               <div className="col-span-2 text-right">Fecha</div>
             </div>
 
             {ordersLoading ? (
-              <div className="text-center py-8 text-zinc-500 text-sm">Cargando pedidos...</div>
+              <div className="text-center py-8 text-zinc-500 text-sm">Cargando ventas...</div>
             ) : orders.length === 0 ? (
-              <div className="text-center py-8 text-zinc-600 text-sm">Sin pedidos aun</div>
+              <div className="text-center py-8 text-zinc-600 text-sm">Sin ventas aun</div>
             ) : (
               <div className="divide-y divide-zinc-800/30">
                 {paginatedOrders.map(order => (
                   <div key={order.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
-                    <div className="sm:col-span-1 text-xs text-zinc-500 font-mono">{order.id}</div>
-                    <div className="sm:col-span-4 text-sm text-zinc-300 truncate">{order.tracks.join(', ')}</div>
-                    <div className="sm:col-span-3 text-sm text-zinc-400 truncate">{order.email}</div>
-                    <div className="sm:col-span-2 text-sm font-semibold sm:text-right">
-                      {order.amount > 0 ? (
-                        <span className="text-emerald-400">{formatPrice(order.amount)}</span>
-                      ) : (
-                        <span className="text-zinc-500">Gratis</span>
-                      )}
-                    </div>
+                    <div className="sm:col-span-3 text-sm text-zinc-300 truncate">{order.tracks.join(', ')}</div>
+                    <div className="sm:col-span-2 text-sm text-zinc-400">{order.amount > 0 ? formatPrice(order.amount) : 'Gratis'}</div>
+                    <div className="sm:col-span-3 text-sm font-semibold text-emerald-400 sm:text-right">{order.amount > 0 ? formatPrice(order.amount * 0.7) : '-'}</div>
+                    <div className="sm:col-span-2 text-sm text-zinc-500 sm:text-right">{order.amount > 0 ? formatPrice(order.amount * 0.3) : '-'}</div>
                     <div className="sm:col-span-2 text-xs text-zinc-500 sm:text-right">{order.date}</div>
                   </div>
                 ))}
@@ -339,7 +340,7 @@ export default function CollabPanel({
           )}
 
           <p className="text-xs text-zinc-600 text-center">
-            Pagina {ordersPage} de {totalOrderPages} · {orders.length} pedidos · Solo tus tracks
+            Pagina {ordersPage} de {totalOrderPages} · {orders.length} ventas · Comision: 70% editor / 30% plataforma
           </p>
         </motion.div>
       )}

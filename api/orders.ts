@@ -163,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const params: any = {
       limit,
-      expand: ['data.line_items'],
+      expand: ['data.line_items', 'data.payment_intent'],
     };
 
     if (created > 0) {
@@ -173,7 +173,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const sessions = await stripe.checkout.sessions.list(params);
 
     let orders = sessions.data
-      .filter(s => s.payment_status === 'paid')
+      .filter(s => {
+        if (s.payment_status !== 'paid') return false;
+        // Exclude refunded orders
+        const pi = s.payment_intent as any;
+        if (pi && (pi.status === 'refunded' || (pi.amount_refunded && pi.amount_refunded > 0))) return false;
+        return true;
+      })
       .map(s => ({
         id: s.id.slice(-8).toUpperCase(),
         sessionId: s.id,
