@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { CreditCard, ArrowLeft, Download, CheckCircle, Music, AlertCircle, Shield, Loader2, Mail } from 'lucide-react';
+import { CreditCard, ArrowLeft, Download, CheckCircle, Music, AlertCircle, Shield, Loader2, Mail, Package } from 'lucide-react';
 import type { CartItem } from '../types';
 import { formatPrice } from '../lib/utils';
 
@@ -313,6 +313,24 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
     );
   }
 
+  // Group packs for display
+  type SummaryItem = { type: 'track'; item: CartItem } | { type: 'pack'; packId: string; packName: string; coverUrl: string; count: number; price: number };
+  const summaryItems: SummaryItem[] = (() => {
+    const seen = new Set<string>();
+    const result: SummaryItem[] = [];
+    for (const item of items) {
+      if (item.track.packId) {
+        if (seen.has(item.track.packId)) continue;
+        seen.add(item.track.packId);
+        const packItems = items.filter(i => i.track.packId === item.track.packId);
+        result.push({ type: 'pack', packId: item.track.packId, packName: item.track.packName || 'Pack', coverUrl: item.track.coverUrl, count: packItems.length, price: packItems.reduce((s, i) => s + i.track.price, 0) });
+      } else {
+        result.push({ type: 'track', item });
+      }
+    }
+    return result;
+  })();
+
   // ============ REVIEW ============
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -343,21 +361,35 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
       <div className="bg-zinc-900/50 rounded-2xl border border-zinc-800/50 p-6 mb-6">
         <h3 className="text-lg font-semibold text-zinc-200 mb-4">Resumen del pedido</h3>
         <div className="space-y-3">
-          {items.map(item => (
-            <div key={item.track.id} className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-3">
-                {item.track.coverUrl ? (
-                  <img src={item.track.coverUrl} alt="" className="w-8 h-8 rounded-lg object-cover" />
-                ) : (
-                  <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+          {summaryItems.map(si => {
+            if (si.type === 'pack') {
+              return (
+                <div key={si.packId} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <Package className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <span className="text-zinc-400">{si.packName}</span>
+                      <span className="text-[10px] text-zinc-600 ml-2">{si.count} tracks</span>
+                    </div>
+                  </div>
+                  <span className="text-zinc-300 font-medium">{formatPrice(si.price)}</span>
+                </div>
+              );
+            }
+            return (
+              <div key={si.item.track.id} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
                     <Music className="w-4 h-4 text-zinc-600" />
                   </div>
-                )}
-                <span className="text-zinc-400">{item.track.title}</span>
+                  <span className="text-zinc-400">{si.item.track.title}</span>
+                </div>
+                <span className="text-zinc-300 font-medium">{formatPrice(si.item.track.price)}</span>
               </div>
-              <span className="text-zinc-300 font-medium">{formatPrice(item.track.price)}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="mt-4 pt-4 border-t border-zinc-800/50 space-y-1">
           {discount > 0 && (
