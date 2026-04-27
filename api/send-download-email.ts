@@ -46,9 +46,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Pre-check cover sizes (exclude images > 2MB)
+    const validCovers = new Set<string>();
+    await Promise.all(tracks.map(async (t: any) => {
+      if (!t.coverUrl || !t.coverUrl.includes('.vercel-storage.com')) return;
+      try {
+        const head = await fetch(t.coverUrl, { method: 'HEAD' });
+        const size = Number(head.headers.get('content-length') || 0);
+        if (head.ok && size > 0 && size < 2 * 1024 * 1024) validCovers.add(t.coverUrl);
+      } catch {}
+    }));
+
     // Build track rows with cover art
     const trackRows = tracks.map((t: any) => {
-      const cover = (t.coverUrl && t.coverUrl.includes('.vercel-storage.com'))
+      const cover = (t.coverUrl && validCovers.has(t.coverUrl))
         ? `<img src="${t.coverUrl}" alt="" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover;" />`
         : `<div style="width: 48px; height: 48px; background: linear-gradient(135deg, #facc15, #f59e0b88); border-radius: 10px; display: flex; align-items: center; justify-content: center;"><span style="font-size: 22px;">&#9835;</span></div>`;
 
