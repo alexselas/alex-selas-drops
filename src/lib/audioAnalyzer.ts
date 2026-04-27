@@ -2,9 +2,12 @@
  * Audio Analyzer — detects BPM, key and duration from an audio file
  * Optimized for electronic / DJ music
  *
- * BPM:  Multi-band onset detection + autocorrelation + octave resolution
+ * BPM:  Dual-engine: web-audio-beat-detector (primary) + custom multi-band autocorrelation (fallback)
+ *       Cross-validates both results for maximum accuracy
  * Key:  Goertzel chroma extraction + Krumhansl-Schmuckler key profiles
  */
+
+import { analyze as analyzeBeatDetector } from 'web-audio-beat-detector';
 
 export interface AudioAnalysis {
   bpm: number;
@@ -255,6 +258,55 @@ async function detectBPM(audioBuffer: AudioBuffer): Promise<number> {
 //  PUBLIC API
 // ═════════════════════════════════════════════════════════════════
 
+/**
+ * Dual-engine BPM detection for maximum accuracy
+ * 1. web-audio-beat-detector (spectral energy + interval grouping) — primary
+ * 2. Custom multi-band autocorrelation — fallback/validation
+ * Cross-validates: if both agree within 3 BPM, use the average. Otherwise use primary.
+ */
+async function detectBPMDual(audioBuffer: AudioBuffer): Promise<number> {
+  let primaryBPM = 0;
+  let fallbackBPM = 0;
+
+  // Primary: web-audio-beat-detector (high accuracy for electronic music)
+  try {
+    primaryBPM = await analyzeBeatDetector(audioBuffer);
+  } catch {
+    // Library might fail on very short or unusual audio
+  }
+
+  // Fallback: custom multi-band algorithm
+  try {
+    fallbackBPM = await detectBPM(audioBuffer);
+  } catch {}
+
+  // Cross-validate
+  if (primaryBPM > 0 && fallbackBPM > 0) {
+    // Check if they agree (within 3 BPM or octave relationship)
+    const diff = Math.abs(primaryBPM - fallbackBPM);
+    if (diff <= 3) {
+      // Both agree — use rounded average
+      return Math.round((primaryBPM + fallbackBPM) / 2);
+    }
+    // Check octave relationship (one might be double/half)
+    const ratio = primaryBPM / fallbackBPM;
+    if (Math.abs(ratio - 2) < 0.1 || Math.abs(ratio - 0.5) < 0.05) {
+      // Prefer the one in the 70-180 range (common DJ range)
+      const inRange = (b: number) => b >= 70 && b <= 180;
+      if (inRange(primaryBPM) && !inRange(fallbackBPM)) return Math.round(primaryBPM);
+      if (!inRange(primaryBPM) && inRange(fallbackBPM)) return Math.round(fallbackBPM);
+    }
+    // Trust primary (web-audio-beat-detector is generally more accurate)
+    return Math.round(primaryBPM);
+  }
+
+  // Only one succeeded
+  if (primaryBPM > 0) return Math.round(primaryBPM);
+  if (fallbackBPM > 0) return Math.round(fallbackBPM);
+
+  return 128; // ultimate fallback
+}
+
 export async function analyzeAudio(file: File): Promise<AudioAnalysis> {
   const arrayBuffer = await file.arrayBuffer();
   const audioContext = new AudioContext();
@@ -264,7 +316,7 @@ export async function analyzeAudio(file: File): Promise<AudioAnalysis> {
     const duration = Math.round(audioBuffer.duration);
 
     const [bpm, key] = await Promise.all([
-      detectBPM(audioBuffer),
+      detectBPMDual(audioBuffer),
       detectKey(audioBuffer),
     ]);
 
