@@ -193,6 +193,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
       return;
     }
 
+    stopAllAudio();
     setSubmitting(true);
 
     // Wait for all track uploads + analysis to finish (up to 60s)

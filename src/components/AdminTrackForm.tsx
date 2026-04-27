@@ -364,6 +364,8 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Stop any audio playing
+    previewGenRef.current?.stop();
     setSubmitting(true);
 
     let finalPreviewUrl = form.previewUrl;
