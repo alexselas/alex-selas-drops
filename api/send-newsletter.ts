@@ -4,6 +4,8 @@ import { Redis } from '@upstash/redis';
 import Stripe from 'stripe';
 import crypto from 'crypto';
 
+function escapeHtml(s: string): string { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
 const TOKEN_MAX_AGE=24*60*60*1000;
 function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}
 function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
@@ -83,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return `<div style="display: flex; align-items: center; background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;">
           ${coverImg(cover, color)}
           <div style="margin-left: 14px; flex: 1;">
-            <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${item.packName}</p>
+            <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${escapeHtml(item.packName)}</p>
             <p style="color: #71717a; font-size: 12px; margin: 0;">Pack &middot; ${item.tracks.length} tracks &middot; ${priceStr}</p>
           </div>
           <div style="flex-shrink: 0; margin-left: 12px;">${badge}</div>
@@ -98,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return `<div style="display: flex; align-items: center; background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;">
         ${coverImg(t.coverUrl || '', color)}
         <div style="margin-left: 14px; flex: 1;">
-          <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${t.title}</p>
+          <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${escapeHtml(t.title)}</p>
           <p style="color: #71717a; font-size: 12px; margin: 0;">${label}${bpmStr} &middot; ${priceStr}</p>
         </div>
         <div style="flex-shrink: 0; margin-left: 12px;">${badge}</div>

@@ -43,13 +43,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  // Support both bcrypt hash and legacy plain text (for migration)
   let passwordMatch = false;
-  if (adminPasswordHash.startsWith('$2')) {
-    passwordMatch = await bcrypt.compare(password, adminPasswordHash);
-  } else {
-    passwordMatch = password === adminPasswordHash;
-  }
+  passwordMatch = await bcrypt.compare(password, adminPasswordHash);
 
   if (!passwordMatch) {
     return res.status(401).json({ error: 'Invalid credentials' });

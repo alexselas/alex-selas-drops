@@ -3,6 +3,8 @@ import { Resend } from 'resend';
 import Stripe from 'stripe';
 import { Redis } from '@upstash/redis';
 
+function escapeHtml(s: string): string { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
 function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
 const resend = new Resend(process.env.RESEND_API_KEY || '');
@@ -53,8 +55,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return `<div style="display: flex; align-items: center; background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;">
         ${cover}
         <div style="margin-left: 14px; flex: 1;">
-          <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${t.title}</p>
-          <p style="color: #71717a; font-size: 12px; margin: 0;">${t.artist || ''}${t.bpm > 0 ? ` &middot; ${t.bpm} BPM` : ''} &middot; MP3 320kbps</p>
+          <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${escapeHtml(t.title)}</p>
+          <p style="color: #71717a; font-size: 12px; margin: 0;">${escapeHtml(t.artist || '')}${t.bpm > 0 ? ` &middot; ${t.bpm} BPM` : ''} &middot; MP3 320kbps</p>
         </div>
         <div style="flex-shrink: 0; margin-left: 12px;">
           <a href="https://musicdrop.es/api/download?trackId=${t.id}&session_id=${sessionId}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&authors=${encodeURIComponent(t.authors || '')}&genre=${encodeURIComponent(t.genre || '')}&bpm=${t.bpm || 0}&coverUrl=${encodeURIComponent(t.coverUrl || '')}" style="display: inline-block; padding: 8px 16px; background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; font-weight: 700; text-decoration: none; border-radius: 10px; font-size: 12px;">Descargar</a>

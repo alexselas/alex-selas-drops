@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import NodeID3 from 'node-id3';
 import Stripe from 'stripe';
 import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
 import archiver from 'archiver';
 import crypto from 'crypto';
 import { PassThrough } from 'stream';
@@ -17,6 +18,7 @@ function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 const redis = new Redis({ url: process.env.KV_REST_API_URL || '', token: process.env.KV_REST_API_TOKEN || '' });
+const downloadZipLimit = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'dl-zip-limit' });
 
 export const config = { api: { responseLimit: false }, maxDuration: 60 };
 
@@ -49,6 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown';
+  const { success: rlOk } = await downloadZipLimit.limit(ip);
+  if (!rlOk) return res.status(429).json({ error: 'Demasiadas descargas. Intenta en 1 minuto.' });
 
   try {
     const { trackIds, sessionId, zipName } = req.body;

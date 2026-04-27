@@ -29,6 +29,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Falta el nombre del archivo (header X-Filename)' });
     }
 
+    // Validate content-type
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/x-m4a', 'audio/mp4', 'audio/aac', 'audio/ogg', 'audio/flac', 'audio/x-flac', 'application/zip', 'application/octet-stream'];
+    const contentType = (req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    if (contentType && !allowedMimes.includes(contentType)) {
+      return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+    }
+
     // Sanitize folder name to prevent path traversal
     const safeFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '');
     const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '');

@@ -57,12 +57,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Email, contraseña y colaborador son obligatorios' });
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Formato de email invalido' });
+  }
+
   if (password.length < 12) {
     return res.status(400).json({ error: 'La contraseña debe tener al menos 12 caracteres' });
   }
 
-  if (!collaboratorId || collaboratorId.length < 2) {
-    return res.status(400).json({ error: 'Nombre artístico demasiado corto' });
+  if (!collaboratorId || collaboratorId.length < 2 || collaboratorId.length > 50 || !/^[a-zA-Z0-9_-]+$/.test(collaboratorId)) {
+    return res.status(400).json({ error: 'Nombre artístico no válido (2-50 caracteres, solo letras, números, guiones)' });
   }
 
   try {

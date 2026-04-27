@@ -54,12 +54,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const { bio, photoUrl, bannerUrl, artistName, socialLinks, colorPrimary, colorSecondary } = req.body;
 
+      // Validate social links — only allow https:// URLs from known domains
+      const allowedDomains = ['instagram.com', 'soundcloud.com', 'spotify.com', 'youtube.com', 'twitter.com', 'x.com', 'facebook.com', 'tiktok.com', 'mixcloud.com', 'beatport.com', 'bandcamp.com', 'apple.com', 'music.apple.com', 'linktr.ee', 'open.spotify.com'];
+      let safeSocialLinks: Record<string, string> = {};
+      if (socialLinks && typeof socialLinks === 'object') {
+        for (const [key, val] of Object.entries(socialLinks)) {
+          const url = String(val || '').trim();
+          if (!url) continue;
+          if (!url.startsWith('https://')) continue;
+          if (url.toLowerCase().startsWith('javascript:')) continue;
+          try {
+            const hostname = new URL(url).hostname.replace(/^www\./, '');
+            if (allowedDomains.some(d => hostname === d || hostname.endsWith('.' + d))) {
+              safeSocialLinks[key.substring(0, 30)] = url.substring(0, 500);
+            }
+          } catch { /* invalid URL, skip */ }
+        }
+      }
+
       const profileData = {
         bio: (bio || '').substring(0, 300),
         photoUrl: photoUrl || '',
         bannerUrl: bannerUrl || '',
         artistName: (artistName || '').substring(0, 50),
-        socialLinks: socialLinks || {},
+        socialLinks: safeSocialLinks,
         colorPrimary: colorPrimary || '#FACC15',
         colorSecondary: colorSecondary || '#EAB308',
       };

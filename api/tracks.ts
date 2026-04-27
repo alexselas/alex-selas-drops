@@ -50,7 +50,12 @@ function validateTrackData(data: any): string | null {
   if (data.fileUrl && (typeof data.fileUrl !== 'string' || data.fileUrl.length > 2000)) return 'URL demasiado larga';
   if (data.price !== undefined && (typeof data.price !== 'number' || data.price < 0 || data.price > 9999)) return 'Precio no válido';
   if (data.bpm !== undefined && (typeof data.bpm !== 'number' || data.bpm < 0 || data.bpm > 999)) return 'BPM no válido';
-  if (data.tags && (!Array.isArray(data.tags) || data.tags.length > 20)) return 'Tags no válidos';
+  if (data.tags) {
+    if (!Array.isArray(data.tags) || data.tags.length > 20) return 'Tags no válidos';
+    for (const tag of data.tags) {
+      if (typeof tag !== 'string' || tag.length > 50 || tag.includes('<')) return 'Tag no valido';
+    }
+  }
   return null;
 }
 
@@ -117,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           data.collaborator = true;
           data.collaboratorId = collab.collaboratorId;
         }
-        const newTrack = { ...data, id: data.id || `track-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` };
+        const newTrack = { ...data, id: data.id || `track-${Date.now()}-${crypto.randomBytes(4).toString('hex')}` };
         enforceFeaturedLimit(tracks, newTrack);
         tracks.unshift(newTrack);
         newTracks.push(newTrack);

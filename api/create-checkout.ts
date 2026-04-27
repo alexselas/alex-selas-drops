@@ -46,6 +46,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const trackMap = new Map(tracks.map((t: any) => [t.id, t]));
 
+    // Server-side discount validation
+    const VALID_CODES: Record<string, { discount: number; minTracks: number }> = {
+      'DROPS20': { discount: 0.20, minTracks: 3 },
+      'WELCOME20': { discount: 0.20, minTracks: 3 },
+    };
+    let serverDiscount = 0;
+    if (discountCode && VALID_CODES[discountCode.toUpperCase()]) {
+      const code = VALID_CODES[discountCode.toUpperCase()];
+      const paidItems = items.filter((i: any) => { const t = trackMap.get(i.id); return t && t.price > 0; });
+      if (paidItems.length >= code.minTracks) {
+        serverDiscount = code.discount;
+      }
+    }
+
     const line_items = items.map((item: { title: string; price: number; id: string; packName?: string }) => {
       const serverTrack = trackMap.get(item.id);
       if (!serverTrack) {
@@ -67,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             name: productName,
             metadata: { track_id: item.id },
           },
-          unit_amount: Math.round(serverPrice * 100), // Stripe uses cents
+          unit_amount: Math.round(serverPrice * (1 - serverDiscount) * 100), // Stripe uses cents
         },
         quantity: 1,
       };

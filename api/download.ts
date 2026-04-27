@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import NodeID3 from 'node-id3';
 import Stripe from 'stripe';
 import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
 import crypto from 'crypto';
 
 function sanitizeTag(s: string, max = 200): string {
@@ -15,6 +16,7 @@ const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',
   token: process.env.KV_REST_API_TOKEN || '',
 });
+const downloadLimit = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'dl-limit' });
 
 export const config = {
   api: {
@@ -28,6 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown';
+  const { success: rlOk } = await downloadLimit.limit(ip);
+  if (!rlOk) return res.status(429).json({ error: 'Demasiadas descargas. Intenta en 1 minuto.' });
 
   try {
     const { trackId, fileUrl: legacyFileUrl, session_id } = req.query as Record<string, string>;
