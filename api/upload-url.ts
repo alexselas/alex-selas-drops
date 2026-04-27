@@ -30,9 +30,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         return {
           allowedContentTypes: [
-            'image/jpeg', 'image/png', 'image/webp',
-            'audio/mpeg', 'audio/mp3',
-            'application/zip',
+            'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/x-m4a', 'audio/mp4', 'audio/aac', 'audio/ogg', 'audio/flac', 'audio/x-flac',
+            'application/zip', 'application/octet-stream',
           ],
           maximumSizeInBytes: 500 * 1024 * 1024, // 500MB max
         };

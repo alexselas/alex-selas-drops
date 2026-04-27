@@ -64,17 +64,31 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
 
   const getToken = () => adminToken || sessionStorage.getItem('alex-selas-drops-token') || sessionStorage.getItem('alex-selas-drops-collab-token') || '';
 
+  const [uploadError, setUploadError] = useState('');
+
   // Upload a file
   const uploadFile = async (file: File | Blob, folder: string, filename: string): Promise<string> => {
+    setUploadError('');
+    // Try client-side upload (handles large files)
     try {
       const { upload } = await import('@vercel/blob/client');
       const result = await upload(`${folder}/${Date.now()}-${filename}`, file, { access: 'public', handleUploadUrl: '/api/upload-url', clientPayload: JSON.stringify({ token: getToken() }) });
       if (result.url) return result.url;
-    } catch {}
+    } catch (e: any) {
+      console.error('Client upload failed:', e);
+    }
+    // Fallback: server-side upload (limited to ~4.5MB)
     try {
       const res = await fetch('/api/upload', { method: 'POST', headers: { 'X-Filename': `${Date.now()}-${filename}`, 'X-Folder': folder, 'Authorization': `Bearer ${getToken()}` }, body: file });
       if (res.ok) { const data = await res.json(); if (data.url) return data.url; }
-    } catch {}
+      else {
+        const err = await res.json().catch(() => ({}));
+        console.error('Server upload failed:', res.status, err);
+      }
+    } catch (e: any) {
+      console.error('Server upload error:', e);
+    }
+    setUploadError('Error al subir archivo. Comprueba tu conexion e intenta de nuevo.');
     return '';
   };
 
@@ -168,9 +182,14 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
     if (tracks.length < 5 || !packTitle) return;
 
     // Verify all tracks have fileUrl (upload completed)
+    const uploading = tracksRef.current.filter(t => t.analyzing);
     const missingFiles = tracksRef.current.filter(t => !t.fileUrl && !t.analyzing);
+    if (uploading.length > 0) {
+      alert(`${uploading.length} archivo(s) se estan subiendo todavia. Espera a que terminen.`);
+      return;
+    }
     if (missingFiles.length > 0) {
-      alert(`${missingFiles.length} track(s) no tienen archivo subido. Espera a que terminen de subirse o re-sube los archivos.`);
+      alert(`${missingFiles.length} archivo(s) no se subieron correctamente. Elimina esos tracks y vuelve a anadirlos.`);
       return;
     }
 
@@ -366,6 +385,11 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
 
         {/* ====== TRACKS ====== */}
         <div>
+          {uploadError && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mb-3">
+              {uploadError}
+            </div>
+          )}
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-300">Canciones ({tracks.length}/{MAX_TRACKS})</h4>
             {tracks.length < MAX_TRACKS && (
