@@ -163,12 +163,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const params: any = {
       limit,
-      expand: ['data.line_items', 'data.payment_intent'],
+      expand: ['data.line_items'],
     };
 
     if (created > 0) {
       params.created = { gte: Math.floor(created) };
     }
+
+    // Get refunded payment intents to exclude
+    const refundedPIs = new Set<string>();
+    try {
+      const refunds = await stripe.refunds.list({ limit: 100 });
+      for (const r of refunds.data) {
+        const piId = typeof r.payment_intent === 'string' ? r.payment_intent : (r.payment_intent as any)?.id;
+        if (piId) refundedPIs.add(piId);
+      }
+    } catch {}
 
     const sessions = await stripe.checkout.sessions.list(params);
 
@@ -176,8 +186,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .filter(s => {
         if (s.payment_status !== 'paid') return false;
         // Exclude refunded orders
-        const pi = s.payment_intent as any;
-        if (pi && (pi.status === 'refunded' || (pi.amount_refunded && pi.amount_refunded > 0))) return false;
+        const piId = typeof s.payment_intent === 'string' ? s.payment_intent : (s.payment_intent as any)?.id;
+        if (piId && refundedPIs.has(piId)) return false;
         return true;
       })
       .map(s => ({

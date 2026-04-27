@@ -737,36 +737,6 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
             Pagina {ordersPage} de {totalOrderPages} · {orders.length} pedidos
           </p>
 
-          {/* Export report */}
-          <div className="flex justify-center">
-            <button
-              onClick={() => {
-                const rows = [['Fecha', 'Tracks', 'Comprador', 'Total', 'Editor (70%)', 'Plataforma (30%)', 'Tipo'].join(',')];
-                for (const o of orders) {
-                  const tracks = o.tracks.join(' + ').replace(/,/g, ' ');
-                  const editor70 = (o.amount * 0.7).toFixed(2);
-                  const plat30 = (o.amount * 0.3).toFixed(2);
-                  const tipo = o.amount > 0 ? 'Pago' : 'Gratis';
-                  rows.push([o.date, `"${tracks}"`, o.email, o.amount.toFixed(2), editor70, plat30, tipo].join(','));
-                }
-                rows.push('');
-                rows.push(['', '', 'TOTALES', ordersRevenue.toFixed(2), (ordersRevenue * 0.7).toFixed(2), (ordersRevenue * 0.3).toFixed(2), ''].join(','));
-                const csv = rows.join('\n');
-                const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `MusicDrop_Informe_${ordersPeriod}_${new Date().toISOString().split('T')[0]}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              disabled={orders.length === 0}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold hover:border-yellow-400/30 hover:text-white transition-colors disabled:opacity-30"
-            >
-              <Download className="w-4 h-4" />
-              Exportar informe CSV
-            </button>
-          </div>
         </motion.div>
       )}
 
@@ -1001,7 +971,11 @@ interface CollabEntry { id: string; name: string; }
 function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack }: CollabManagerProps) {
   const [allCollabs, setAllCollabs] = useState<CollabEntry[]>([]);
   const [selectedId, setSelectedId] = useState('');
-  const [collabSubTab, setCollabSubTab] = useState<'profile' | 'tracks'>('tracks');
+  const [collabSubTab, setCollabSubTab] = useState<'profile' | 'tracks' | 'billing'>('tracks');
+  const [collabOrders, setCollabOrders] = useState<any[]>([]);
+  const [collabOrdersRevenue, setCollabOrdersRevenue] = useState(0);
+  const [collabOrdersLoading, setCollabOrdersLoading] = useState(false);
+  const [collabOrdersPeriod, setCollabOrdersPeriod] = useState('month');
   const [deleting, setDeleting] = useState(false);
   const [profile, setProfile] = useState<CollaboratorProfile>({
     bio: '', photoUrl: '', bannerUrl: '', artistName: '',
@@ -1202,6 +1176,33 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
     return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q);
   });
 
+  const fetchCollabOrders = (period: string) => {
+    if (!selectedId || selectedId === '__all__') return;
+    setCollabOrdersLoading(true);
+    setCollabOrdersPeriod(period);
+    // Use admin token but the API will return all orders — we filter client-side by collab tracks
+    fetch(`/api/orders?period=${period}&limit=100`, { headers: { Authorization: `Bearer ${adminToken}` } })
+      .then(r => r.ok ? r.json() : { orders: [] })
+      .then(data => {
+        if (data.orders) {
+          const ct = tracks.filter(t => t.collaboratorId === selectedId);
+          const ctTitles = ct.map(t => t.title.toLowerCase());
+          const ctIds = ct.map(t => t.id);
+          const filtered = data.orders.filter((o: any) =>
+            (o.trackIds || []).some((id: string) => ctIds.includes(id)) ||
+            (o.tracks || []).some((t: string) => ctTitles.includes((t || '').toLowerCase()))
+          );
+          const rev = filtered.reduce((s: number, o: any) => s + (o.amount || 0), 0);
+          setCollabOrders(filtered);
+          setCollabOrdersRevenue(rev);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCollabOrdersLoading(false));
+  };
+
+  useEffect(() => { if (collabSubTab === 'billing') fetchCollabOrders(collabOrdersPeriod); }, [collabSubTab, selectedId]);
+
   const inputClass = 'w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-yellow-400/50 text-sm';
   const collabEntry = allCollabs.find(c => c.id === selectedId);
 
@@ -1262,7 +1263,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
         </div>
       </div>
 
-      {/* Sub-tabs: Tracks / Profile */}
+      {/* Sub-tabs: Tracks / Billing / Profile */}
       <div className="flex gap-1 p-1 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
         <button
           onClick={() => { setCollabSubTab('tracks'); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); }}
@@ -1270,6 +1271,13 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
         >
           <ListMusic className="w-4 h-4" />
           Tracks ({collabTracks.length})
+        </button>
+        <button
+          onClick={() => { setCollabSubTab('billing'); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${collabSubTab === 'billing' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
+        >
+          <DollarSign className="w-4 h-4" />
+          Facturacion
         </button>
         <button
           onClick={() => { setCollabSubTab('profile'); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); }}
@@ -1284,6 +1292,86 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 text-yellow-400 animate-spin" />
         </div>
+      ) : collabSubTab === 'billing' ? (
+        /* ===== BILLING TAB ===== */
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="text-2xl font-bold text-zinc-50">{collabOrders.length}</div>
+              <div className="text-xs text-zinc-500">Ventas</div>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="text-2xl font-bold text-zinc-50">{formatPrice(collabOrdersRevenue)}</div>
+              <div className="text-xs text-zinc-500">Total vendido</div>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="text-2xl font-bold text-emerald-400">{formatPrice(collabOrdersRevenue * 0.7)}</div>
+              <div className="text-xs text-zinc-500">Editor (70%)</div>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="text-2xl font-bold text-yellow-400">{formatPrice(collabOrdersRevenue * 0.3)}</div>
+              <div className="text-xs text-zinc-500">Plataforma (30%)</div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(['today','week','month','year','all'] as const).map(p => (
+              <button key={p} onClick={() => fetchCollabOrders(p)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${collabOrdersPeriod === p ? 'gradient-bg text-black shadow-lg' : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}>
+                {{today:'Hoy',week:'Semana',month:'Mes',year:'Ano',all:'Todo'}[p]}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden">
+            <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 text-xs text-zinc-500 font-medium border-b border-zinc-800/30">
+              <div className="col-span-4">Tracks</div>
+              <div className="col-span-2">Precio</div>
+              <div className="col-span-2 text-right">Editor (70%)</div>
+              <div className="col-span-2 text-right">Plataforma (30%)</div>
+              <div className="col-span-2 text-right">Fecha</div>
+            </div>
+            {collabOrdersLoading ? (
+              <div className="text-center py-8 text-zinc-500 text-sm">Cargando...</div>
+            ) : collabOrders.length === 0 ? (
+              <div className="text-center py-8 text-zinc-600 text-sm">Sin ventas en este periodo</div>
+            ) : (
+              <div className="divide-y divide-zinc-800/30">
+                {collabOrders.map((o: any) => (
+                  <div key={o.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
+                    <div className="sm:col-span-4 text-sm text-zinc-300 truncate">{o.tracks.join(', ')}</div>
+                    <div className="sm:col-span-2 text-sm text-zinc-400">{o.amount > 0 ? formatPrice(o.amount) : 'Gratis'}</div>
+                    <div className="sm:col-span-2 text-sm font-semibold text-emerald-400 sm:text-right">{o.amount > 0 ? formatPrice(o.amount * 0.7) : '-'}</div>
+                    <div className="sm:col-span-2 text-sm text-zinc-500 sm:text-right">{o.amount > 0 ? formatPrice(o.amount * 0.3) : '-'}</div>
+                    <div className="sm:col-span-2 text-xs text-zinc-500 sm:text-right">{o.date}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Export PDF */}
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                const name = collabEntry?.name || selectedId;
+                const w = window.open('', '_blank');
+                if (!w) return;
+                const rows = collabOrders.filter((o: any) => o.amount > 0).map((o: any) =>
+                  `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">${o.date}</td><td style="padding:8px 12px;border-bottom:1px solid #eee">${o.tracks.join(', ')}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">${formatPrice(o.amount)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;color:#16a34a;font-weight:600">${formatPrice(o.amount * 0.7)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;color:#888">${formatPrice(o.amount * 0.3)}</td></tr>`
+                ).join('');
+                const periodo = {today:'Hoy',week:'Semana',month:'Mes',year:'Ano',all:'Todo'}[collabOrdersPeriod] || collabOrdersPeriod;
+                w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Informe ${name}</title><style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:0 auto;padding:40px 30px;color:#1a1a1a}h1{font-size:20px;margin:0 0 4px}h2{font-size:14px;color:#666;margin:0 0 30px;font-weight:400}.logo{text-align:center;margin-bottom:20px}.logo span{font-size:24px;font-weight:800}.gold{color:#d97706}table{width:100%;border-collapse:collapse;margin:20px 0}th{background:#f5f5f5;padding:10px 12px;text-align:left;font-size:12px;color:#666;font-weight:600}td{font-size:13px}.summary{display:flex;gap:20px;margin:20px 0}.summary div{flex:1;background:#f9f9f9;border-radius:8px;padding:16px;text-align:center}.summary .val{font-size:22px;font-weight:700}.summary .label{font-size:11px;color:#888;margin-top:4px}.green{color:#16a34a}.footer{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:11px;color:#999}@media print{body{margin:0;padding:20px}}</style></head><body><div class="logo"><span>MUSIC <span class="gold">DROP</span></span><br><small style="color:#999;letter-spacing:2px;font-size:10px">by 360DJAcademy</small></div><h1>Informe de Ventas — ${name}</h1><h2>Periodo: ${periodo} · Generado: ${new Date().toLocaleDateString('es-ES')}</h2><div class="summary"><div><div class="val">${collabOrders.length}</div><div class="label">Ventas</div></div><div><div class="val">${formatPrice(collabOrdersRevenue)}</div><div class="label">Total vendido</div></div><div><div class="val green">${formatPrice(collabOrdersRevenue * 0.7)}</div><div class="label">Editor (70%)</div></div><div><div class="val">${formatPrice(collabOrdersRevenue * 0.3)}</div><div class="label">Plataforma (30%)</div></div></div><table><thead><tr><th>Fecha</th><th>Tracks</th><th style="text-align:right">Precio</th><th style="text-align:right">Editor (70%)</th><th style="text-align:right">Plataforma (30%)</th></tr></thead><tbody>${rows}<tr style="font-weight:700;background:#f5f5f5"><td style="padding:10px 12px" colspan="2">TOTALES</td><td style="padding:10px 12px;text-align:right">${formatPrice(collabOrdersRevenue)}</td><td style="padding:10px 12px;text-align:right;color:#16a34a">${formatPrice(collabOrdersRevenue * 0.7)}</td><td style="padding:10px 12px;text-align:right">${formatPrice(collabOrdersRevenue * 0.3)}</td></tr></tbody></table><div class="footer"><p>MusicDrop by 360DJAcademy · musicdrop.es</p><p>Comision: 70% editor / 30% plataforma</p></div></body></html>`);
+                w.document.close();
+                setTimeout(() => w.print(), 500);
+              }}
+              disabled={collabOrders.length === 0}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] transition-transform disabled:opacity-30"
+            >
+              <Download className="w-4 h-4" />
+              Exportar informe PDF
+            </button>
+          </div>
+        </motion.div>
       ) : collabSubTab === 'tracks' ? (
         /* ===== TRACKS TAB ===== */
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
