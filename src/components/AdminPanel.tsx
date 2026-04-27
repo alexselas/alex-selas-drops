@@ -834,6 +834,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isAddingPack, setIsAddingPack] = useState(false);
+  const [editingPackTracks, setEditingPackTracks] = useState<Track[] | null>(null);
   const [trackSearch, setTrackSearch] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -1069,22 +1070,28 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
       ) : collabSubTab === 'tracks' ? (
         /* ===== TRACKS TAB ===== */
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          {isAddingPack ? (
+          {(isAddingPack || editingPackTracks) ? (
             <PackUploadForm
               adminToken={adminToken || ''}
               defaultArtist={profile.artistName || collabEntry?.name || ''}
               hideCollaboratorCheckbox
+              existingTracks={editingPackTracks || undefined}
               onSavePack={async (packTracks) => {
-                const enriched = packTracks.map(t => ({
-                  ...t,
-                  collaborator: true,
-                  collaboratorId: selectedId,
-                  artist: t.artist || profile.artistName || collabEntry?.name || selectedId,
-                }));
-                await onAddTracksBatch(enriched);
+                if (editingPackTracks) {
+                  for (const t of packTracks) onUpdateTrack({ ...t, collaborator: true, collaboratorId: selectedId, artist: t.artist || profile.artistName || collabEntry?.name || selectedId });
+                } else {
+                  const enriched = packTracks.map(t => ({
+                    ...t,
+                    collaborator: true,
+                    collaboratorId: selectedId,
+                    artist: t.artist || profile.artistName || collabEntry?.name || selectedId,
+                  }));
+                  await onAddTracksBatch(enriched);
+                }
                 setIsAddingPack(false);
+                setEditingPackTracks(null);
               }}
-              onCancel={() => setIsAddingPack(false)}
+              onCancel={() => { setIsAddingPack(false); setEditingPackTracks(null); }}
             />
           ) : (isAdding || editingTrack) ? (
             <AdminTrackForm
@@ -1151,7 +1158,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                     </div>
                     <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(pack.price)}</span>
                     <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => { setIsAddingPack(false); setEditingTrack(null); setIsAdding(false); /* Open pack edit via PackUploadForm not available here yet */ }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar pack"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => { setEditingPackTracks(pack.tracks); setIsAddingPack(false); setEditingTrack(null); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar pack"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => { if (confirm(`Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) pack.tracks.forEach(t => onDeleteTrack(t.id)); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar pack"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
