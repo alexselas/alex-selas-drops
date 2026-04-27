@@ -37,6 +37,8 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
   const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
+  const [listPage, setListPage] = useState(1);
+  const LIST_PER_PAGE = 20;
 
   const filtered = useMemo(() => {
     let r = [...colabTracks];
@@ -71,6 +73,12 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
     return items;
   }, [filtered]);
 
+  const totalListPages = Math.max(1, Math.ceil(displayItems.length / LIST_PER_PAGE));
+  const paginatedItems = displayItems.slice((listPage - 1) * LIST_PER_PAGE, listPage * LIST_PER_PAGE);
+
+  // Reset page on filter change
+  useEffect(() => { setListPage(1); }, [catFilter, search, sort]);
+
   return (
     <>
       <h2 className="text-2xl font-bold text-zinc-50 mb-6">Todos los tracks</h2>
@@ -93,8 +101,8 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           </div>
         </div>
       </div>
-      <div className="space-y-2 mb-16">
-        {displayItems.map(item => {
+      <div className="space-y-2">
+        {paginatedItems.map(item => {
           if (item.type === 'track') {
             const track = item.track;
             const isCurrent = player.currentTrack?.id === track.id;
@@ -105,7 +113,6 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
                 <button onClick={e => { e.stopPropagation(); player.play(track); }} className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
                   {isCurrent && player.isPlaying ? <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
                 </button>
-                {track.coverUrl ? <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><Music className="w-4 h-4 text-zinc-700" /></div>}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${({remixes:'bg-violet-400/10 text-violet-400',mashups:'bg-yellow-400/10 text-yellow-400',hypeintros:'bg-pink-400/10 text-pink-400',transiciones:'bg-cyan-400/10 text-cyan-400',sesiones:'bg-emerald-400/10 text-emerald-400',originales:'bg-orange-400/10 text-orange-400'} as Record<string,string>)[track.category] || 'bg-zinc-700/30 text-zinc-400'}`}>{({remixes:'REMIX',mashups:'MASHUP',hypeintros:'HYPE INTRO',transiciones:'TRANSICION',sesiones:'SESION',originales:'ORIGINAL'} as Record<string,string>)[track.category] || track.category.toUpperCase()}</span></div>
                   <p className="text-xs text-zinc-500 truncate">{collabName}{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}</p>
@@ -120,8 +127,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           return (
             <div key={item.packId} className="rounded-xl overflow-hidden">
               <div className={`flex items-center gap-3 p-3 bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer ${isExp ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`} onClick={() => setExpandedPackId(isExp ? null : item.packId)}>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex items-center justify-center"><Package className="w-5 h-5 text-yellow-400" /></div>
-                {item.coverUrl ? <img src={item.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><Music className="w-4 h-4 text-zinc-700" /></div>}
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400/20 to-blue-500/20 flex items-center justify-center"><Package className="w-5 h-5 text-blue-400" /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p><span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span></div>
                   <p className="text-xs text-zinc-500 truncate">{item.artist} · {item.tracks.length} tracks · {item.genre}</p>
@@ -156,6 +162,20 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           <div className="text-center py-16"><Music className="w-12 h-12 text-zinc-700 mx-auto mb-3" /><p className="text-zinc-500">No se encontraron tracks</p></div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalListPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6 mb-16">
+          <button onClick={() => setListPage(p => Math.max(1, p - 1))} disabled={listPage <= 1} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Anterior</button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalListPages }, (_, i) => i + 1).map(p => (
+              <button key={p} onClick={() => setListPage(p)} className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${listPage === p ? 'gradient-bg text-black' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'}`}>{p}</button>
+            ))}
+          </div>
+          <button onClick={() => setListPage(p => Math.min(totalListPages, p + 1))} disabled={listPage >= totalListPages} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Siguiente</button>
+        </div>
+      )}
+      {displayItems.length > 0 && <p className="text-xs text-zinc-600 text-center mb-16">Pagina {listPage} de {totalListPages} · {displayItems.length} items</p>}
     </>
   );
 }

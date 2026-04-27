@@ -211,6 +211,8 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
   const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
+  const [listPage, setListPage] = useState(1);
+  const LIST_PER_PAGE = 20;
 
   const filteredTracks = useMemo(() => {
     let result = [...myTracks];
@@ -250,6 +252,12 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
     }
     return items;
   }, [filteredTracks]);
+
+  const totalListPages = Math.max(1, Math.ceil(displayItems.length / LIST_PER_PAGE));
+  const paginatedItems = displayItems.slice((listPage - 1) * LIST_PER_PAGE, listPage * LIST_PER_PAGE);
+
+  // Reset page on filter change
+  useEffect(() => { setListPage(1); }, [categoryFilter, search, sort]);
 
   if (myTracks.length === 0) {
     return (
@@ -399,7 +407,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
 
         {/* Track + Pack list */}
         <div className="space-y-2">
-          {displayItems.map(item => {
+          {paginatedItems.map(item => {
             if (item.type === 'track') {
               const track = item.track;
               const isCurrentTrack = currentTrackId === track.id;
@@ -419,13 +427,6 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
                       <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />
                     )}
                   </button>
-                  {track.coverUrl ? (
-                    <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                      <Music className="w-4 h-4 text-zinc-700" />
-                    </div>
-                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
                     <p className="text-xs text-zinc-500 truncate">
@@ -467,6 +468,19 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
             </div>
           )}
         </div>
+
+        {totalListPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <button onClick={() => setListPage(p => Math.max(1, p - 1))} disabled={listPage <= 1} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Anterior</button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalListPages }, (_, i) => i + 1).map(p => (
+                <button key={p} onClick={() => setListPage(p)} className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${listPage === p ? 'gradient-bg text-black' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'}`}>{p}</button>
+              ))}
+            </div>
+            <button onClick={() => setListPage(p => Math.min(totalListPages, p + 1))} disabled={listPage >= totalListPages} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Siguiente</button>
+          </div>
+        )}
+        {displayItems.length > 0 && <p className="text-xs text-zinc-600 text-center mt-2">Pagina {listPage} de {totalListPages} · {displayItems.length} items</p>}
       </div>
       </div>
     </>
@@ -493,13 +507,6 @@ function PackRow({ item, expanded, onToggle, currentTrackId, isPlaying, isInCart
         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex items-center justify-center">
           <Package className="w-5 h-5 text-yellow-400" />
         </div>
-        {item.coverUrl ? (
-          <img src={item.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-        ) : (
-          <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
-            <Music className="w-4 h-4 text-zinc-700" />
-          </div>
-        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p>
