@@ -904,10 +904,13 @@ export default function App() {
             isInCart={cart.isInCart(selectedTrack.id)}
             onClose={() => {
               setSelectedTrack(null);
-              // Restore clean URL and go back to main page
               if (window.location.pathname.startsWith('/track/')) {
-                window.history.replaceState({}, '', '/');
-                setSection('colabs');
+                // Go back to the page the user was on before opening the track
+                if (section === 'colab-page' && activeCollabId) {
+                  window.history.replaceState({}, '', `/collab/${activeCollabId}`);
+                } else {
+                  window.history.replaceState({}, '', '/');
+                }
               }
             }}
             onPlay={() => player.play(selectedTrack)}
