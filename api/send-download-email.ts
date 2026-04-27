@@ -81,8 +81,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         <div style="text-align: center; margin-bottom: 32px;">
           <h1 style="color: #fafafa; font-size: 24px; margin: 0; letter-spacing: -0.5px;">
-            ALEX SELAS <span style="background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; padding: 2px 10px; border-radius: 6px; font-size: 14px; vertical-align: middle; margin-left: 6px;">DROPS</span>
+            MUSIC <span style="background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; padding: 2px 10px; border-radius: 6px; font-size: 14px; vertical-align: middle; margin-left: 6px;">DROP</span>
           </h1>
+          <p style="color: #52525b; font-size: 11px; margin: 6px 0 0; letter-spacing: 2px;">by 360DJAcademy</p>
         </div>
 
         <div style="background-color: #141414; border: 1px solid #262626; border-radius: 16px; overflow: hidden;">
@@ -105,16 +106,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         </div>
 
         <div style="text-align: center; margin-top: 24px;">
-          <p style="color: #52525b; font-size: 12px; margin: 0;">Alex Selas Drops · alexselasdrops.com</p>
+          <p style="color: #52525b; font-size: 12px; margin: 0;">MusicDrop by 360DJAcademy · musicdrop.es</p>
         </div>
       </div>
     </body>
     </html>`;
 
     const { data, error } = await resend.emails.send({
-      from: 'Alex Selas Drops <onboarding@resend.dev>',
+      from: 'MusicDrop <onboarding@resend.dev>',
       to: email,
-      subject: `Tu compra en Alex Selas Drops — ${tracks.length} track${tracks.length > 1 ? 's' : ''}`,
+      subject: `Tu compra en MusicDrop — ${tracks.length} track${tracks.length > 1 ? 's' : ''}`,
       html,
     });
 

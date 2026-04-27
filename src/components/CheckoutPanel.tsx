@@ -37,6 +37,7 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
   const [step, setStep] = useState<CheckoutStep>('review');
   const [errorMsg, setErrorMsg] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const [freeEmail, setFreeEmail] = useState('');
 
   // Use purchased items from localStorage if current items are empty (after redirect)
@@ -225,6 +226,23 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
           <p className="text-zinc-400 mb-8">
             {verifiedSessionId === 'free' ? 'Tus tracks gratuitos están listos para descargar.' : 'Tus descargas están listas. Gracias por tu compra.'}
           </p>
+          {displayItems.length > 1 && (
+            <button
+              onClick={async () => {
+                setDownloadingAll(true);
+                for (const item of displayItems) {
+                  await handleDownload(item.track);
+                  await new Promise(r => setTimeout(r, 800));
+                }
+                setDownloadingAll(false);
+              }}
+              disabled={downloadingAll}
+              className="w-full py-3 rounded-xl bg-yellow-400/20 text-yellow-400 font-semibold text-sm hover:bg-yellow-400/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
+            >
+              {downloadingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {downloadingAll ? 'Descargando...' : `Descargar todo (${displayItems.length} tracks)`}
+            </button>
+          )}
           <div className="space-y-3 mb-8">
             {displayItems.map(item => (
               <div
