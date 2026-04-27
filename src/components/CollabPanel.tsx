@@ -448,7 +448,6 @@ export default function CollabPanel({
             {/* Count */}
             <p className="text-sm text-zinc-500">
               {standaloneTracks.length} track{standaloneTracks.length !== 1 ? 's' : ''}{packItems.length > 0 ? ` · ${packItems.length} pack${packItems.length !== 1 ? 's' : ''}` : ''}
-              <span className="text-zinc-700 text-xs ml-2">(debug: filtered={filteredTracks.length} withPackId={filteredTracks.filter(t => !!t.packId).length})</span>
             </p>
 
             <div className="space-y-2">

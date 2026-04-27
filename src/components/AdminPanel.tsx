@@ -988,8 +988,20 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
   const inputClass = 'w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-yellow-400/50 text-sm';
   const collabEntry = allCollabs.find(c => c.id === selectedId);
 
-  const categoryLabels: Record<string, string> = { sesiones: 'Sesión', remixes: 'Remix', mashups: 'Mashup', librerias: 'Librería' };
-  const categoryColors: Record<string, string> = { sesiones: 'text-emerald-400', remixes: 'text-violet-400', mashups: 'text-yellow-400', librerias: 'text-amber-400' };
+  const cmCatLabels: Record<string, string> = { sesiones: 'Sesion', remixes: 'Remix', mashups: 'Mashup', hypeintros: 'Hype Intro', transiciones: 'Transicion', originales: 'Original' };
+  const cmCatColors: Record<string, string> = { sesiones: 'text-emerald-400', remixes: 'text-violet-400', mashups: 'text-yellow-400', hypeintros: 'text-pink-400', transiciones: 'text-cyan-400', originales: 'text-orange-400' };
+
+  // Group packs for collab tracks list
+  const cmSeenPacks = new Set<string>();
+  const cmStandalone = filteredCollabTracks.filter(t => !t.packId);
+  const cmPacks: { packId: string; packName: string; tracks: Track[]; coverUrl: string; category: string; price: number }[] = [];
+  for (const t of filteredCollabTracks) {
+    if (t.packId && !cmSeenPacks.has(t.packId)) {
+      cmSeenPacks.add(t.packId);
+      const pt = filteredCollabTracks.filter(x => x.packId === t.packId);
+      cmPacks.push({ packId: t.packId, packName: t.packName || 'Pack', tracks: pt, coverUrl: t.coverUrl, category: t.category, price: pt.reduce((s, x) => s + x.price, 0) });
+    }
+  }
 
   if (allCollabs.length === 0) {
     return (
@@ -1116,12 +1128,37 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
               </div>
 
               <p className="text-sm text-zinc-500">
-                {filteredCollabTracks.length} track{filteredCollabTracks.length !== 1 ? 's' : ''}
+                {cmStandalone.length} track{cmStandalone.length !== 1 ? 's' : ''}{cmPacks.length > 0 ? ` · ${cmPacks.length} pack${cmPacks.length !== 1 ? 's' : ''}` : ''}
               </p>
 
               {/* Track list */}
               <div className="space-y-2">
-                {filteredCollabTracks.map((track, i) => (
+                {/* Packs */}
+                {cmPacks.map(pack => (
+                  <div key={pack.packId} className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors group">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-400/20 to-blue-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                      {pack.coverUrl ? <img src={pack.coverUrl} alt="" className="w-full h-full object-cover" /> : <Package className="w-6 h-6 text-blue-400" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-zinc-200 truncate">{pack.packName}</p>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
+                        <span className={`font-medium ${cmCatColors[pack.category]}`}>{cmCatLabels[pack.category]}</span>
+                        <span>{pack.tracks.length} tracks</span>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(pack.price)}</span>
+                    <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => { setIsAddingPack(false); setEditingTrack(null); setIsAdding(false); /* Open pack edit via PackUploadForm not available here yet */ }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar pack"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => { if (confirm(`Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) pack.tracks.forEach(t => onDeleteTrack(t.id)); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar pack"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Standalone tracks */}
+                {cmStandalone.map((track, i) => (
                   <motion.div
                     key={track.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -1130,11 +1167,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                     className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors group"
                   >
                     <div className="w-14 h-14 rounded-xl bg-zinc-800 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                      {track.coverUrl ? (
-                        <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <Music className="w-6 h-6 text-zinc-600" />
-                      )}
+                      {track.coverUrl ? <img src={track.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="w-6 h-6 text-zinc-600" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -1142,35 +1175,16 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                         {track.featured && <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 fill-yellow-400" />}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
-                        <span className={`font-medium ${categoryColors[track.category]}`}>{categoryLabels[track.category]}</span>
+                        <span className={`font-medium ${cmCatColors[track.category]}`}>{cmCatLabels[track.category]}</span>
                         <span>{track.genre}</span>
                         {track.bpm > 0 && <span>{track.bpm} BPM</span>}
-                        {track.duration > 0 && (
-                          <span className="flex items-center gap-0.5">
-                            <Clock className="w-3 h-3" />
-                            {formatDuration(track.duration)}
-                          </span>
-                        )}
+                        {track.duration > 0 && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{formatDuration(track.duration)}</span>}
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">
-                      {formatPrice(track.price)}
-                    </span>
+                    <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(track.price)}</span>
                     <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => { setEditingTrack(track); setIsAdding(false); }}
-                        className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => { if (confirm(`¿Eliminar "${track.title}"?`)) onDeleteTrack(track.id); }}
-                        className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <button onClick={() => { setEditingTrack(track); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => { if (confirm(`Eliminar "${track.title}"?`)) onDeleteTrack(track.id); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </motion.div>
                 ))}
