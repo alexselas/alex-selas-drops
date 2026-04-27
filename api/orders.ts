@@ -44,7 +44,7 @@ function verifyCollabToken(authHeader: string | undefined): string | null {
 function corsHeaders(req: { headers: { origin?: string } }) {
   const allowedOrigins = ['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'];
   const origin = req.headers.origin || '';
-  const headers: Record<string, string> = { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
+  const headers: Record<string, string> = { 'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
   if (allowedOrigins.includes(origin)) headers['Access-Control-Allow-Origin'] = origin;
   return headers;
 }
@@ -109,6 +109,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ ok: true });
     } catch {
       return res.status(500).json({ error: 'Error al registrar pedido' });
+    }
+  }
+
+  // DELETE — remove free orders by email (admin only)
+  if (req.method === 'DELETE') {
+    if (!verifyAdminToken(req.headers.authorization)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    try {
+      const { emails } = req.body;
+      if (!Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json({ error: 'Provide emails array' });
+      }
+      const lowered = emails.map((e: string) => e.toLowerCase().trim());
+      const rawFreeOrders = await redis.get(FREE_ORDERS_KEY);
+      const freeOrders = Array.isArray(rawFreeOrders) ? rawFreeOrders : [];
+      const filtered = freeOrders.filter((fo: any) => !lowered.includes((fo.email || '').toLowerCase().trim()));
+      await redis.set(FREE_ORDERS_KEY, filtered);
+      return res.status(200).json({ ok: true, removed: freeOrders.length - filtered.length });
+    } catch {
+      return res.status(500).json({ error: 'Error al eliminar' });
     }
   }
 
