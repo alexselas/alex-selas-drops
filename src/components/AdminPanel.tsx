@@ -44,6 +44,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
   const [editingPackTracks, setEditingPackTracks] = useState<Track[] | null>(null);
   const [trackSearch, setTrackSearch] = useState('');
   const [trackFilter, setTrackFilter] = useState<Category | 'all' | 'packs'>('all');
+  const [showAllTracks, setShowAllTracks] = useState(false);
   const [expandedAdminPackId, setExpandedAdminPackId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -126,9 +127,9 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     librerias: Library,
   };
 
-  // Filter tracks for list (exclude collaborator tracks — those are in their own tab)
+  // Filter tracks for list
   const filteredTracks = tracks.filter(t => {
-    if (t.collaboratorId) return false;
+    if (!showAllTracks && t.collaboratorId) return false;
     if (trackFilter === 'packs') {
       if (!t.packId) return false;
     } else if (trackFilter !== 'all') {
@@ -369,7 +370,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
             <>
               {/* Toolbar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={() => setIsAdding(true)}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-white font-semibold shadow-lg hover:scale-[1.02] transition-transform"
@@ -383,6 +384,13 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                   >
                     <Package className="w-5 h-5" />
                     Subir Pack
+                  </button>
+                  <button
+                    onClick={() => setShowAllTracks(!showAllTracks)}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border font-semibold transition-colors ${showAllTracks ? 'gradient-bg text-black border-yellow-400/50 shadow-lg' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-yellow-400/30 hover:text-white'}`}
+                  >
+                    <Eye className="w-5 h-5" />
+                    {showAllTracks ? 'Solo mis tracks' : 'Mostrar todos'}
                   </button>
                 </div>
 
