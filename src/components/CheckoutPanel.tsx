@@ -513,7 +513,7 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
         <Shield className="w-3.5 h-3.5" />
         <span>Pago seguro cifrado · Descarga inmediata · MP3 320kbps</span>
       </div>
-      <p className="text-[10px] text-zinc-700 text-center mt-3">Al completar esta compra aceptas la <a href="/privacidad" className="underline hover:text-zinc-500">politica de privacidad</a> de MusicDrop y consientes recibir comunicaciones sobre novedades.</p>
+      <p className="text-[10px] text-zinc-700 text-center mt-3">Al completar esta compra aceptas la <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-500">politica de privacidad</a> de MusicDrop y consientes recibir comunicaciones sobre novedades.</p>
     </div>
   );
 }

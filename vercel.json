@@ -28,6 +28,7 @@
       "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(whatsapp|facebookexternalhit|facebookcatalog|twitterbot|linkedinbot|slackbot|telegrambot|discordbot).*" }],
       "destination": "/api/og-collab?id=:id"
     },
-    { "source": "/((?!api/|.*\\.(?:png|jpg|jpeg|svg|ico|webp|css|js|woff2?|ttf|mp3|wav)$).*)", "destination": "/index.html" }
+    { "source": "/privacidad", "destination": "/privacidad.html" },
+    { "source": "/((?!api/|.*\\.(?:png|jpg|jpeg|svg|ico|webp|css|js|html|woff2?|ttf|mp3|wav)$).*)", "destination": "/index.html" }
   ]
 }
