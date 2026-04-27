@@ -471,12 +471,19 @@ export default function App() {
 
   const handleDeleteTrack = useCallback(async (id: string) => {
     try {
-      await fetch(`/api/tracks?id=${id}`, {
+      const res = await fetch(`/api/tracks?id=${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${getActiveToken()}` },
       });
-    } catch {}
-    setTracks(prev => prev.filter(t => t.id !== id));
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(`Error al eliminar: ${data.error || res.status}`);
+        return;
+      }
+      setTracks(prev => prev.filter(t => t.id !== id));
+    } catch (e) {
+      alert('Error de conexion al eliminar. Intenta de nuevo.');
+    }
   }, []);
 
   const handleReorderTracks = useCallback(async (reordered: Track[]) => {
