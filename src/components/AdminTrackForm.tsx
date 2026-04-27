@@ -383,6 +383,12 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
 
     setSubmitting(false);
 
+    // Validate fileUrl is a real server URL, not a browser blob
+    if (form.fileUrl && form.fileUrl.startsWith('blob:')) {
+      alert('El archivo MP3 no se subio correctamente. Vuelve a subir el archivo.');
+      return;
+    }
+
     onSave({
       ...(track ? { id: track.id } : {}),
       title: form.title,
