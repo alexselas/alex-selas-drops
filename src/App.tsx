@@ -41,8 +41,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
   const filtered = useMemo(() => {
     let r = [...colabTracks];
     if (catFilter === 'packs') r = r.filter(t => !!t.packId);
-    else if (catFilter === 'all') r = r.filter(t => t.category !== 'originales');
-    else r = r.filter(t => t.category === catFilter);
+    else if (catFilter !== 'all') r = r.filter(t => t.category === catFilter);
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter(t => t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q) || t.tags.some(tag => tag.toLowerCase().includes(q))); }
     switch (sort) {
       case 'newest': r.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()); break;
@@ -123,7 +122,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
                 <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex items-center justify-center"><Package className="w-5 h-5 text-yellow-400" /></div>
                 {item.coverUrl ? <img src={item.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><Music className="w-4 h-4 text-zinc-700" /></div>}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p><span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-bold flex-shrink-0">PACK</span></div>
+                  <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p><span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span></div>
                   <p className="text-xs text-zinc-500 truncate">{item.artist} · {item.tracks.length} tracks · {item.genre}</p>
                 </div>
                 <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(item.price)}</span>
@@ -339,10 +338,7 @@ export default function App() {
     // Category
     if (categoryFilter === 'packs') {
       result = result.filter(t => !!t.packId);
-    } else if (categoryFilter === 'all') {
-      // Hide 'originales' from "Todos" on main page
-      result = result.filter(t => t.category !== 'originales');
-    } else {
+    } else if (categoryFilter !== 'all') {
       result = result.filter(t => t.category === categoryFilter);
     }
 
@@ -480,7 +476,8 @@ export default function App() {
         {/* ============ MUSIC DROP (landing page) ============ */}
         {section === 'colabs' && !showCheckout && (() => {
           // All tracks for catalog (Alex Selas's + collaborators')
-          const allCatalogTracks = tracks;
+          const allCatalogTracks = tracks.filter(t => t.category !== 'originales');
+          const originalesTracks = tracks.filter(t => t.category === 'originales');
           // Build dynamic collaborator list from API profiles (exclude alex-selas, he's hardcoded first)
           const alexProf = collabProfiles['alex-selas'] as any;
           const dynamicCollabs = Object.entries(collabProfiles)
@@ -612,6 +609,34 @@ export default function App() {
                     window.history.pushState({}, '', `/track/${track.id}`);
                   }}
                 />
+              )}
+
+              {/* Originales section */}
+              {originalesTracks.length > 0 && (
+                <div className="mt-12">
+                  <h2 className="text-2xl font-bold text-zinc-50 mb-6">Originales</h2>
+                  <div className="space-y-2">
+                    {originalesTracks.map(track => {
+                      const isCurrent = player.currentTrack?.id === track.id;
+                      const prof = collabProfiles[track.collaboratorId || ''];
+                      const collabName = prof?.artistName || track.collaboratorId || (track.artist || 'Alex Selas');
+                      return (
+                        <div key={track.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-orange-400/20 transition-colors cursor-pointer" onClick={() => { setSelectedTrack(track); window.history.pushState({}, '', `/track/${track.id}`); }}>
+                          <button onClick={e => { e.stopPropagation(); player.play(track); }} className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:bg-orange-400 flex items-center justify-center transition-all group/play">
+                            {isCurrent && player.isPlaying ? <Pause className="w-4 h-4 text-orange-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
+                          </button>
+                          {track.coverUrl ? <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><Music className="w-4 h-4 text-zinc-700" /></div>}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p><span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 font-bold flex-shrink-0">ORIGINAL</span></div>
+                            <p className="text-xs text-zinc-500 truncate">{collabName}{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}</p>
+                          </div>
+                          <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
+                          <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-orange-400 hover:bg-orange-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
               {/* Contact CTA */}

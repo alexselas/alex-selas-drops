@@ -503,7 +503,7 @@ function PackRow({ item, expanded, onToggle, currentTrackId, isPlaying, isInCart
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-bold flex-shrink-0">PACK</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span>
           </div>
           <p className="text-xs text-zinc-500 truncate">
             {item.artist} · {item.tracks.length} tracks · {item.genre}

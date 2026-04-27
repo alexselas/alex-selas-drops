@@ -482,7 +482,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                   <p className="font-medium text-zinc-200 truncate">{pack.packName}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-bold flex-shrink-0">PACK</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
                                   <span className={`font-medium ${categoryColors[pack.category]}`}>{categoryLabels[pack.category]}</span>
