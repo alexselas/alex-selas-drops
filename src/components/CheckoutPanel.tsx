@@ -38,6 +38,7 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
   const [errorMsg, setErrorMsg] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [freeEmail, setFreeEmail] = useState('');
 
   // Use purchased items from localStorage if current items are empty (after redirect)
@@ -71,7 +72,9 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
               setVerifiedSessionId(sessionId);
               onClearCart();
               // Send download email in background
+              console.log('[MusicDrop] Email send check:', { email: data.email, savedLength: saved.length });
               if (data.email && saved.length > 0) {
+                console.log('[MusicDrop] Sending download email to:', data.email);
                 fetch('/api/send-download-email', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -80,7 +83,10 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
                     sessionId,
                     tracks: saved.map(i => ({ title: i.track.title, fileUrl: i.track.fileUrl })),
                   }),
-                }).catch(() => {}); // silent — email is a bonus, not critical
+                })
+                  .then(r => { console.log('[MusicDrop] Email API response status:', r.status); return r.json(); })
+                  .then(d => console.log('[MusicDrop] Email API response:', d))
+                  .catch(e => console.error('[MusicDrop] Email send error:', e));
               }
             } else {
               setStep('error');
@@ -146,6 +152,7 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
             id: i.track.id,
             title: i.track.title,
             price: Math.round((i.track.price * (1 - discount)) * 100) / 100,
+            packName: i.track.packName || '',
           })),
           allTrackIds: items.map(i => i.track.id),
           origin: window.location.origin,
@@ -168,27 +175,30 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
 
   // Download file via trackId (server resolves fileUrl securely)
   const handleDownload = useCallback(async (track: CartItem['track']) => {
+    if (!verifiedSessionId) {
+      setDownloadError('No se pudo verificar la sesion de pago. Recarga la pagina e intenta de nuevo.');
+      return;
+    }
+    setDownloadError(null);
     const fileName = track.authors
       ? `${track.authors} - ${track.title}`
       : track.title;
     setDownloadingId(track.title);
     try {
-      const params = new URLSearchParams({
-        trackId: track.id,
-        title: track.title,
-        artist: track.artist,
-        authors: track.authors || '',
-        coverUrl: track.coverUrl || '',
-        genre: track.genre || '',
-        bpm: String(track.bpm || 0),
-      });
-      if (verifiedSessionId) {
-        params.set('session_id', verifiedSessionId);
-      }
-      const response = await fetch(`/api/download?${params}`);
+      const params = new URLSearchParams();
+      params.set('trackId', track.id);
+      params.set('title', track.title || '');
+      params.set('artist', track.artist || '');
+      params.set('authors', track.authors || '');
+      params.set('coverUrl', track.coverUrl || '');
+      params.set('genre', track.genre || '');
+      params.set('bpm', String(track.bpm || 0));
+      params.set('session_id', verifiedSessionId);
+
+      const response = await fetch(`/api/download?${params.toString()}`);
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Download failed');
+        throw new Error(err.error || `Download failed (${response.status})`);
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -199,8 +209,9 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Download error:', err);
+      setDownloadError(err.message || 'Error al descargar. Intenta de nuevo.');
     } finally {
       setDownloadingId(null);
     }
@@ -227,6 +238,12 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
           <p className="text-zinc-400 mb-8">
             {verifiedSessionId === 'free' ? 'Tus tracks gratuitos están listos para descargar.' : 'Tus descargas están listas. Gracias por tu compra.'}
           </p>
+          {downloadError && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mb-4">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {downloadError}
+            </div>
+          )}
           {displayItems.length > 1 && (
             <button
               onClick={async () => {

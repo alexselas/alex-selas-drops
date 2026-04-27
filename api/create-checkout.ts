@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const trackMap = new Map(tracks.map((t: any) => [t.id, t]));
 
-    const line_items = items.map((item: { title: string; price: number; id: string }) => {
+    const line_items = items.map((item: { title: string; price: number; id: string; packName?: string }) => {
       const serverTrack = trackMap.get(item.id);
       if (!serverTrack) {
         throw new Error(`Track no encontrado: ${item.id}`);
@@ -57,11 +57,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return null; // Skip free tracks
       }
 
+      // Use packName if available (for pack purchases), otherwise use track title
+      const productName = item.packName || serverTrack.packName || serverTrack.title;
+
       return {
         price_data: {
           currency: 'eur',
           product_data: {
-            name: serverTrack.title,
+            name: productName,
             metadata: { track_id: item.id },
           },
           unit_amount: Math.round(serverPrice * 100), // Stripe uses cents
@@ -80,6 +83,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       payment_method_types: ['card', 'paypal'] as any,
       success_url: `${safeOrigin}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${safeOrigin}?payment=cancelled`,
+      payment_intent_data: {
+        statement_descriptor: 'MUSICDROP',
+      },
       metadata: {
         track_ids: (Array.isArray(allTrackIds) ? allTrackIds : items.map((i: { id: string }) => i.id)).join(','),
         ...(discountCode ? { discount_code: discountCode } : {}),
