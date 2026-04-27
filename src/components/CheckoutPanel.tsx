@@ -232,17 +232,22 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
               onClick={async () => {
                 setDownloadingAll(true);
                 try {
+                  const packItem = displayItems.find(i => i.track.packName);
+                  const zipName = packItem?.track.packName || 'MusicDrop';
                   const res = await fetch('/api/download-zip', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ trackIds: displayItems.map(i => i.track.id), sessionId: verifiedSessionId }),
+                    body: JSON.stringify({ trackIds: displayItems.map(i => i.track.id), sessionId: verifiedSessionId, zipName }),
                   });
-                  if (!res.ok) throw new Error('ZIP failed');
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || 'ZIP failed');
+                  }
                   const blob = await res.blob();
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `MusicDrop.zip`;
+                  a.download = `${zipName}.zip`;
                   document.body.appendChild(a);
                   a.click();
                   document.body.removeChild(a);

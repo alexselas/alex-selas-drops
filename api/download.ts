@@ -66,15 +66,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (session.payment_status !== 'paid') {
             return res.status(403).json({ error: 'Pago no confirmado' });
           }
-          const purchasedIds = session.metadata?.track_ids?.split(',') || [];
-          if (!purchasedIds.includes(trackId)) {
-            // Check if this track belongs to a pack where another track was purchased
-            const allTracks = await redis.get('tracks') as any[] | null;
-            const thisTrack = allTracks?.find((t: any) => t.id === trackId);
-            const isPackMember = thisTrack?.packId && allTracks?.some((t: any) => t.packId === thisTrack.packId && purchasedIds.includes(t.id));
-            if (!isPackMember) {
-              return res.status(403).json({ error: 'Track no incluido en esta compra' });
+          let purchasedIds = session.metadata?.track_ids?.split(',') || [];
+          // Expand purchased IDs to include all pack members
+          const allTracksForAuth = await redis.get('tracks') as any[] | null;
+          if (allTracksForAuth) {
+            const purchasedPackIds = new Set<string>();
+            for (const pid of purchasedIds) {
+              const pt = allTracksForAuth.find((t: any) => t.id === pid);
+              if (pt?.packId) purchasedPackIds.add(pt.packId);
             }
+            for (const t of allTracksForAuth) {
+              if (t.packId && purchasedPackIds.has(t.packId) && !purchasedIds.includes(t.id)) {
+                purchasedIds.push(t.id);
+              }
+            }
+          }
+          if (!purchasedIds.includes(trackId)) {
+            return res.status(403).json({ error: 'Track no incluido en esta compra' });
           }
         } catch {
           return res.status(403).json({ error: 'Sesión de pago no válida' });
