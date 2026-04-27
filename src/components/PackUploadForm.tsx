@@ -166,6 +166,14 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (tracks.length < 5 || !packTitle) return;
+
+    // Verify all tracks have fileUrl (upload completed)
+    const missingFiles = tracksRef.current.filter(t => !t.fileUrl && !t.analyzing);
+    if (missingFiles.length > 0) {
+      alert(`${missingFiles.length} track(s) no tienen archivo subido. Espera a que terminen de subirse o re-sube los archivos.`);
+      return;
+    }
+
     setSubmitting(true);
 
     // Wait for all track uploads + analysis to finish (up to 60s)
@@ -177,6 +185,14 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
       }
       setGeneratingPreviews(false);
       setPreviewProgress('');
+    }
+
+    // Final check: all tracks must have fileUrl
+    const stillMissing = tracksRef.current.filter(t => !t.fileUrl);
+    if (stillMissing.length > 0) {
+      alert(`Error: ${stillMissing.length} archivo(s) no se subieron correctamente. Intenta de nuevo.`);
+      setSubmitting(false);
+      return;
     }
 
     // Generate previews for tracks that don't have one yet (use ref for latest state)
