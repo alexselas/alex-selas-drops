@@ -52,7 +52,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersRevenue, setOrdersRevenue] = useState(0);
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const [ordersPeriod, setOrdersPeriod] = useState('all');
+  const [ordersPeriod, setOrdersPeriod] = useState('month');
   const [ordersError, setOrdersError] = useState('');
   const [ordersPage, setOrdersPage] = useState(1);
   const ORDERS_PER_PAGE = 20;
@@ -84,7 +84,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
   const totalOrderPages = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
   const paginatedOrders = orders.slice((ordersPage - 1) * ORDERS_PER_PAGE, ordersPage * ORDERS_PER_PAGE);
 
-  useEffect(() => { fetchOrders('all'); }, []);
+  useEffect(() => { fetchOrders('month'); }, []);
 
   // Stats (only own tracks, not collaborator uploads)
   const myTracks = tracks.filter(t => !t.collaboratorId);

@@ -60,7 +60,7 @@ export default function CollabPanel({
   const [orders, setOrders] = useState<CollabOrder[]>([]);
   const [ordersRevenue, setOrdersRevenue] = useState(0);
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const [ordersPeriod, setOrdersPeriod] = useState('all');
+  const [ordersPeriod, setOrdersPeriod] = useState('month');
   const [ordersPage, setOrdersPage] = useState(1);
   const ORDERS_PER_PAGE = 20;
 
@@ -85,7 +85,7 @@ export default function CollabPanel({
       .finally(() => setOrdersLoading(false));
   };
 
-  useEffect(() => { fetchOrders('all'); }, []);
+  useEffect(() => { fetchOrders('month'); }, []);
 
   const totalOrderPages = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
   const paginatedOrders = orders.slice((ordersPage - 1) * ORDERS_PER_PAGE, ordersPage * ORDERS_PER_PAGE);
