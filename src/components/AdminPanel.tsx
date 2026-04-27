@@ -839,15 +839,29 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const handleDownload = async (track: Track) => {
-    if (!track.fileUrl) return;
+    if (!track.id) return;
     setDownloadingId(track.id);
     try {
-      const res = await fetch(track.fileUrl);
+      const params = new URLSearchParams({
+        trackId: track.id,
+        title: track.title || '',
+        artist: track.artist || '',
+        authors: track.authors || '',
+        coverUrl: track.coverUrl || '',
+        genre: track.genre || '',
+        bpm: String(track.bpm || 0),
+        session_id: 'admin',
+      });
+      const res = await fetch(`/api/download?${params}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${track.artist || 'Track'} - ${track.title}.mp3`;
+      const fileName = track.authors ? `${track.authors} - ${track.title}` : track.title;
+      a.download = `${fileName}.mp3`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1182,7 +1196,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                     </div>
                     <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(pack.price)}</span>
                     <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
-                      <button onClick={async () => { for (const t of pack.tracks) { if (t.fileUrl) await handleDownload(t); } }} className="p-2 rounded-lg text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors" title="Descargar pack"><Download className="w-4 h-4" /></button>
+                      <button onClick={async () => { for (const t of pack.tracks) { await handleDownload(t); await new Promise(r => setTimeout(r, 500)); } }} className="p-2 rounded-lg text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors" title="Descargar pack"><Download className="w-4 h-4" /></button>
                       <button onClick={() => { setEditingPackTracks(pack.tracks); setIsAddingPack(false); setEditingTrack(null); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar pack"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => { if (confirm(`Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) pack.tracks.forEach(t => onDeleteTrack(t.id)); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar pack"><Trash2 className="w-4 h-4" /></button>
                     </div>
