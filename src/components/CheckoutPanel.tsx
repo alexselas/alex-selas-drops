@@ -72,21 +72,16 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
               setVerifiedSessionId(sessionId);
               onClearCart();
               // Send download email in background
-              console.log('[MusicDrop] Email send check:', { email: data.email, savedLength: saved.length });
               if (data.email && saved.length > 0) {
-                console.log('[MusicDrop] Sending download email to:', data.email);
                 fetch('/api/send-download-email', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     email: data.email,
                     sessionId,
-                    tracks: saved.map(i => ({ title: i.track.title, fileUrl: i.track.fileUrl })),
+                    trackIds: saved.map(i => i.track.id),
                   }),
-                })
-                  .then(r => { console.log('[MusicDrop] Email API response status:', r.status); return r.json(); })
-                  .then(d => console.log('[MusicDrop] Email API response:', d))
-                  .catch(e => console.error('[MusicDrop] Email send error:', e));
+                }).catch(() => {});
               }
             } else {
               setStep('error');

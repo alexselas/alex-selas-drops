@@ -41,51 +41,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let fileUrl = '';
 
     if (trackId) {
-      // Look up track in database by ID
-      const tracks = await redis.get('tracks') as any[] | null;
-      const track = tracks?.find((t: any) => t.id === trackId);
-      if (!track || !track.fileUrl) {
-        return res.status(404).json({ error: 'Track no encontrado' });
+      // Single Redis call for all checks
+      const allTracks = await redis.get('tracks') as any[] | null;
+      if (!allTracks || !Array.isArray(allTracks)) {
+        return res.status(500).json({ error: 'Error cargando datos' });
       }
 
-      // Admin downloads: verify admin token
+      const track = allTracks.find((t: any) => t.id === trackId);
+      if (!track) {
+        return res.status(404).json({ error: `Track ${trackId} no encontrado` });
+      }
+      if (!track.fileUrl) {
+        return res.status(404).json({ error: `Track sin archivo asociado` });
+      }
+
+      // Admin downloads
       if (session_id === 'admin') {
         if (!verifyAdminToken(req.headers.authorization as string | undefined)) {
           return res.status(403).json({ error: 'No autorizado' });
         }
-        // Admin can download anything — skip payment verification
       }
-      // For free downloads: verify track is actually free
-      else if (session_id === 'free' && track.price > 0) {
-        return res.status(403).json({ error: 'Este track requiere pago' });
+      // Free downloads
+      else if (session_id === 'free') {
+        // For free tracks OR tracks that belong to a free pack
+        const isFreeTrack = track.price <= 0;
+        const isInFreePack = track.packId && allTracks.filter((t: any) => t.packId === track.packId).every((t: any) => t.price <= 0);
+        if (!isFreeTrack && !isInFreePack) {
+          return res.status(403).json({ error: 'Este track requiere pago' });
+        }
       }
-      // For paid downloads: verify Stripe session and that this track was purchased
-      else if (session_id !== 'free') {
+      // Paid downloads: verify Stripe session
+      else {
         try {
           const session = await stripe.checkout.sessions.retrieve(session_id);
           if (session.payment_status !== 'paid') {
             return res.status(403).json({ error: 'Pago no confirmado' });
           }
-          let purchasedIds = session.metadata?.track_ids?.split(',') || [];
-          // Expand purchased IDs to include all pack members
-          const allTracksForAuth = await redis.get('tracks') as any[] | null;
-          if (allTracksForAuth) {
-            const purchasedPackIds = new Set<string>();
-            for (const pid of purchasedIds) {
-              const pt = allTracksForAuth.find((t: any) => t.id === pid);
-              if (pt?.packId) purchasedPackIds.add(pt.packId);
-            }
-            for (const t of allTracksForAuth) {
-              if (t.packId && purchasedPackIds.has(t.packId) && !purchasedIds.includes(t.id)) {
-                purchasedIds.push(t.id);
+          const purchasedIds = session.metadata?.track_ids?.split(',').filter(Boolean) || [];
+          // Expand to all pack members
+          const authorizedIds = new Set(purchasedIds);
+          for (const pid of purchasedIds) {
+            const pt = allTracks.find((t: any) => t.id === pid);
+            if (pt?.packId) {
+              for (const t of allTracks) {
+                if (t.packId === pt.packId) authorizedIds.add(t.id);
               }
             }
           }
-          if (!purchasedIds.includes(trackId)) {
+          if (!authorizedIds.has(trackId)) {
             return res.status(403).json({ error: 'Track no incluido en esta compra' });
           }
-        } catch {
-          return res.status(403).json({ error: 'Sesión de pago no válida' });
+        } catch (e: any) {
+          return res.status(403).json({ error: `Sesion no valida: ${e.message || 'error'}` });
         }
       }
 
