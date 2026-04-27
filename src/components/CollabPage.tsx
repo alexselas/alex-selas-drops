@@ -414,12 +414,12 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
               return (
                 <div
                   key={track.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${({remixes:'bg-violet-900/40 border-violet-700/30 hover:border-violet-400/50',mashups:'bg-yellow-900/40 border-yellow-700/30 hover:border-yellow-400/50',hypeintros:'bg-pink-900/40 border-pink-700/30 hover:border-pink-400/50',transiciones:'bg-cyan-900/40 border-cyan-700/30 hover:border-cyan-400/50',sesiones:'bg-emerald-900/40 border-emerald-700/30 hover:border-emerald-400/50',originales:'bg-orange-900/40 border-orange-700/30 hover:border-orange-400/50'} as Record<string,string>)[track.category] || 'bg-[#1a1a1a] border-zinc-800/50 hover:border-yellow-400/20'}`}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${({remixes:'bg-red-900/40 border-red-700/30 hover:border-red-400/50',mashups:'bg-yellow-900/40 border-yellow-700/30 hover:border-yellow-400/50',hypeintros:'bg-pink-900/40 border-pink-700/30 hover:border-pink-400/50',transiciones:'bg-cyan-900/40 border-cyan-700/30 hover:border-cyan-400/50',sesiones:'bg-emerald-900/40 border-emerald-700/30 hover:border-emerald-400/50',originales:'bg-orange-900/40 border-orange-700/30 hover:border-orange-400/50'} as Record<string,string>)[track.category] || 'bg-[#1a1a1a] border-zinc-800/50 hover:border-yellow-400/20'}`}
                   onClick={() => onDetail(track)}
                 >
                   <button
                     onClick={e => { e.stopPropagation(); onPlay(track); }}
-                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all group/play ${({remixes:'bg-violet-800/50 hover:bg-violet-500',mashups:'bg-yellow-800/50 hover:bg-yellow-500',hypeintros:'bg-pink-800/50 hover:bg-pink-500',transiciones:'bg-cyan-800/50 hover:bg-cyan-500',sesiones:'bg-emerald-800/50 hover:bg-emerald-500',originales:'bg-orange-800/50 hover:bg-orange-500'} as Record<string,string>)[track.category] || 'bg-zinc-800 hover:gradient-bg'}`}
+                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all group/play ${({remixes:'bg-red-800/50 hover:bg-red-500',mashups:'bg-yellow-800/50 hover:bg-yellow-500',hypeintros:'bg-pink-800/50 hover:bg-pink-500',transiciones:'bg-cyan-800/50 hover:bg-cyan-500',sesiones:'bg-emerald-800/50 hover:bg-emerald-500',originales:'bg-orange-800/50 hover:bg-orange-500'} as Record<string,string>)[track.category] || 'bg-zinc-800 hover:gradient-bg'}`}
                   >
                     {isCurrentTrack && isPlaying ? (
                       <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" />
