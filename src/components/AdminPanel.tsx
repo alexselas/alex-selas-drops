@@ -154,6 +154,8 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     return list;
   })();
   const [emailsCopied, setEmailsCopied] = useState(false);
+  const [sendingNewsletter, setSendingNewsletter] = useState(false);
+  const [newsletterResult, setNewsletterResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const tabs: { id: AdminTab; label: string; icon: typeof Music }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -786,6 +788,46 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
           <p className="text-xs text-zinc-600 text-center">
             Los emails se extraen de los pedidos del periodo seleccionado en Pedidos ({ordersPeriod === 'today' ? 'Hoy' : ordersPeriod === 'week' ? 'Semana' : ordersPeriod === 'month' ? 'Mes' : ordersPeriod === 'year' ? 'Ano' : 'Todo'})
           </p>
+
+          {/* Send Newsletter */}
+          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
+            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Enviar Newsletter</h3>
+            <p className="text-xs text-zinc-500 mb-4">Envia un email a todos los suscriptores con los tracks subidos en los ultimos 7 dias.</p>
+            {newsletterResult && (
+              <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm mb-4 ${newsletterResult.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+                {newsletterResult.ok ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <Mail className="w-4 h-4 flex-shrink-0" />}
+                {newsletterResult.msg}
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                if (!confirm('Enviar newsletter a TODOS los suscriptores con las novedades de los ultimos 7 dias?')) return;
+                setSendingNewsletter(true);
+                setNewsletterResult(null);
+                try {
+                  const r = await fetch('/api/send-newsletter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}` },
+                  });
+                  const data = await r.json();
+                  if (data.ok) {
+                    setNewsletterResult({ ok: true, msg: `Enviado a ${data.sent} suscriptores (${data.newTracks} novedades)${data.errors > 0 ? ` · ${data.errors} errores` : ''}` });
+                  } else {
+                    setNewsletterResult({ ok: false, msg: data.error || 'Error al enviar' });
+                  }
+                } catch {
+                  setNewsletterResult({ ok: false, msg: 'Error de conexion' });
+                } finally {
+                  setSendingNewsletter(false);
+                }
+              }}
+              disabled={sendingNewsletter}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] transition-transform disabled:opacity-50"
+            >
+              {sendingNewsletter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+              {sendingNewsletter ? 'Enviando...' : 'Enviar Newsletter'}
+            </button>
+          </div>
         </motion.div>
       )}
 
