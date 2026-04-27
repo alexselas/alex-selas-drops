@@ -77,9 +77,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
           <!-- HERO -->
           <div style="padding: 32px 32px 24px; text-align: center;">
-            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05)); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 32px; color: #22c55e;">&#10003;</span>
-            </div>
             <h2 style="color: #fafafa; font-size: 26px; margin: 0 0 10px; font-weight: 700;">Pago completado</h2>
             <p style="color: #a1a1aa; font-size: 15px; margin: 0; line-height: 1.5;">Gracias por tu compra. Aqui tienes tus descargas.</p>
             ${totalAmount > 0 ? `<p style="color: #facc15; font-size: 20px; font-weight: 700; margin: 12px 0 0;">${totalAmount.toFixed(2)} &euro;</p>` : ''}
