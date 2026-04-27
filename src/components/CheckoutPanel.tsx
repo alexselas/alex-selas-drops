@@ -231,17 +231,33 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
             <button
               onClick={async () => {
                 setDownloadingAll(true);
-                for (const item of displayItems) {
-                  await handleDownload(item.track);
-                  await new Promise(r => setTimeout(r, 800));
+                try {
+                  const res = await fetch('/api/download-zip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trackIds: displayItems.map(i => i.track.id), sessionId: verifiedSessionId }),
+                  });
+                  if (!res.ok) throw new Error('ZIP failed');
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `MusicDrop.zip`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch (e) {
+                  console.error('ZIP error:', e);
+                } finally {
+                  setDownloadingAll(false);
                 }
-                setDownloadingAll(false);
               }}
               disabled={downloadingAll}
               className="w-full py-3 rounded-xl bg-yellow-400/20 text-yellow-400 font-semibold text-sm hover:bg-yellow-400/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
             >
               {downloadingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              {downloadingAll ? 'Descargando...' : `Descargar todo (${displayItems.length} tracks)`}
+              {downloadingAll ? 'Preparando ZIP...' : `Descargar todo (${displayItems.length} tracks) .ZIP`}
             </button>
           )}
           <div className="space-y-3 mb-8">

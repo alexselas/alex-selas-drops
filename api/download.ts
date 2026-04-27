@@ -68,7 +68,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
           const purchasedIds = session.metadata?.track_ids?.split(',') || [];
           if (!purchasedIds.includes(trackId)) {
-            return res.status(403).json({ error: 'Track no incluido en esta compra' });
+            // Check if this track belongs to a pack where another track was purchased
+            const allTracks = await redis.get('tracks') as any[] | null;
+            const thisTrack = allTracks?.find((t: any) => t.id === trackId);
+            const isPackMember = thisTrack?.packId && allTracks?.some((t: any) => t.packId === thisTrack.packId && purchasedIds.includes(t.id));
+            if (!isPackMember) {
+              return res.status(403).json({ error: 'Track no incluido en esta compra' });
+            }
           }
         } catch {
           return res.status(403).json({ error: 'Sesión de pago no válida' });
