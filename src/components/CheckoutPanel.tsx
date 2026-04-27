@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { CreditCard, ArrowLeft, Download, CheckCircle, Music, AlertCircle, Shield, Loader2 } from 'lucide-react';
+import { CreditCard, ArrowLeft, Download, CheckCircle, Music, AlertCircle, Shield, Loader2, Mail } from 'lucide-react';
 import type { CartItem } from '../types';
 import { formatPrice } from '../lib/utils';
 
@@ -36,6 +36,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
   const [step, setStep] = useState<CheckoutStep>('review');
   const [errorMsg, setErrorMsg] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [freeEmail, setFreeEmail] = useState('');
 
   // Use purchased items from localStorage if current items are empty (after redirect)
   const [purchasedItems, setPurchasedItems] = useState<CartItem[]>([]);
@@ -111,6 +112,11 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
     // If all items are free, skip payment and register free order
     const effectiveTotal = Math.round(total * (1 - discount) * 100) / 100;
     if (effectiveTotal <= 0) {
+      if (!freeEmail.trim() || !freeEmail.includes('@')) {
+        setStep('review');
+        setErrorMsg('Introduce tu email para descargar');
+        return;
+      }
       try {
         await fetch('/api/orders', {
           method: 'POST',
@@ -118,6 +124,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
           body: JSON.stringify({
             tracks: items.map(i => i.track.title),
             trackIds: items.map(i => i.track.id),
+            email: freeEmail.trim(),
           }),
         });
       } catch {}
@@ -155,7 +162,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
     }
   };
 
-  // Download file with ID3 metadata (title, artist, cover art)
+  // Download file via trackId (server resolves fileUrl securely)
   const handleDownload = useCallback(async (track: CartItem['track']) => {
     const fileName = track.authors
       ? `${track.authors} - ${track.title}`
@@ -163,7 +170,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
     setDownloadingId(track.title);
     try {
       const params = new URLSearchParams({
-        fileUrl: track.fileUrl,
+        trackId: track.id,
         title: track.title,
         artist: track.artist,
         authors: track.authors || '',
@@ -171,24 +178,25 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
         genre: track.genre || '',
         bpm: String(track.bpm || 0),
       });
-      // Include session_id for payment verification
       if (verifiedSessionId) {
         params.set('session_id', verifiedSessionId);
       }
       const response = await fetch(`/api/download?${params}`);
-      if (!response.ok) throw new Error('Download failed');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Download failed');
+      }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const ext = track.fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
-      a.download = `${fileName}.${ext}`;
+      a.download = `${fileName}.mp3`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch {
-      window.open(track.fileUrl, '_blank');
+    } catch (err) {
+      console.error('Download error:', err);
     } finally {
       setDownloadingId(null);
     }
@@ -369,24 +377,50 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
         </div>
       </div>
 
-      {/* Payment */}
-      <div className="bg-zinc-900/50 rounded-2xl border border-zinc-800/50 p-6 mb-6">
-        <h3 className="text-lg font-semibold text-zinc-200 mb-4">Método de pago</h3>
-        <div className="flex items-center gap-3 p-4 rounded-xl border border-yellow-400/50 bg-yellow-400/5 text-yellow-400">
-          <CreditCard className="w-7 h-7" />
-          <div>
-            <span className="text-sm font-semibold block">Tarjeta de crédito / débito</span>
-            <span className="text-xs text-zinc-500">Visa, Mastercard, American Express...</span>
+      {/* Payment or Free email */}
+      {finalTotal > 0 ? (
+        <>
+          <div className="bg-zinc-900/50 rounded-2xl border border-zinc-800/50 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-zinc-200 mb-4">Método de pago</h3>
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-yellow-400/50 bg-yellow-400/5 text-yellow-400">
+              <CreditCard className="w-7 h-7" />
+              <div>
+                <span className="text-sm font-semibold block">Tarjeta de crédito / débito</span>
+                <span className="text-xs text-zinc-500">Visa, Mastercard, American Express...</span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <button
-        onClick={handleStripeCheckout}
-        className="w-full py-4 rounded-xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-[1.02] transition-transform mb-4"
-      >
-        Pagar {formatPrice(finalTotal)}
-      </button>
+          <button
+            onClick={handleStripeCheckout}
+            className="w-full py-4 rounded-xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-[1.02] transition-transform mb-4"
+          >
+            Pagar {formatPrice(finalTotal)}
+          </button>
+        </>
+      ) : (
+        <>
+          <div className="bg-zinc-900/50 rounded-2xl border border-zinc-800/50 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-zinc-200 mb-4">Tu email</h3>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+              <input
+                type="email"
+                value={freeEmail}
+                onChange={e => setFreeEmail(e.target.value)}
+                placeholder="tu@email.com"
+                className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors"
+              />
+            </div>
+            <p className="text-xs text-zinc-600 mt-2">Solo para confirmar la descarga. No spam.</p>
+          </div>
+          <button
+            onClick={handleStripeCheckout}
+            className="w-full py-4 rounded-xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-[1.02] transition-transform mb-4"
+          >
+            Descargar gratis
+          </button>
+        </>
+      )}
 
       {/* Security note */}
       <div className="flex items-center gap-2 justify-center text-xs text-zinc-600">
