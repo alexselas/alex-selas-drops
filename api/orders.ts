@@ -92,13 +92,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { tracks, trackIds, email } = req.body;
       const rawFreeOrders = await redis.get(FREE_ORDERS_KEY);
       const freeOrders = Array.isArray(rawFreeOrders) ? rawFreeOrders : [];
+      const now = new Date();
       freeOrders.push({
         id: `FREE-${Date.now().toString(36).toUpperCase()}`,
         tracks: tracks || [],
         trackIds: trackIds || [],
         email: email || '',
         amount: 0,
-        date: new Date().toISOString().split('T')[0],
+        date: now.toISOString().split('T')[0],
+        createdAt: now.toISOString(),
         status: 'free',
       });
       // Keep max 500 free orders
@@ -157,6 +159,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         amount: (s.amount_total || 0) / 100,
         currency: s.currency || 'eur',
         date: new Date((s.created || 0) * 1000).toISOString().split('T')[0],
+        sortTs: (s.created || 0) * 1000,
         status: s.payment_status,
       }));
 
@@ -166,7 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let freeOrdersMapped = freeOrders
       .filter(fo => {
         if (created <= 0) return true;
-        const foDate = new Date(fo.date).getTime() / 1000;
+        const foDate = new Date(fo.createdAt || fo.date).getTime() / 1000;
         return foDate >= created;
       })
       .map(fo => ({
@@ -178,6 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         amount: 0,
         currency: 'eur',
         date: fo.date,
+        sortTs: fo.createdAt ? new Date(fo.createdAt).getTime() : new Date(fo.date).getTime(),
         status: 'free',
       }));
 
@@ -193,7 +197,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
     }
 
-    const allOrders = [...orders, ...freeOrdersMapped].sort((a, b) => b.date.localeCompare(a.date));
+    const allOrders = [...orders, ...freeOrdersMapped].sort((a, b) => b.sortTs - a.sortTs);
     const totalRevenue = orders.reduce((sum, o) => sum + o.amount, 0);
 
     return res.status(200).json({
