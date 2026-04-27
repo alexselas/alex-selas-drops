@@ -90,7 +90,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
     try {
       const { tracks, trackIds, email } = req.body;
-      const freeOrders = ((await redis.get(FREE_ORDERS_KEY)) || []) as any[];
+      const rawFreeOrders = await redis.get(FREE_ORDERS_KEY);
+      const freeOrders = Array.isArray(rawFreeOrders) ? rawFreeOrders : [];
       freeOrders.push({
         id: `FREE-${Date.now().toString(36).toUpperCase()}`,
         tracks: tracks || [],
@@ -160,7 +161,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }));
 
     // Add free orders from Redis
-    const freeOrders = ((await redis.get(FREE_ORDERS_KEY)) || []) as any[];
+    const rawFreeOrders = await redis.get(FREE_ORDERS_KEY);
+    const freeOrders = Array.isArray(rawFreeOrders) ? rawFreeOrders : [];
     let freeOrdersMapped = freeOrders
       .filter(fo => {
         if (created <= 0) return true;

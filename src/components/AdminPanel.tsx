@@ -56,20 +56,26 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
 
   const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || '';
 
+  const [ordersError, setOrdersError] = useState('');
+
   const fetchOrders = (period: string) => {
     setOrdersLoading(true);
     setOrdersPeriod(period);
+    setOrdersError('');
     fetch(`/api/orders?period=${period}`, {
       headers: { Authorization: `Bearer ${getAdminToken()}` },
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(r.status === 401 ? 'Sesion expirada. Cierra sesion y vuelve a entrar.' : `Error ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         if (data.orders) {
           setOrders(data.orders);
           setOrdersRevenue(data.revenue || 0);
         }
       })
-      .catch(() => {})
+      .catch((e) => { setOrdersError(e.message || 'Error al cargar pedidos'); })
       .finally(() => setOrdersLoading(false));
   };
 
@@ -710,7 +716,9 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
               <div className="col-span-2 text-right">Fecha</div>
             </div>
 
-            {ordersLoading ? (
+            {ordersError ? (
+              <div className="text-center py-8 text-red-400 text-sm">{ordersError}</div>
+            ) : ordersLoading ? (
               <div className="text-center py-8 text-zinc-500 text-sm">Cargando pedidos...</div>
             ) : orders.length === 0 ? (
               <div className="text-center py-8 text-zinc-600 text-sm">Sin pedidos aún</div>

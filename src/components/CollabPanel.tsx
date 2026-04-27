@@ -155,13 +155,15 @@ export default function CollabPanel({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.open(`/collab/${collaborator.id}`, '_blank')}
+          <a
+            href={`/collab/${collaborator.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 text-zinc-400 hover:text-emerald-400 hover:border-emerald-400/30 transition-colors text-sm"
           >
             <ExternalLink className="w-4 h-4" />
             <span className="hidden sm:inline">Acceder a mi perfil</span>
-          </button>
+          </a>
           <button
             onClick={onLogout}
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-400/30 transition-colors text-sm"
