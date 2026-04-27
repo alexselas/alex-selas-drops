@@ -8,6 +8,7 @@ interface CheckoutPanelProps {
   items: CartItem[];
   total: number;
   discount?: number; // 0-1 (e.g. 0.15 = 15%)
+  discountCode?: string;
   onBack: () => void;
   onComplete: () => void;
   onClearCart: () => void;
@@ -30,7 +31,7 @@ function loadPurchasedItems(): CartItem[] {
   }
 }
 
-export default function CheckoutPanel({ items, total, discount = 0, onBack, onComplete, onClearCart }: CheckoutPanelProps) {
+export default function CheckoutPanel({ items, total, discount = 0, discountCode, onBack, onComplete, onClearCart }: CheckoutPanelProps) {
   const discountAmount = total * discount;
   const finalTotal = total - discountAmount;
   const [step, setStep] = useState<CheckoutStep>('review');
@@ -146,6 +147,7 @@ export default function CheckoutPanel({ items, total, discount = 0, onBack, onCo
             price: Math.round((i.track.price * (1 - discount)) * 100) / 100,
           })),
           origin: window.location.origin,
+          discountCode: discountCode || undefined,
         }),
       });
 

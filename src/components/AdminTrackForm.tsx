@@ -250,8 +250,8 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
     title: '',
     artist: defaultArtist || 'Alex Selas',
     authors: '',
-    category: 'sesiones' as Category,
-    price: 9.99,
+    category: 'remixes' as Category,
+    price: 1.99,
     bpm: 128,
     key: '',
     genre: '',
@@ -549,13 +549,18 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
               <label className="block text-xs text-zinc-500 mb-1">Categoría</label>
               <select
                 value={form.category}
-                onChange={e => setForm({ ...form, category: e.target.value as Category })}
+                onChange={e => {
+                  const cat = e.target.value as Category;
+                  const defaultPrices: Record<string, number> = { remixes: 1.99, mashups: 0.99, hypeintros: 0.99, sesiones: 4.99, librerias: form.price };
+                  setForm({ ...form, category: cat, price: defaultPrices[cat] ?? form.price });
+                }}
                 className={inputClass}
               >
-                <option value="sesiones">Sesión</option>
-                <option value="remixes">Remix</option>
-                <option value="mashups">Mashup</option>
-                <option value="librerias">Librería</option>
+                <option value="remixes">Remix (1,99 EUR)</option>
+                <option value="mashups">Mashup (0,99 EUR)</option>
+                <option value="hypeintros">Hype Intro (0,99 EUR)</option>
+                <option value="sesiones">Sesion (4,99 EUR)</option>
+                <option value="librerias">Libreria (precio libre)</option>
               </select>
             </div>
             <div>
@@ -568,7 +573,11 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
                 onChange={e => setForm({ ...form, price: Number(e.target.value) })}
                 className={inputClass}
                 required
+                disabled={form.category !== 'librerias'}
               />
+              {form.category !== 'librerias' && (
+                <p className="text-[10px] text-zinc-600 mt-1">Precio fijo para esta categoria</p>
+              )}
             </div>
             <div>
               <label className="block text-xs text-zinc-500 mb-1">Género</label>

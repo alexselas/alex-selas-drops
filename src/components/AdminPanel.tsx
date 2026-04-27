@@ -93,6 +93,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     sesiones: myTracks.filter(t => t.category === 'sesiones').length,
     remixes: myTracks.filter(t => t.category === 'remixes').length,
     mashups: myTracks.filter(t => t.category === 'mashups').length,
+    hypeintros: myTracks.filter(t => t.category === 'hypeintros').length,
     librerias: myTracks.filter(t => t.category === 'librerias').length,
     featured: myTracks.filter(t => t.featured).length,
     revenue: ordersRevenue,
@@ -100,16 +101,18 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
   };
 
   const categoryLabels: Record<string, string> = {
-    sesiones: 'Sesión',
+    sesiones: 'Sesion',
     remixes: 'Remix',
     mashups: 'Mashup',
-    librerias: 'Librería',
+    hypeintros: 'Hype Intro',
+    librerias: 'Libreria',
   };
 
   const categoryColors: Record<string, string> = {
     sesiones: 'text-emerald-400',
     remixes: 'text-violet-400',
     mashups: 'text-yellow-400',
+    hypeintros: 'text-pink-400',
     librerias: 'text-amber-400',
   };
 
@@ -397,8 +400,9 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                       <option value="sesiones">Sesiones</option>
                       <option value="remixes">Remixes</option>
                       <option value="mashups">Mashups</option>
+                      <option value="hypeintros">Hype Intros</option>
                       <option value="packs">Packs</option>
-                      <option value="librerias">Librerías</option>
+                      <option value="librerias">Librerias</option>
                     </select>
                   </div>
                 </div>

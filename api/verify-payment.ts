@@ -1,11 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
+import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
 const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}
 function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+const redis = new Redis({ url: process.env.KV_REST_API_URL || '', token: process.env.KV_REST_API_TOKEN || '' });
+const USED_WELCOME_KEY = 'used-welcome20';
 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -25,10 +28,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status === 'paid') {
+      // Mark WELCOME20 as used for this email
+      const email = session.customer_details?.email;
+      if (session.metadata?.discount_code === 'WELCOME20' && email) {
+        try {
+          const rawUsed = await redis.get(USED_WELCOME_KEY);
+          const usedEmails: string[] = Array.isArray(rawUsed) ? rawUsed : [];
+          const lower = email.toLowerCase().trim();
+          if (!usedEmails.includes(lower)) {
+            usedEmails.push(lower);
+            await redis.set(USED_WELCOME_KEY, usedEmails);
+          }
+        } catch {}
+      }
       return res.status(200).json({
         paid: true,
         trackIds: session.metadata?.track_ids?.split(',') || [],
-        email: session.customer_details?.email,
+        email,
       });
     }
 

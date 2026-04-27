@@ -200,6 +200,7 @@ export default function App() {
   });
   const [activeCollabId, setActiveCollabId] = useState(getInitialCollabPageId);
   const [collabProfiles, setCollabProfiles] = useState<Record<string, any>>({});
+  const [collabProfilesLoaded, setCollabProfilesLoaded] = useState(false);
 
   // 4 random tracks for colabs page — only recalculate when tracks change, not on re-renders
   const colabRandomFeatured = useMemo(() => {
@@ -212,6 +213,7 @@ export default function App() {
   const [sort, setSort] = useState<SortOption>('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [discount, setDiscount] = useState(0);
+  const [discountCode, setDiscountCode] = useState<string | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
   const TRACKS_PER_PAGE = 10;
@@ -236,7 +238,7 @@ export default function App() {
             const found = data.find((t: Track) => t.id === match[1]);
             if (found) {
               setSelectedTrack(found);
-              setSection('catalog');
+              setSection('colabs');
             }
           }
         } else {
@@ -254,7 +256,8 @@ export default function App() {
     fetch('/api/collab-profiles')
       .then(r => r.json())
       .then(data => { if (data && typeof data === 'object') setCollabProfiles(data); })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setCollabProfilesLoaded(true));
   }, []);
 
   // Reload tracks with admin token when admin logs in
@@ -283,18 +286,18 @@ export default function App() {
     if (section === 'colab-page' && activeCollabId) {
       const prof = collabProfiles[activeCollabId];
       const name = activeCollabId === 'alex-selas' ? 'Alex Selas' : (prof?.artistName || activeCollabId);
-      document.title = `${name} — Music Drop`;
+      document.title = `${name} — MusicDrop By 360DJAcademy`;
     } else {
       const titles: Record<Section, string> = {
-        home: 'MusicDrop',
-        catalog: 'MusicDrop',
-        colabs: 'MusicDrop',
-        'colab-page': 'MusicDrop',
-        'colab-admin': 'MusicDrop',
-        club360: 'Club360',
-        admin: 'MusicDrop — Admin',
+        home: 'MusicDrop By 360DJAcademy',
+        catalog: 'MusicDrop By 360DJAcademy',
+        colabs: 'MusicDrop By 360DJAcademy',
+        'colab-page': 'MusicDrop By 360DJAcademy',
+        'colab-admin': 'MusicDrop By 360DJAcademy',
+        club360: 'Club360 By 360DJAcademy',
+        admin: 'MusicDrop By 360DJAcademy — Admin',
       };
-      document.title = titles[section] || 'MusicDrop';
+      document.title = titles[section] || 'MusicDrop By 360DJAcademy';
     }
   }, [section, activeCollabId, collabProfiles]);
 
@@ -523,8 +526,8 @@ export default function App() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
               <h3 className="text-xl font-bold text-zinc-50 mb-6">Nuestros productores</h3>
-              {/* Producer avatars — Alex Selas first, then collaborators */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-10">
+              {/* Producer avatars — Alex Selas first, then collaborators — wait for profiles to load */}
+              {collabProfilesLoaded && <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-10">
                 {allProducers.map(collab => {
                   const trackCount = collab.id === 'alex-selas'
                     ? alexTrackCount
@@ -551,7 +554,7 @@ export default function App() {
                     </button>
                   );
                 })}
-              </div>
+              </div>}
 
               {/* Promo banner */}
               <div className="relative overflow-hidden rounded-2xl mb-10">
@@ -785,10 +788,12 @@ export default function App() {
             items={cart.items}
             total={cart.total}
             discount={discount}
+            discountCode={discountCode}
             onBack={() => setShowCheckout(false)}
             onClearCart={cart.clearCart}
             onComplete={() => {
               setDiscount(0);
+              setDiscountCode(undefined);
               setShowCheckout(false);
               navigate('colabs');
             }}
@@ -826,9 +831,10 @@ export default function App() {
             isInCart={cart.isInCart(selectedTrack.id)}
             onClose={() => {
               setSelectedTrack(null);
-              // Restore clean URL
+              // Restore clean URL and go back to main page
               if (window.location.pathname.startsWith('/track/')) {
                 window.history.replaceState({}, '', '/');
+                setSection('colabs');
               }
             }}
             onPlay={() => player.play(selectedTrack)}
@@ -844,8 +850,9 @@ export default function App() {
         total={cart.total}
         onClose={() => cart.setIsOpen(false)}
         onRemove={cart.removeItem}
-        onCheckout={(d) => {
+        onCheckout={(d, code) => {
           setDiscount(d);
+          setDiscountCode(code);
           cart.setIsOpen(false);
           setShowCheckout(true);
         }}

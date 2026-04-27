@@ -5,9 +5,9 @@ import type { CartItem as CartItemType } from '../types';
 import CartItem from './CartItem';
 import { formatPrice } from '../lib/utils';
 
-const DISCOUNT_CODES: Record<string, { discount: number; minTracks: number }> = {
+const DISCOUNT_CODES: Record<string, { discount: number; minTracks: number; oneTime?: boolean }> = {
   'DROPS20': { discount: 0.20, minTracks: 3 },
-  'WELCOME20': { discount: 0.20, minTracks: 3 },
+  'WELCOME20': { discount: 0.20, minTracks: 3, oneTime: true },
 };
 
 interface CartDrawerProps {
@@ -16,7 +16,7 @@ interface CartDrawerProps {
   total: number;
   onClose: () => void;
   onRemove: (trackId: string) => void;
-  onCheckout: (discount: number) => void;
+  onCheckout: (discount: number, discountCode?: string) => void;
 }
 
 export default function CartDrawer({ isOpen, items, total, onClose, onRemove, onCheckout }: CartDrawerProps) {
@@ -187,7 +187,7 @@ export default function CartDrawer({ isOpen, items, total, onClose, onRemove, on
                   <span className="text-2xl font-bold gradient-text">{formatPrice(finalTotal)}</span>
                 </div>
                 <button
-                  onClick={() => onCheckout(discount)}
+                  onClick={() => onCheckout(discount, appliedCode || undefined)}
                   className="w-full py-3.5 rounded-2xl gradient-bg text-black font-bold text-lg shadow-lg glow hover:scale-[1.02] active:scale-95 transition-transform"
                 >
                   Ir al Pago

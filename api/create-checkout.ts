@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { items, origin } = req.body;
+    const { items, origin, discountCode } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'No hay items en el carrito' });
@@ -77,10 +77,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const session = await stripe.checkout.sessions.create({
       line_items: line_items as any[],
       mode: 'payment',
+      payment_method_types: ['card', 'paypal'] as any,
       success_url: `${safeOrigin}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${safeOrigin}?payment=cancelled`,
       metadata: {
         track_ids: items.map((i: { id: string }) => i.id).join(','),
+        ...(discountCode ? { discount_code: discountCode } : {}),
       },
     });
 

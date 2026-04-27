@@ -37,7 +37,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
   const [artist, setArtist] = useState(first?.artist || defaultArtist || 'Alex Selas');
   const [authors, setAuthors] = useState(first?.authors || '');
   const [category, setCategory] = useState<Category>(first?.category || 'remixes');
-  const [price, setPrice] = useState(isEditing ? existingTracks!.reduce((s, t) => s + t.price, 0) : 9.99);
+  const [price, setPrice] = useState(isEditing ? existingTracks!.reduce((s, t) => s + t.price, 0) : 3.99);
   const [description, setDescription] = useState(first?.description || '');
   const [tags, setTags] = useState(first?.tags?.join(', ') || '');
   const [featured, setFeatured] = useState(first?.featured || false);
@@ -165,7 +165,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (tracks.length === 0 || !packTitle) return;
+    if (tracks.length < 5 || !packTitle) return;
     setSubmitting(true);
 
     // Wait for all track uploads + analysis to finish (up to 60s)
@@ -251,7 +251,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
           </div>
           <div>
             <h3 className="text-lg font-semibold text-zinc-200">{isEditing ? 'Editar Pack' : 'Nuevo Pack'}</h3>
-            <p className="text-xs text-zinc-500">{isEditing ? `${tracks.length} canciones` : 'Una portada, hasta 10 canciones'}</p>
+            <p className="text-xs text-zinc-500">{isEditing ? `${tracks.length} canciones` : 'Una portada, minimo 5 canciones (max 10)'}</p>
           </div>
         </div>
         <button onClick={onCancel} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
@@ -307,12 +307,18 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs text-zinc-500 mb-1">Categoría</label>
-            <select value={category} onChange={e => setCategory(e.target.value as Category)} className={inputClass}>
-              <option value="sesiones">Sesión</option>
-              <option value="remixes">Remix</option>
-              <option value="mashups">Mashup</option>
-              <option value="packs">Pack</option>
-              <option value="librerias">Librería</option>
+            <select value={category} onChange={e => {
+              const cat = e.target.value as Category;
+              setCategory(cat);
+              const defaultPrices: Record<string, number> = { remixes: 1.99, mashups: 0.99, hypeintros: 0.99, sesiones: 4.99, packs: 3.99, librerias: price };
+              if (!isEditing) setPrice(defaultPrices[cat] ?? price);
+            }} className={inputClass}>
+              <option value="remixes">Remix (1,99 EUR/track)</option>
+              <option value="mashups">Mashup (0,99 EUR/track)</option>
+              <option value="hypeintros">Hype Intro (0,99 EUR/track)</option>
+              <option value="sesiones">Sesion (4,99 EUR/track)</option>
+              <option value="packs">Pack (3,99 EUR)</option>
+              <option value="librerias">Libreria (precio libre)</option>
             </select>
           </div>
           <div>
@@ -460,7 +466,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
         <div className="flex items-center gap-3 pt-2 border-t border-zinc-800/50">
           <button
             type="submit"
-            disabled={submitting || tracks.length === 0 || !packTitle}
+            disabled={submitting || tracks.length < 5 || !packTitle}
             className="px-8 py-3 rounded-2xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}

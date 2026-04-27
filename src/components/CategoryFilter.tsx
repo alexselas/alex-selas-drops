@@ -1,4 +1,4 @@
-import { Disc3, Radio, Repeat, Layers, Library, Package } from 'lucide-react';
+import { Disc3, Radio, Repeat, Layers, Library, Package, Zap } from 'lucide-react';
 import type { Category } from '../types';
 
 interface CategoryFilterProps {
@@ -10,9 +10,10 @@ const categories: { value: Category | 'all' | 'packs'; label: string; icon: type
   { value: 'all', label: 'Todos', icon: Disc3 },
   { value: 'remixes', label: 'Remixes', icon: Repeat },
   { value: 'mashups', label: 'Mashups', icon: Layers },
+  { value: 'hypeintros', label: 'Hype Intros', icon: Zap },
   { value: 'packs', label: 'Packs', icon: Package },
   { value: 'sesiones', label: 'Sesiones', icon: Radio },
-  { value: 'librerias', label: 'Librerías', icon: Library },
+  { value: 'librerias', label: 'Librerias', icon: Library },
 ];
 
 export default function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
