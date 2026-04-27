@@ -20,7 +20,7 @@ const categories: { value: Category | 'all' | 'packs'; label: string; icon: type
 
 export default function CategoryFilter({ selected, onSelect, showOriginales }: CategoryFilterProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
       {categories.filter(cat => !cat.onlyCollab || showOriginales).map(cat => {
         const Icon = cat.icon;
         const active = selected === cat.value;
@@ -28,13 +28,13 @@ export default function CategoryFilter({ selected, onSelect, showOriginales }: C
           <button
             key={cat.value}
             onClick={() => onSelect(cat.value)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               active
                 ? 'gradient-bg text-black shadow-lg glow'
                 : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
             }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-3.5 h-3.5" />
             {cat.label}
           </button>
         );
