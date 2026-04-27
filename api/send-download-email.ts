@@ -9,6 +9,8 @@ const resend = new Resend(process.env.RESEND_API_KEY || '');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 const redis = new Redis({ url: process.env.KV_REST_API_URL || '', token: process.env.KV_REST_API_TOKEN || '' });
 
+const LOGO_URL = 'https://zuct57sgk5d1hhzr.public.blob.vercel-storage.com/logo/360djacademy-logo-HHE18DFGmGmD6hSP9jtuyiSUTarGeE.png';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders(req);
   Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
@@ -17,18 +19,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { email, sessionId, trackIds } = req.body;
-
-    if (!email || !sessionId) {
-      return res.status(400).json({ error: 'Faltan email o sessionId' });
-    }
+    if (!email || !sessionId) return res.status(400).json({ error: 'Faltan email o sessionId' });
 
     // Verify Stripe session
     let session;
     try {
       session = await stripe.checkout.sessions.retrieve(sessionId);
-      if (session.payment_status !== 'paid') {
-        return res.status(403).json({ error: 'Pago no confirmado' });
-      }
+      if (session.payment_status !== 'paid') return res.status(403).json({ error: 'Pago no confirmado' });
     } catch {
       return res.status(403).json({ error: 'Sesion no valida' });
     }
@@ -37,62 +34,97 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const allTracks = await redis.get('tracks') as any[] | null;
     if (!allTracks) return res.status(500).json({ error: 'Error cargando tracks' });
 
-    // Get the track IDs to include — from request or from session metadata
     const ids: string[] = Array.isArray(trackIds) ? trackIds : (session.metadata?.track_ids?.split(',').filter(Boolean) || []);
-
     const tracks = ids.map(id => allTracks.find((t: any) => t.id === id)).filter((t: any) => t && t.fileUrl);
     if (tracks.length === 0) return res.status(400).json({ error: 'No tracks encontrados' });
 
-    // Validate fileUrls
     for (const t of tracks) {
       if (!t.fileUrl.includes('.vercel-storage.com') && !t.fileUrl.includes('.public.blob.vercel-storage.com')) {
         return res.status(400).json({ error: 'URL de archivo no valida' });
       }
     }
 
-    const trackRows = tracks.map((t: any) => `
-      <tr>
-        <td style="padding: 12px 16px; border-bottom: 1px solid #2a2a2a;">
-          <span style="color: #e4e4e7; font-weight: 600;">${t.title}</span>
-        </td>
-        <td style="padding: 12px 16px; border-bottom: 1px solid #2a2a2a; text-align: right;">
-          <a href="${t.fileUrl}" style="display: inline-block; padding: 8px 20px; background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; font-weight: 700; text-decoration: none; border-radius: 10px; font-size: 13px;">Descargar MP3</a>
-        </td>
-      </tr>`).join('');
+    // Build track rows with cover art
+    const trackRows = tracks.map((t: any) => {
+      const cover = (t.coverUrl && t.coverUrl.includes('.vercel-storage.com'))
+        ? `<img src="${t.coverUrl}" alt="" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover;" />`
+        : `<div style="width: 48px; height: 48px; background: linear-gradient(135deg, #facc15, #f59e0b88); border-radius: 10px; display: flex; align-items: center; justify-content: center;"><span style="font-size: 22px;">&#9835;</span></div>`;
 
-    const html = `
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset="utf-8"></head>
+      return `<div style="display: flex; align-items: center; background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;">
+        ${cover}
+        <div style="margin-left: 14px; flex: 1;">
+          <p style="color: #e4e4e7; font-size: 14px; font-weight: 600; margin: 0 0 3px;">${t.title}</p>
+          <p style="color: #71717a; font-size: 12px; margin: 0;">${t.artist || ''}${t.bpm > 0 ? ` &middot; ${t.bpm} BPM` : ''} &middot; MP3 320kbps</p>
+        </div>
+        <div style="flex-shrink: 0; margin-left: 12px;">
+          <a href="${t.fileUrl}" style="display: inline-block; padding: 8px 16px; background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; font-weight: 700; text-decoration: none; border-radius: 10px; font-size: 12px;">Descargar</a>
+        </div>
+      </div>`;
+    }).join('');
+
+    const totalAmount = (session.amount_total || 0) / 100;
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
     <body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-      <div style="max-width: 520px; margin: 0 auto; padding: 40px 20px;">
-        <div style="text-align: center; margin-bottom: 32px;">
-          <h1 style="color: #fafafa; font-size: 24px; margin: 0; letter-spacing: -0.5px;">
-            MUSIC <span style="background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; padding: 2px 10px; border-radius: 6px; font-size: 14px; vertical-align: middle; margin-left: 6px;">DROP</span>
-          </h1>
-          <p style="color: #52525b; font-size: 11px; margin: 6px 0 0; letter-spacing: 2px;">by 360DJAcademy</p>
-        </div>
-        <div style="background-color: #141414; border: 1px solid #262626; border-radius: 16px; overflow: hidden;">
-          <div style="padding: 28px 24px; text-align: center; border-bottom: 1px solid #262626;">
-            <div style="width: 56px; height: 56px; background: rgba(34,197,94,0.15); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 28px;">&#10003;</span>
+      <div style="max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+        <div style="background-color: #0a0a0a; border-radius: 20px; overflow: hidden; border: 1px solid #1a1a1a;">
+
+          <!-- HEADER -->
+          <div style="background: linear-gradient(135deg, #1a1400 0%, #0a0a0a 50%, #0a0a0a 100%); padding: 40px 32px 24px; text-align: center;">
+            <img src="${LOGO_URL}" alt="360 DJ Academy" style="width: 120px; height: auto; margin: 0 auto 12px; display: block;" />
+            <h1 style="color: #fafafa; font-size: 22px; margin: 0 0 4px; font-weight: 700; letter-spacing: 1px;">MUSIC <span style="background: linear-gradient(135deg, #facc15, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">DROP</span></h1>
+          </div>
+
+          <!-- HERO -->
+          <div style="padding: 32px 32px 24px; text-align: center;">
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05)); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 32px; color: #22c55e;">&#10003;</span>
             </div>
-            <h2 style="color: #fafafa; font-size: 20px; margin: 0 0 8px;">Pago completado</h2>
-            <p style="color: #a1a1aa; font-size: 14px; margin: 0;">Gracias por tu compra. Aqui tienes tus descargas.</p>
+            <h2 style="color: #fafafa; font-size: 26px; margin: 0 0 10px; font-weight: 700;">Pago completado</h2>
+            <p style="color: #a1a1aa; font-size: 15px; margin: 0; line-height: 1.5;">Gracias por tu compra. Aqui tienes tus descargas.</p>
+            ${totalAmount > 0 ? `<p style="color: #facc15; font-size: 20px; font-weight: 700; margin: 12px 0 0;">${totalAmount.toFixed(2)} &euro;</p>` : ''}
           </div>
-          <table style="width: 100%; border-collapse: collapse;">
+
+          <!-- SEPARATOR -->
+          <div style="padding: 0 32px;"><div style="height: 1px; background: linear-gradient(to right, transparent, #2a2a2a, transparent);"></div></div>
+
+          <!-- TRACKS -->
+          <div style="padding: 24px 32px;">
+            <p style="color: #71717a; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 16px; font-weight: 600;">Tus descargas</p>
             ${trackRows}
-          </table>
-          <div style="padding: 20px 24px; text-align: center;">
-            <p style="color: #71717a; font-size: 12px; margin: 0;">MP3 320kbps · Los links de descarga son permanentes</p>
           </div>
-        </div>
-        <div style="text-align: center; margin-top: 24px;">
-          <p style="color: #52525b; font-size: 12px; margin: 0;">MusicDrop by 360DJAcademy · musicdrop.es</p>
+
+          <!-- INFO -->
+          <div style="padding: 0 32px 24px; text-align: center;">
+            <p style="color: #71717a; font-size: 12px; margin: 0;">MP3 320kbps &middot; Los links de descarga son permanentes</p>
+          </div>
+
+          <!-- SEPARATOR -->
+          <div style="padding: 0 32px;"><div style="height: 1px; background: linear-gradient(to right, transparent, #1e1e1e, transparent);"></div></div>
+
+          <!-- CTA -->
+          <div style="padding: 24px 32px; text-align: center;">
+            <a href="https://musicdrop.es" style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #facc15, #f59e0b); color: #000; font-weight: 800; text-decoration: none; border-radius: 14px; font-size: 14px;">Explorar mas tracks</a>
+          </div>
+
+          <!-- PROMO -->
+          <div style="padding: 16px 32px 24px; text-align: center;">
+            <p style="color: #71717a; font-size: 12px; margin: 0 0 8px;">Anade 3 o mas tracks y usa este codigo:</p>
+            <div style="display: inline-block; background: rgba(250,204,21,0.08); border: 1px dashed rgba(250,204,21,0.3); border-radius: 8px; padding: 8px 24px;">
+              <span style="color: #facc15; font-size: 18px; font-weight: 800; letter-spacing: 3px;">DROPS20</span>
+            </div>
+            <p style="color: #52525b; font-size: 11px; margin: 8px 0 0;">20% de descuento en pedidos de 3+ tracks</p>
+          </div>
+
+          <!-- FOOTER -->
+          <div style="padding: 20px 32px 28px; text-align: center; background: #080808;">
+            <p style="color: #3f3f46; font-size: 11px; margin: 0 0 6px;">Music Drop by 360DJAcademy &middot; <a href="https://musicdrop.es" style="color: #52525b; text-decoration: none;">musicdrop.es</a></p>
+            <p style="color: #27272a; font-size: 10px; margin: 0;">Recibes este email porque compraste en Music Drop.</p>
+          </div>
+
         </div>
       </div>
-    </body>
-    </html>`;
+    </body></html>`;
 
     const { error } = await resend.emails.send({
       from: 'MusicDrop <onboarding@resend.dev>',
