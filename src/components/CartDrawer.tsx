@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
-import { X, ShoppingBag, Tag, Check, Lock } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, ShoppingBag, Tag, Check, Lock, Package, Trash2, Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { CartItem as CartItemType } from '../types';
 import CartItem from './CartItem';
 import { formatPrice } from '../lib/utils';
+
+type CartDisplayItem = { type: 'track'; item: CartItemType } | { type: 'pack'; packId: string; packName: string; coverUrl: string; items: CartItemType[]; price: number };
 
 const DISCOUNT_CODES: Record<string, { discount: number; minTracks: number; oneTime?: boolean }> = {
   'DROPS20': { discount: 0.20, minTracks: 3 },
@@ -25,6 +27,24 @@ export default function CartDrawer({ isOpen, items, total, onClose, onRemove, on
   const [codeError, setCodeError] = useState<string | false>(false);
 
   const paidItems = items.filter(i => i.track.price > 0);
+
+  // Group pack items for display
+  const cartDisplayItems = useMemo(() => {
+    const seen = new Set<string>();
+    const result: CartDisplayItem[] = [];
+    for (const item of items) {
+      if (item.track.packId) {
+        if (seen.has(item.track.packId)) continue;
+        seen.add(item.track.packId);
+        const packItems = items.filter(i => i.track.packId === item.track.packId);
+        result.push({ type: 'pack', packId: item.track.packId, packName: item.track.packName || 'Pack', coverUrl: item.track.coverUrl, items: packItems, price: packItems.reduce((s, i) => s + i.track.price, 0) });
+      } else {
+        result.push({ type: 'track', item });
+      }
+    }
+    return result;
+  }, [items]);
+
   // Auto-remove code if items drop below minimum
   useEffect(() => {
     if (appliedCode && DISCOUNT_CODES[appliedCode] && paidItems.length < DISCOUNT_CODES[appliedCode].minTracks) {
@@ -80,7 +100,7 @@ export default function CartDrawer({ isOpen, items, total, onClose, onRemove, on
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-yellow-400" />
                 <h2 className="text-lg font-bold text-zinc-50">
-                  Carrito ({items.length})
+                  Carrito ({cartDisplayItems.length})
                 </h2>
               </div>
               <button
@@ -100,13 +120,37 @@ export default function CartDrawer({ isOpen, items, total, onClose, onRemove, on
                   <p className="text-zinc-600 text-sm mt-1">Explora el catálogo y añade música</p>
                 </div>
               ) : (
-                items.map(item => (
-                  <CartItem
-                    key={item.track.id}
-                    item={item}
-                    onRemove={() => onRemove(item.track.id)}
-                  />
-                ))
+                cartDisplayItems.map(di => {
+                  if (di.type === 'track') {
+                    return (
+                      <CartItem
+                        key={di.item.track.id}
+                        item={di.item}
+                        onRemove={() => onRemove(di.item.track.id)}
+                      />
+                    );
+                  }
+                  return (
+                    <div key={di.packId} className="p-3 rounded-[14px] bg-zinc-800/30">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400/20 to-blue-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                          {di.coverUrl ? <img src={di.coverUrl} alt="" className="w-full h-full object-cover" /> : <Package className="w-5 h-5 text-blue-400" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-zinc-200 truncate">{di.packName}</p>
+                            <span className="text-[9px] px-1 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span>
+                          </div>
+                          <p className="text-xs text-zinc-500">{di.items.length} tracks</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-yellow-400">{formatPrice(di.price)}</span>
+                          <button onClick={() => di.items.forEach(i => onRemove(i.track.id))} className="p-1.5 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
 
