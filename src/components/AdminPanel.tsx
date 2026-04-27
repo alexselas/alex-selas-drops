@@ -154,8 +154,12 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     return list;
   })();
   const [emailsCopied, setEmailsCopied] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [sendingNewsletter, setSendingNewsletter] = useState(false);
   const [newsletterResult, setNewsletterResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  // Init selected emails when newsletter emails change
+  useEffect(() => { setSelectedEmails(new Set(newsletterEmails.map(e => e.email))); }, [orders]);
 
   const tabs: { id: AdminTab; label: string; icon: typeof Music }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -764,15 +768,42 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
             </div>
           ) : (
             <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden">
+              {/* Select all header */}
+              <div className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-800/30">
+                <input
+                  type="checkbox"
+                  checked={selectedEmails.size === newsletterEmails.length && newsletterEmails.length > 0}
+                  onChange={e => {
+                    if (e.target.checked) setSelectedEmails(new Set(newsletterEmails.map(x => x.email)));
+                    else setSelectedEmails(new Set());
+                  }}
+                  className="w-4 h-4 rounded accent-yellow-400 cursor-pointer"
+                />
+                <span className="text-xs text-zinc-400 font-medium">Seleccionar todos ({selectedEmails.size}/{newsletterEmails.length})</span>
+              </div>
               <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 text-xs text-zinc-500 font-medium border-b border-zinc-800/30">
-                <div className="col-span-5">Email</div>
+                <div className="col-span-1"></div>
+                <div className="col-span-4">Email</div>
                 <div className="col-span-3">Tipo</div>
                 <div className="col-span-4 text-right">Ultimo pedido</div>
               </div>
               <div className="divide-y divide-zinc-800/30 max-h-[500px] overflow-y-auto">
                 {newsletterEmails.map(entry => (
-                  <div key={entry.email} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
-                    <div className="sm:col-span-5 text-sm text-zinc-300 truncate">{entry.email}</div>
+                  <div key={entry.email} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors items-center">
+                    <div className="sm:col-span-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedEmails.has(entry.email)}
+                        onChange={e => {
+                          const next = new Set(selectedEmails);
+                          if (e.target.checked) next.add(entry.email);
+                          else next.delete(entry.email);
+                          setSelectedEmails(next);
+                        }}
+                        className="w-4 h-4 rounded accent-yellow-400 cursor-pointer"
+                      />
+                    </div>
+                    <div className="sm:col-span-4 text-sm text-zinc-300 truncate">{entry.email}</div>
                     <div className="sm:col-span-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         entry.type === 'Pago' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/30 text-zinc-400'
@@ -792,7 +823,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
           {/* Send Newsletter */}
           <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
             <h3 className="text-sm font-semibold text-zinc-300 mb-2">Enviar Newsletter</h3>
-            <p className="text-xs text-zinc-500 mb-4">Envia un email a todos los suscriptores con los tracks subidos en los ultimos 7 dias.</p>
+            <p className="text-xs text-zinc-500 mb-4">Envia un email a los {selectedEmails.size} suscriptores seleccionados con los tracks subidos en los ultimos 7 dias.</p>
             {newsletterResult && (
               <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm mb-4 ${newsletterResult.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
                 {newsletterResult.ok ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <Mail className="w-4 h-4 flex-shrink-0" />}
@@ -801,13 +832,15 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
             )}
             <button
               onClick={async () => {
-                if (!confirm('Enviar newsletter a TODOS los suscriptores con las novedades de los ultimos 7 dias?')) return;
+                if (selectedEmails.size === 0) { alert('Selecciona al menos un email'); return; }
+                if (!confirm(`Enviar newsletter a ${selectedEmails.size} suscriptores?`)) return;
                 setSendingNewsletter(true);
                 setNewsletterResult(null);
                 try {
                   const r = await fetch('/api/send-newsletter', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}` },
+                    body: JSON.stringify({ emails: Array.from(selectedEmails) }),
                   });
                   const data = await r.json();
                   if (data.ok) {
@@ -821,11 +854,11 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                   setSendingNewsletter(false);
                 }
               }}
-              disabled={sendingNewsletter}
+              disabled={sendingNewsletter || selectedEmails.size === 0}
               className="flex items-center gap-2 px-6 py-3 rounded-xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] transition-transform disabled:opacity-50"
             >
               {sendingNewsletter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-              {sendingNewsletter ? 'Enviando...' : 'Enviar Newsletter'}
+              {sendingNewsletter ? 'Enviando...' : `Enviar Newsletter (${selectedEmails.size})`}
             </button>
           </div>
         </motion.div>

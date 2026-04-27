@@ -30,6 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const { emails: clientEmails } = req.body || {};
+
     // 1. Get tracks uploaded in last 7 days
     const allTracks = await redis.get('tracks') as any[] | null;
     if (!allTracks) return res.status(500).json({ error: 'No tracks' });
@@ -154,8 +156,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'No hay emails de suscriptores' });
     }
 
-    // 5. Send to all emails (Resend batch, max 100 per call)
-    const emailList = Array.from(emails);
+    // 5. Filter to only selected emails if provided
+    let emailList = Array.from(emails);
+    if (Array.isArray(clientEmails) && clientEmails.length > 0) {
+      const selected = new Set(clientEmails.map((e: string) => e.toLowerCase().trim()));
+      emailList = emailList.filter(e => selected.has(e));
+    }
+
+    if (emailList.length === 0) {
+      return res.status(400).json({ error: 'Ningun email seleccionado encontrado' });
+    }
     let sent = 0;
     let errors = 0;
 
