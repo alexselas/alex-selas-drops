@@ -147,6 +147,7 @@ export default function CheckoutPanel({ items, total, discount = 0, discountCode
             title: i.track.title,
             price: Math.round((i.track.price * (1 - discount)) * 100) / 100,
           })),
+          allTrackIds: items.map(i => i.track.id),
           origin: window.location.origin,
           discountCode: discountCode || undefined,
         }),

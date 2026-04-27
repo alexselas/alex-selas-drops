@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { items, origin, discountCode } = req.body;
+    const { items, origin, discountCode, allTrackIds } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'No hay items en el carrito' });
@@ -81,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success_url: `${safeOrigin}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${safeOrigin}?payment=cancelled`,
       metadata: {
-        track_ids: items.map((i: { id: string }) => i.id).join(','),
+        track_ids: (Array.isArray(allTrackIds) ? allTrackIds : items.map((i: { id: string }) => i.id)).join(','),
         ...(discountCode ? { discount_code: discountCode } : {}),
       },
     });
