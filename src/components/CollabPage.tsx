@@ -414,12 +414,12 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
               return (
                 <div
                   key={track.id}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer"
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${({remixes:'bg-violet-950/30 border-violet-800/20 hover:border-violet-400/30',mashups:'bg-yellow-950/30 border-yellow-800/20 hover:border-yellow-400/30',hypeintros:'bg-pink-950/30 border-pink-800/20 hover:border-pink-400/30',transiciones:'bg-cyan-950/30 border-cyan-800/20 hover:border-cyan-400/30',sesiones:'bg-emerald-950/30 border-emerald-800/20 hover:border-emerald-400/30',originales:'bg-orange-950/30 border-orange-800/20 hover:border-orange-400/30'} as Record<string,string>)[track.category] || 'bg-[#1a1a1a] border-zinc-800/50 hover:border-yellow-400/20'}`}
                   onClick={() => onDetail(track)}
                 >
                   <button
                     onClick={e => { e.stopPropagation(); onPlay(track); }}
-                    className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
+                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all group/play ${({remixes:'bg-violet-900/40 hover:bg-violet-500',mashups:'bg-yellow-900/40 hover:bg-yellow-500',hypeintros:'bg-pink-900/40 hover:bg-pink-500',transiciones:'bg-cyan-900/40 hover:bg-cyan-500',sesiones:'bg-emerald-900/40 hover:bg-emerald-500',originales:'bg-orange-900/40 hover:bg-orange-500'} as Record<string,string>)[track.category] || 'bg-zinc-800 hover:gradient-bg'}`}
                   >
                     {isCurrentTrack && isPlaying ? (
                       <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" />
@@ -504,7 +504,7 @@ function PackRow({ item, expanded, onToggle, currentTrackId, isPlaying, isInCart
   return (
     <div className="rounded-xl overflow-hidden">
       <div
-        className={`flex items-center gap-3 p-3 bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer ${expanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
+        className={`flex items-center gap-3 p-3 bg-blue-950/30 border border-blue-800/20 hover:border-blue-400/30 transition-colors cursor-pointer ${expanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
         onClick={onToggle}
       >
         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex items-center justify-center">
