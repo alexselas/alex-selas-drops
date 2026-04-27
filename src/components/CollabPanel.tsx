@@ -61,14 +61,20 @@ export default function CollabPanel({
   const [ordersRevenue, setOrdersRevenue] = useState(0);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersPeriod, setOrdersPeriod] = useState('all');
+  const [ordersPage, setOrdersPage] = useState(1);
+  const ORDERS_PER_PAGE = 20;
 
   const fetchOrders = (period: string) => {
     setOrdersLoading(true);
     setOrdersPeriod(period);
-    fetch(`/api/orders?period=${period}`, {
+    setOrdersPage(1);
+    fetch(`/api/orders?period=${period}&limit=100`, {
       headers: { Authorization: `Bearer ${collabToken}` },
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(r.status === 401 ? 'Sesion expirada' : `Error ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         if (data.orders) {
           setOrders(data.orders);
@@ -80,6 +86,9 @@ export default function CollabPanel({
   };
 
   useEffect(() => { fetchOrders('all'); }, []);
+
+  const totalOrderPages = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
+  const paginatedOrders = orders.slice((ordersPage - 1) * ORDERS_PER_PAGE, ordersPage * ORDERS_PER_PAGE);
 
   const myTracks = tracks.filter(t => t.collaboratorId === collaborator.id);
 
@@ -270,7 +279,7 @@ export default function CollabPanel({
               <div className="text-center py-8 text-zinc-600 text-sm">Sin pedidos aun</div>
             ) : (
               <div className="divide-y divide-zinc-800/30">
-                {orders.map(order => (
+                {paginatedOrders.map(order => (
                   <div key={order.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
                     <div className="sm:col-span-1 text-xs text-zinc-500 font-mono">{order.id}</div>
                     <div className="sm:col-span-4 text-sm text-zinc-300 truncate">{order.tracks.join(', ')}</div>
@@ -289,8 +298,43 @@ export default function CollabPanel({
             )}
           </div>
 
+          {/* Pagination */}
+          {totalOrderPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
+                disabled={ordersPage <= 1}
+                className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Anterior
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalOrderPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setOrdersPage(p)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                      ordersPage === p
+                        ? 'gradient-bg text-black'
+                        : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setOrdersPage(p => Math.min(totalOrderPages, p + 1))}
+                disabled={ordersPage >= totalOrderPages}
+                className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
+
           <p className="text-xs text-zinc-600 text-center">
-            Solo aparecen pedidos que incluyen tus tracks
+            Pagina {ordersPage} de {totalOrderPages} · {orders.length} pedidos · Solo tus tracks
           </p>
         </motion.div>
       )}

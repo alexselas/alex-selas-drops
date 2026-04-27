@@ -48,21 +48,23 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  // Orders from Stripe
+  // Orders
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersRevenue, setOrdersRevenue] = useState(0);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersPeriod, setOrdersPeriod] = useState('all');
+  const [ordersError, setOrdersError] = useState('');
+  const [ordersPage, setOrdersPage] = useState(1);
+  const ORDERS_PER_PAGE = 20;
 
   const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || '';
-
-  const [ordersError, setOrdersError] = useState('');
 
   const fetchOrders = (period: string) => {
     setOrdersLoading(true);
     setOrdersPeriod(period);
     setOrdersError('');
-    fetch(`/api/orders?period=${period}`, {
+    setOrdersPage(1);
+    fetch(`/api/orders?period=${period}&limit=100`, {
       headers: { Authorization: `Bearer ${getAdminToken()}` },
     })
       .then(r => {
@@ -78,6 +80,9 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
       .catch((e) => { setOrdersError(e.message || 'Error al cargar pedidos'); })
       .finally(() => setOrdersLoading(false));
   };
+
+  const totalOrderPages = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
+  const paginatedOrders = orders.slice((ordersPage - 1) * ORDERS_PER_PAGE, ordersPage * ORDERS_PER_PAGE);
 
   useEffect(() => { fetchOrders('all'); }, []);
 
@@ -721,15 +726,21 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
             ) : ordersLoading ? (
               <div className="text-center py-8 text-zinc-500 text-sm">Cargando pedidos...</div>
             ) : orders.length === 0 ? (
-              <div className="text-center py-8 text-zinc-600 text-sm">Sin pedidos aún</div>
+              <div className="text-center py-8 text-zinc-600 text-sm">Sin pedidos aun</div>
             ) : (
               <div className="divide-y divide-zinc-800/30">
-                {orders.map(order => (
+                {paginatedOrders.map(order => (
                   <div key={order.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
                     <div className="sm:col-span-1 text-xs text-zinc-500 font-mono">{order.id}</div>
                     <div className="sm:col-span-4 text-sm text-zinc-300 truncate">{order.tracks.join(', ')}</div>
                     <div className="sm:col-span-3 text-sm text-zinc-400 truncate">{order.email}</div>
-                    <div className="sm:col-span-2 text-sm font-semibold text-emerald-400 sm:text-right">{formatPrice(order.amount)}</div>
+                    <div className="sm:col-span-2 text-sm font-semibold sm:text-right">
+                      {order.amount > 0 ? (
+                        <span className="text-emerald-400">{formatPrice(order.amount)}</span>
+                      ) : (
+                        <span className="text-zinc-500">Gratis</span>
+                      )}
+                    </div>
                     <div className="sm:col-span-2 text-xs text-zinc-500 sm:text-right">{order.date}</div>
                   </div>
                 ))}
@@ -737,8 +748,43 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
             )}
           </div>
 
+          {/* Pagination */}
+          {totalOrderPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
+                disabled={ordersPage <= 1}
+                className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Anterior
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalOrderPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setOrdersPage(p)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                      ordersPage === p
+                        ? 'gradient-bg text-black'
+                        : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setOrdersPage(p => Math.min(totalOrderPages, p + 1))}
+                disabled={ordersPage >= totalOrderPages}
+                className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
+
           <p className="text-xs text-zinc-600 text-center">
-            Datos en tiempo real desde Stripe
+            Pagina {ordersPage} de {totalOrderPages} · {orders.length} pedidos
           </p>
         </motion.div>
       )}
