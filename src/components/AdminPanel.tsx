@@ -5,7 +5,7 @@ import {
   LayoutDashboard, ListMusic, ShoppingBag, Settings, Users, Mail,
   TrendingUp, DollarSign, Eye, Play, Radio, Layers, Library,
   Search, ChevronDown, Star, ChevronUp, GripVertical, Copy,
-  Save, Loader2, User, Upload, Image, Link, CheckCircle,
+  Save, Loader2, User, Upload, Image, Link, CheckCircle, Download,
 } from 'lucide-react';
 import type { Track, Category, CollaboratorProfile } from '../types';
 import { formatPrice, formatDuration } from '../lib/utils';
@@ -836,6 +836,29 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
   const [isAddingPack, setIsAddingPack] = useState(false);
   const [editingPackTracks, setEditingPackTracks] = useState<Track[] | null>(null);
   const [trackSearch, setTrackSearch] = useState('');
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownload = async (track: Track) => {
+    if (!track.fileUrl) return;
+    setDownloadingId(track.id);
+    try {
+      const res = await fetch(track.fileUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${track.artist || 'Track'} - ${track.title}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Download error:', e);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [localPhotoPreview, setLocalPhotoPreview] = useState('');
@@ -979,7 +1002,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
     setDeleting(false);
   };
 
-  const collabTracks = tracks.filter(t => t.collaboratorId === selectedId);
+  const collabTracks = selectedId === '__all__' ? tracks.filter(t => !!t.collaboratorId) : tracks.filter(t => t.collaboratorId === selectedId);
   const filteredCollabTracks = collabTracks.filter(t => {
     if (!trackSearch.trim()) return true;
     const q = trackSearch.toLowerCase();
@@ -1027,12 +1050,13 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
               onChange={e => setSelectedId(e.target.value)}
               className={`${inputClass} appearance-none cursor-pointer pr-10`}
             >
+              <option value="__all__">Todos</option>
               {allCollabs.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
-          {selectedId && (
+          {selectedId && selectedId !== '__all__' && (
             <button
               onClick={handleDeleteCollab}
               disabled={deleting}
@@ -1158,6 +1182,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                     </div>
                     <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(pack.price)}</span>
                     <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <button onClick={async () => { for (const t of pack.tracks) { if (t.fileUrl) await handleDownload(t); } }} className="p-2 rounded-lg text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors" title="Descargar pack"><Download className="w-4 h-4" /></button>
                       <button onClick={() => { setEditingPackTracks(pack.tracks); setIsAddingPack(false); setEditingTrack(null); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar pack"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => { if (confirm(`Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) pack.tracks.forEach(t => onDeleteTrack(t.id)); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar pack"><Trash2 className="w-4 h-4" /></button>
                     </div>
@@ -1190,6 +1215,11 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                     </div>
                     <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(track.price)}</span>
                     <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      {track.fileUrl && (
+                        <button onClick={() => handleDownload(track)} disabled={downloadingId === track.id} className="p-2 rounded-lg text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors" title="Descargar">
+                          {downloadingId === track.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        </button>
+                      )}
                       <button onClick={() => { setEditingTrack(track); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => { if (confirm(`Eliminar "${track.title}"?`)) onDeleteTrack(track.id); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                     </div>
