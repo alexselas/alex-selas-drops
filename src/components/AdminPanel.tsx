@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import {
   Plus, Edit2, Trash2, LogOut, Music, Package, Tag, Clock,
-  LayoutDashboard, ListMusic, ShoppingBag, Settings, Users,
+  LayoutDashboard, ListMusic, ShoppingBag, Settings, Users, Mail,
   TrendingUp, DollarSign, Eye, Play, Radio, Layers, Library,
-  Search, ChevronDown, Star, ChevronUp, GripVertical,
+  Search, ChevronDown, Star, ChevronUp, GripVertical, Copy,
   Save, Loader2, User, Upload, Image, Link, CheckCircle,
 } from 'lucide-react';
 import type { Track, Category, CollaboratorProfile } from '../types';
@@ -15,7 +15,7 @@ import PackUploadForm from './PackUploadForm';
 import ImageCropper from './ImageCropper';
 import CollabProfileForm from './CollabProfileForm';
 
-type AdminTab = 'dashboard' | 'tracks' | 'orders' | 'settings' | 'collabs';
+type AdminTab = 'dashboard' | 'tracks' | 'orders' | 'newsletter' | 'settings' | 'collabs';
 
 interface AdminPanelProps {
   tracks: Track[];
@@ -135,10 +135,25 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     return true;
   });
 
+  // Newsletter: unique emails from orders
+  const newsletterEmails = (() => {
+    const seen = new Set<string>();
+    const list: { email: string; lastOrder: string; type: string }[] = [];
+    for (const o of orders) {
+      const e = o.email?.toLowerCase().trim();
+      if (!e || e === 'sin email' || e === 'descarga gratuita' || seen.has(e)) continue;
+      seen.add(e);
+      list.push({ email: o.email, lastOrder: o.date, type: o.amount > 0 ? 'Pago' : 'Gratis' });
+    }
+    return list;
+  })();
+  const [emailsCopied, setEmailsCopied] = useState(false);
+
   const tabs: { id: AdminTab; label: string; icon: typeof Music }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tracks', label: 'Tracks', icon: ListMusic },
     { id: 'orders', label: 'Pedidos', icon: ShoppingBag },
+    { id: 'newsletter', label: 'Newsletter', icon: Mail },
     { id: 'settings', label: 'Perfil', icon: User },
     { id: 'collabs', label: 'Colaboradores', icon: Users },
   ];
@@ -785,6 +800,64 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
 
           <p className="text-xs text-zinc-600 text-center">
             Pagina {ordersPage} de {totalOrderPages} · {orders.length} pedidos
+          </p>
+        </motion.div>
+      )}
+
+      {/* ============ NEWSLETTER ============ */}
+      {tab === 'newsletter' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-200">Emails de compradores</h3>
+              <p className="text-sm text-zinc-500 mt-1">{newsletterEmails.length} emails unicos de todos tus pedidos</p>
+            </div>
+            <button
+              onClick={() => {
+                const all = newsletterEmails.map(e => e.email).join(', ');
+                navigator.clipboard.writeText(all).then(() => {
+                  setEmailsCopied(true);
+                  setTimeout(() => setEmailsCopied(false), 2500);
+                });
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] transition-transform"
+            >
+              {emailsCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {emailsCopied ? 'Copiados!' : 'Copiar todos'}
+            </button>
+          </div>
+
+          {newsletterEmails.length === 0 ? (
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-8 text-center">
+              <Mail className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+              <p className="text-zinc-500">No hay emails aun. Los emails apareceran cuando haya pedidos.</p>
+              <p className="text-xs text-zinc-600 mt-2">Cambia el filtro de periodo en Pedidos a "Todo" para ver todos los emails.</p>
+            </div>
+          ) : (
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden">
+              <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 text-xs text-zinc-500 font-medium border-b border-zinc-800/30">
+                <div className="col-span-5">Email</div>
+                <div className="col-span-3">Tipo</div>
+                <div className="col-span-4 text-right">Ultimo pedido</div>
+              </div>
+              <div className="divide-y divide-zinc-800/30 max-h-[500px] overflow-y-auto">
+                {newsletterEmails.map(entry => (
+                  <div key={entry.email} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
+                    <div className="sm:col-span-5 text-sm text-zinc-300 truncate">{entry.email}</div>
+                    <div className="sm:col-span-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        entry.type === 'Pago' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/30 text-zinc-400'
+                      }`}>{entry.type}</span>
+                    </div>
+                    <div className="sm:col-span-4 text-xs text-zinc-500 sm:text-right">{entry.lastOrder}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-zinc-600 text-center">
+            Los emails se extraen de los pedidos del periodo seleccionado en Pedidos ({ordersPeriod === 'today' ? 'Hoy' : ordersPeriod === 'week' ? 'Semana' : ordersPeriod === 'month' ? 'Mes' : ordersPeriod === 'year' ? 'Ano' : 'Todo'})
           </p>
         </motion.div>
       )}
