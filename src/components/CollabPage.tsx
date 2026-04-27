@@ -542,7 +542,7 @@ function PackRow({ item, expanded, onToggle, currentTrackId, isPlaying, isInCart
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-zinc-200 truncate">{track.title}</p>
                   <p className="text-[11px] text-zinc-600">
-                    {track.bpm > 0 ? `${track.bpm} BPM` : ''}{track.key ? ` · ${track.key}` : ''}{track.duration > 0 ? ` · ${formatDuration(track.duration)}` : ''}
+                    {track.authors ? `${track.authors} · ` : ''}{track.bpm > 0 ? `${track.bpm} BPM` : ''}{track.key ? ` · ${track.key}` : ''}{track.duration > 0 ? ` · ${formatDuration(track.duration)}` : ''}
                   </p>
                 </div>
               </div>
