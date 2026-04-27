@@ -205,7 +205,21 @@ export default function App() {
 
   // 4 random tracks for colabs page — only recalculate when tracks change, not on re-renders
   const colabRandomFeatured = useMemo(() => {
-    return [...tracks].sort(() => Math.random() - 0.5).slice(0, 4);
+    const featured = tracks.filter(t => t.featured);
+    type FeatItem = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string; category: string };
+    const seenPacks = new Set<string>();
+    const items: FeatItem[] = [];
+    for (const t of featured) {
+      if (t.packId) {
+        if (seenPacks.has(t.packId)) continue;
+        seenPacks.add(t.packId);
+        const pt = tracks.filter(x => x.packId === t.packId);
+        items.push({ type: 'pack', packId: t.packId, packName: t.packName || 'Pack', tracks: pt, coverUrl: t.coverUrl, price: pt.reduce((s, x) => s + x.price, 0), artist: t.artist, genre: t.genre, category: t.category });
+      } else {
+        items.push({ type: 'track', track: t });
+      }
+    }
+    return items.sort(() => Math.random() - 0.5).slice(0, 4);
   }, [tracks]);
 
   // Catalog filters
@@ -578,21 +592,59 @@ export default function App() {
                     <h2 className="text-2xl font-bold text-zinc-50">Destacados</h2>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {colabRandomFeatured.map(track => (
-                      <TrackCard
-                        key={track.id}
-                        track={track}
-                        isPlaying={player.isPlaying}
-                        isCurrentTrack={player.currentTrack?.id === track.id}
-                        isInCart={cart.isInCart(track.id)}
-                        onPlay={() => player.play(track)}
-                        onAddToCart={() => cart.addItem(track)}
-                        onDetail={() => {
-                          setSelectedTrack(track);
-                          window.history.pushState({}, '', `/track/${track.id}`);
-                        }}
-                      />
-                    ))}
+                    {colabRandomFeatured.map(item => {
+                      if (item.type === 'track') {
+                        return (
+                          <TrackCard
+                            key={item.track.id}
+                            track={item.track}
+                            isPlaying={player.isPlaying}
+                            isCurrentTrack={player.currentTrack?.id === item.track.id}
+                            isInCart={cart.isInCart(item.track.id)}
+                            onPlay={() => player.play(item.track)}
+                            onAddToCart={() => cart.addItem(item.track)}
+                            onDetail={() => {
+                              setSelectedTrack(item.track);
+                              window.history.pushState({}, '', `/track/${item.track.id}`);
+                            }}
+                          />
+                        );
+                      }
+                      return (
+                        <motion.div
+                          key={item.packId}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="group relative bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 overflow-hidden card-hover hover:border-blue-400/20 flex flex-col cursor-pointer"
+                          onClick={() => { if (item.tracks[0]) { setSelectedTrack(item.tracks[0]); window.history.pushState({}, '', `/track/${item.tracks[0].id}`); } }}
+                        >
+                          <div className="relative aspect-square bg-[#111] overflow-hidden flex-shrink-0">
+                            {item.coverUrl ? (
+                              <img src={item.coverUrl} alt={item.packName} className="w-full h-full object-contain" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1e1e1e] to-[#141414]">
+                                <Package className="w-12 h-12 text-zinc-800" />
+                              </div>
+                            )}
+                            <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold backdrop-blur-sm bg-blue-400/20 text-blue-400">PACK</span>
+                          </div>
+                          <div className="p-3 flex flex-col flex-1">
+                            <h3 className="font-semibold text-sm text-zinc-50 truncate group-hover:text-blue-400 transition-colors">{item.packName}</h3>
+                            <p className="text-xs text-zinc-500 mt-0.5 truncate">{item.artist} · {item.tracks.length} tracks</p>
+                            <div className="flex items-center justify-between mt-auto pt-2.5">
+                              <span className="text-base font-bold gradient-text">{formatPrice(item.price)}</span>
+                              <button
+                                onClick={e => { e.stopPropagation(); item.tracks.forEach(t => cart.addItem(t)); }}
+                                disabled={item.tracks.every(t => cart.isInCart(t.id))}
+                                className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all ${item.tracks.every(t => cart.isInCart(t.id)) ? 'bg-green-500/20 text-green-400 cursor-default' : 'bg-zinc-800 text-zinc-300 hover:gradient-bg hover:text-black active:scale-95'}`}
+                              >
+                                {item.tracks.every(t => cart.isInCart(t.id)) ? (<><Check className="w-3 h-3" /> Agregado</>) : (<><ShoppingCart className="w-3 h-3" /> Anadir</>)}
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
