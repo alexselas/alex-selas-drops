@@ -549,13 +549,14 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
                 value={form.category}
                 onChange={e => {
                   const cat = e.target.value as Category;
-                  const defaultPrices: Record<string, number> = { remixes: 1.99, mashups: 0.99, hypeintros: 0.99, transiciones: 0.99, sesiones: 4.99, originales: form.price };
+                  const defaultPrices: Record<string, number> = { remixes: 1.99, mashups: 0.99, livemashups: 0.99, hypeintros: 0.99, transiciones: 0.99, sesiones: 4.99, originales: form.price };
                   setForm({ ...form, category: cat, price: defaultPrices[cat] ?? form.price });
                 }}
                 className={inputClass}
               >
                 <option value="remixes">Remix (1,99 EUR)</option>
                 <option value="mashups">Mashup (0,99 EUR)</option>
+                <option value="livemashups">Live Mashup (0,99 EUR)</option>
                 <option value="hypeintros">Hype Intro (0,99 EUR)</option>
                 <option value="transiciones">Transicion (0,99 EUR)</option>
                 <option value="sesiones">Sesion (4,99 EUR)</option>

@@ -362,11 +362,12 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
             <select value={category} onChange={e => {
               const cat = e.target.value as Category;
               setCategory(cat);
-              const defaultPrices: Record<string, number> = { remixes: 1.99, mashups: 0.99, hypeintros: 0.99, transiciones: 0.99, sesiones: 4.99, packs: 3.99, originales: price };
+              const defaultPrices: Record<string, number> = { remixes: 1.99, mashups: 0.99, livemashups: 0.99, hypeintros: 0.99, transiciones: 0.99, sesiones: 4.99, packs: 3.99, originales: price };
               if (!isEditing) setPrice(defaultPrices[cat] ?? price);
             }} className={inputClass}>
               <option value="remixes">Remix (1,99 EUR/track)</option>
               <option value="mashups">Mashup (0,99 EUR/track)</option>
+              <option value="livemashups">Live Mashup (0,99 EUR/track)</option>
               <option value="hypeintros">Hype Intro (0,99 EUR/track)</option>
               <option value="transiciones">Transicion (0,99 EUR/track)</option>
               <option value="sesiones">Sesion (4,99 EUR/track)</option>

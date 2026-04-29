@@ -140,7 +140,7 @@ export default function TrackDetail({
   };
 
   const categoryLabels: Record<string, string> = {
-    sesiones: 'Sesion', remixes: 'Remix', mashups: 'Mashup', librerias: 'Libreria',
+    sesiones: 'Sesion', remixes: 'Remix', mashups: 'Mashup', livemashups: 'Live Mashup', librerias: 'Libreria',
   };
 
   return (

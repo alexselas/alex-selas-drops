@@ -1,4 +1,4 @@
-import { Disc3, Radio, Repeat, Layers, Package, Zap, ArrowLeftRight, Mic } from 'lucide-react';
+import { Disc3, Radio, Repeat, Layers, Package, Zap, ArrowLeftRight, Mic, Combine } from 'lucide-react';
 import type { Category } from '../types';
 
 interface CategoryFilterProps {
@@ -11,6 +11,7 @@ const categories: { value: Category | 'all' | 'packs'; label: string; icon: type
   { value: 'all', label: 'Todos', icon: Disc3 },
   { value: 'remixes', label: 'Remixes', icon: Repeat },
   { value: 'mashups', label: 'Mashups', icon: Layers },
+  { value: 'livemashups', label: 'Live Mashups', icon: Combine },
   { value: 'hypeintros', label: 'Hype Intros', icon: Zap },
   { value: 'transiciones', label: 'Transiciones', icon: ArrowLeftRight },
   { value: 'packs', label: 'Packs', icon: Package },

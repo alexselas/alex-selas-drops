@@ -79,7 +79,7 @@ export function useStoryGenerator() {
 
     // Category badge
     const categoryLabels: Record<string, string> = {
-      sesiones: 'SESIÓN', remixes: 'REMIX', mashups: 'MASHUP', librerias: 'LIBRERÍA',
+      sesiones: 'SESIÓN', remixes: 'REMIX', mashups: 'MASHUP', livemashups: 'LIVE MASHUP', librerias: 'LIBRERÍA',
     };
     const catLabel = categoryLabels[track.category] || track.category.toUpperCase();
     let y = infoTop;
@@ -275,6 +275,7 @@ function drawCoverPlaceholder(
     sesiones: ['#1a1a2e', '#16213e'],
     remixes: ['#1a1a1a', '#2d1b36'],
     mashups: ['#1a1a1a', '#1b2d28'],
+    livemashups: ['#1a1a1a', '#2d1b2d'],
     librerias: ['#1a1a1a', '#2d2a1b'],
   };
   const [c1, c2] = categoryColors[track.category] || ['#1e1e1e', '#0f0f0f'];

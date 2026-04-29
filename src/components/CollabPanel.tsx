@@ -125,6 +125,7 @@ export default function CollabPanel({
     sesiones: 'Sesion',
     remixes: 'Remix',
     mashups: 'Mashup',
+    livemashups: 'Live Mashup',
     hypeintros: 'Hype Intro',
     transiciones: 'Transicion',
     originales: 'Original',
@@ -134,6 +135,7 @@ export default function CollabPanel({
     sesiones: 'text-emerald-400',
     remixes: 'text-violet-400',
     mashups: 'text-yellow-400',
+    livemashups: 'text-fuchsia-400',
     hypeintros: 'text-pink-400',
     transiciones: 'text-cyan-400',
     originales: 'text-orange-400',
@@ -442,6 +444,7 @@ export default function CollabPanel({
                     <option value="sesiones">Sesiones</option>
                     <option value="remixes">Remixes</option>
                     <option value="mashups">Mashups</option>
+                    <option value="livemashups">Live Mashups</option>
                     <option value="hypeintros">Hype Intros</option>
                     <option value="transiciones">Transiciones</option>
                     <option value="originales">Originales</option>

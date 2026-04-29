@@ -95,6 +95,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     sesiones: myTracks.filter(t => t.category === 'sesiones').length,
     remixes: myTracks.filter(t => t.category === 'remixes').length,
     mashups: myTracks.filter(t => t.category === 'mashups').length,
+    livemashups: myTracks.filter(t => t.category === 'livemashups').length,
     hypeintros: myTracks.filter(t => t.category === 'hypeintros').length,
     transiciones: myTracks.filter(t => t.category === 'transiciones').length,
     originales: myTracks.filter(t => t.category === 'originales').length,
@@ -107,6 +108,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     sesiones: 'Sesion',
     remixes: 'Remix',
     mashups: 'Mashup',
+    livemashups: 'Live Mashup',
     hypeintros: 'Hype Intro',
     transiciones: 'Transicion',
     originales: 'Original',
@@ -116,6 +118,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     sesiones: 'text-emerald-400',
     remixes: 'text-violet-400',
     mashups: 'text-yellow-400',
+    livemashups: 'text-fuchsia-400',
     hypeintros: 'text-pink-400',
     transiciones: 'text-cyan-400',
     originales: 'text-orange-400',
@@ -125,6 +128,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     sesiones: Radio,
     remixes: Tag,
     mashups: Layers,
+    livemashups: Layers,
     librerias: Library,
   };
 
@@ -420,6 +424,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                       <option value="sesiones">Sesiones</option>
                       <option value="remixes">Remixes</option>
                       <option value="mashups">Mashups</option>
+                      <option value="livemashups">Live Mashups</option>
                       <option value="hypeintros">Hype Intros</option>
                       <option value="transiciones">Transiciones</option>
                       <option value="packs">Packs</option>
@@ -1211,8 +1216,8 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
   const inputClass = 'w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-yellow-400/50 text-sm';
   const collabEntry = allCollabs.find(c => c.id === selectedId);
 
-  const cmCatLabels: Record<string, string> = { sesiones: 'Sesion', remixes: 'Remix', mashups: 'Mashup', hypeintros: 'Hype Intro', transiciones: 'Transicion', originales: 'Original' };
-  const cmCatColors: Record<string, string> = { sesiones: 'text-emerald-400', remixes: 'text-violet-400', mashups: 'text-yellow-400', hypeintros: 'text-pink-400', transiciones: 'text-cyan-400', originales: 'text-orange-400' };
+  const cmCatLabels: Record<string, string> = { sesiones: 'Sesion', remixes: 'Remix', mashups: 'Mashup', livemashups: 'Live Mashup', hypeintros: 'Hype Intro', transiciones: 'Transicion', originales: 'Original' };
+  const cmCatColors: Record<string, string> = { sesiones: 'text-emerald-400', remixes: 'text-violet-400', mashups: 'text-yellow-400', livemashups: 'text-fuchsia-400', hypeintros: 'text-pink-400', transiciones: 'text-cyan-400', originales: 'text-orange-400' };
 
   // Group packs for collab tracks list
   const cmSeenPacks = new Set<string>();
