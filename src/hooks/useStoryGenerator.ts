@@ -10,14 +10,31 @@ export function useStoryGenerator() {
   const [progress, setProgress] = useState(0);
   const ffmpegRef = useRef<FFmpeg | null>(null);
 
-  const loadImage = (src: string): Promise<HTMLImageElement> =>
-    new Promise((resolve, reject) => {
+  const loadImage = async (src: string): Promise<HTMLImageElement> => {
+    // For external URLs (R2), fetch as blob to avoid CORS canvas tainting
+    if (src.startsWith('http')) {
+      try {
+        const resp = await fetch(src);
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+          img.src = url;
+        });
+      } catch {
+        // Fallback to direct load
+      }
+    }
+    return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => resolve(img);
       img.onerror = reject;
       img.src = src;
     });
+  };
 
   // Seeded pseudo-random number generator for consistent results
   const seededRandom = (seed: number) => {
