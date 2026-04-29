@@ -72,23 +72,30 @@ def analyze_track(audio_url: str) -> dict:
         results["key"] = ""
         results["key_confidence"] = 0
 
-    # 3. Loudness (EBU R128)
+    # 3. Loudness (EBU R128 — needs stereo, so we duplicate mono channel)
     try:
+        stereo = np.column_stack([audio_44k, audio_44k])
         loudness = es.LoudnessEBUR128(sampleRate=44100)
-        momentary, shortterm, integrated, loudness_range = loudness(audio_44k)
+        momentary, shortterm, integrated, loudness_range = loudness(stereo)
         results["loudness_lufs"] = round(float(integrated), 1)
         results["loudness_range"] = round(float(loudness_range), 1)
         print(f"Loudness: {results['loudness_lufs']} LUFS")
     except Exception as e:
-        print(f"Loudness error: {e}")
-        results["loudness_lufs"] = 0
-        results["loudness_range"] = 0
+        print(f"Loudness EBU error: {e}")
+        # Fallback to simple loudness
+        try:
+            loud = es.Loudness()
+            results["loudness_lufs"] = round(float(loud(audio_44k)), 1)
+            results["loudness_range"] = 0
+        except:
+            results["loudness_lufs"] = 0
+            results["loudness_range"] = 0
 
     # 4. Danceability
     try:
         danceability_extractor = es.Danceability()
         danceability, _ = danceability_extractor(audio_44k)
-        results["danceability"] = min(100, round(float(danceability) * 100))
+        results["danceability"] = min(100, max(0, round(float(danceability) / 3.0 * 100)))
         print(f"Danceability: {results['danceability']}/100")
     except Exception as e:
         print(f"Danceability error: {e}")

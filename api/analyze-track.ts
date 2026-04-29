@@ -59,7 +59,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             bpm: results.bpm > 0 ? results.bpm : t.bpm,
             key: results.key || t.key,
             duration: results.duration > 0 ? results.duration : t.duration,
-            genre: results.genre_detected || t.genre,
             tags: results.tags && results.tags.length > 0 ? results.tags : t.tags,
             // New fields from analysis
             analysis: {
