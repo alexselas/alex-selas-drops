@@ -425,6 +425,26 @@ export default function App() {
     sessionStorage.getItem('alex-selas-drops-collab-token') ||
     '';
 
+  // Trigger Modal analysis in background (non-blocking)
+  const triggerAnalysis = useCallback((trackId: string, fileUrl: string) => {
+    if (!fileUrl || fileUrl.startsWith('blob:')) return;
+    fetch('/api/analyze-track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getActiveToken()}` },
+      body: JSON.stringify({ trackId, audioUrl: fileUrl }),
+    }).then(res => res.json()).then(data => {
+      if (data.success && data.analysis) {
+        // Update track in state with analysis results
+        setTracks(prev => prev.map(t => t.id === trackId ? {
+          ...t,
+          bpm: data.analysis.bpm > 0 ? data.analysis.bpm : t.bpm,
+          key: data.analysis.key || t.key,
+          duration: data.analysis.duration > 0 ? data.analysis.duration : t.duration,
+        } : t));
+      }
+    }).catch(() => {});
+  }, []);
+
   const handleAddTrack = useCallback(async (data: Omit<Track, 'id'> & { id?: string }) => {
     try {
       const res = await fetch('/api/tracks', {
@@ -437,6 +457,8 @@ export default function App() {
       });
       const newTrack = await res.json();
       setTracks(prev => [newTrack, ...prev]);
+      // Auto-analyze in background
+      if (newTrack.id && newTrack.fileUrl) triggerAnalysis(newTrack.id, newTrack.fileUrl);
     } catch {
       const newTrack = { ...data, id: data.id || `track-${Date.now()}` } as Track;
       setTracks(prev => [newTrack, ...prev]);
@@ -456,6 +478,8 @@ export default function App() {
       const newTracks = await res.json();
       if (Array.isArray(newTracks)) {
         setTracks(prev => [...newTracks, ...prev]);
+        // Auto-analyze each track in background
+        newTracks.forEach((t: any) => { if (t.id && t.fileUrl) triggerAnalysis(t.id, t.fileUrl); });
       }
     } catch {
       const newTracks = items.map((d, i) => ({ ...d, id: d.id || `track-${Date.now()}-${i}` } as Track));
