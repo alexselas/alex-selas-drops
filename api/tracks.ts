@@ -145,6 +145,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         newTracks.push(newTrack);
       }
       await redis.set(KV_KEY, tracks);
+
+      // Trigger AI analysis in background for each new track (fire-and-forget)
+      const MODAL_URL = 'https://alexselas--musicdrop-analysis-analyze-webhook.modal.run';
+      for (const nt of newTracks) {
+        if (nt.fileUrl && !nt.fileUrl.startsWith('blob:')) {
+          fetch(MODAL_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio_url: nt.fileUrl, track_id: nt.id }),
+          }).then(async (mRes) => {
+            try {
+              const mData = await mRes.json();
+              const r = mData?.results;
+              if (r) {
+                const allTracks = await redis.get(KV_KEY) as any[];
+                if (allTracks) {
+                  const updated = allTracks.map((t: any) => t.id === nt.id ? {
+                    ...t,
+                    bpm: r.bpm > 0 ? r.bpm : t.bpm,
+                    key: r.key || t.key,
+                    duration: r.duration > 0 ? r.duration : t.duration,
+                    analysis: { danceability: r.danceability || 0, loudness_lufs: r.loudness_lufs || 0, energy_curve: r.energy_curve || [], key_confidence: r.key_confidence || 0, bpm_confidence: r.bpm_confidence || 0, analyzed_at: new Date().toISOString() },
+                  } : t);
+                  await redis.set(KV_KEY, updated);
+                }
+              }
+            } catch {}
+          }).catch(() => {});
+        }
+      }
+
       return res.status(200).json(Array.isArray(body) ? newTracks : newTracks[0]);
     }
 
