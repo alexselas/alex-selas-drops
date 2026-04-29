@@ -1078,15 +1078,10 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
     const setUrl = (url: string) => setProfile(prev => ({ ...prev, [field]: url }));
 
     try {
-      const { upload } = await import('@vercel/blob/client');
-      const result = await upload(`${folder}/${Date.now()}-${filename}.jpg`, blob, { access: 'public', handleUploadUrl: '/api/upload-url', clientPayload: JSON.stringify({ token: adminToken }) });
-      if (result.url) { setUrl(result.url); clearPreview(); stopLoading(); return; }
-    } catch (e) { console.log('Blob upload failed, trying server:', e); }
-
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', headers: { 'X-Filename': `${folder}-${Date.now()}-${filename}.jpg`, 'X-Folder': folder, 'Content-Type': 'image/jpeg', 'Authorization': `Bearer ${adminToken}` }, body: blob });
-      if (res.ok) { const data = await res.json(); if (data.url) { setUrl(data.url); clearPreview(); stopLoading(); return; } }
-    } catch (e) { console.log('Server upload failed, using base64:', e); }
+      const { uploadFile } = await import('../lib/upload');
+      const url = await uploadFile(blob as any, folder, `${Date.now()}-${filename}.jpg`, adminToken);
+      if (url) { setUrl(url); clearPreview(); stopLoading(); return; }
+    } catch (e) { console.log('Upload failed, using base64:', e); }
 
     const reader = new FileReader();
     reader.onload = () => { setUrl(reader.result as string); clearPreview(); stopLoading(); };

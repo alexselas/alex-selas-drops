@@ -9,6 +9,7 @@ import StoryEditor from './StoryEditor';
 
 interface TrackDetailProps {
   track: Track | null;
+  packTotalPrice?: number;
   isPlaying: boolean;
   isCurrentTrack: boolean;
   isInCart: boolean;
@@ -18,7 +19,7 @@ interface TrackDetailProps {
 }
 
 export default function TrackDetail({
-  track, isPlaying, isCurrentTrack, isInCart, onClose, onPlay, onAddToCart,
+  track, packTotalPrice, isPlaying, isCurrentTrack, isInCart, onClose, onPlay, onAddToCart,
 }: TrackDetailProps) {
   const [copied, setCopied] = useState(false);
   const [showStoryEditor, setShowStoryEditor] = useState(false);
@@ -186,7 +187,7 @@ export default function TrackDetail({
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-3xl font-bold gradient-text">{formatPrice(track.price)}</span>
+                <span className="text-3xl font-bold gradient-text">{formatPrice(packTotalPrice ?? track.price)}</span>
               </div>
             </div>
 
@@ -208,7 +209,7 @@ export default function TrackDetail({
                 <button onClick={onAddToCart} disabled={isInCart}
                   className={`flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-semibold transition-all ${
                     isInCart ? 'bg-green-500/20 text-green-400 cursor-default' : 'gradient-bg text-black shadow-lg glow hover:scale-[1.02] active:scale-95'}`}>
-                  {isInCart ? (<><Check className="w-5 h-5" />En el carrito</>) : (<><ShoppingCart className="w-5 h-5" />Comprar — {formatPrice(track.price)}</>)}
+                  {isInCart ? (<><Check className="w-5 h-5" />En el carrito</>) : (<><ShoppingCart className="w-5 h-5" />Comprar — {formatPrice(packTotalPrice ?? track.price)}</>)}
                 </button>
                 <button onClick={handleShare}
                   className={`flex items-center justify-center w-12 h-12 rounded-2xl border transition-all flex-shrink-0 ${

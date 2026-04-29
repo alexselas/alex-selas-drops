@@ -69,24 +69,12 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
   // Upload a file
   const uploadFile = async (file: File | Blob, folder: string, filename: string): Promise<string> => {
     setUploadError('');
-    // Try client-side upload (handles large files)
     try {
-      const { upload } = await import('@vercel/blob/client');
-      const result = await upload(`${folder}/${Date.now()}-${filename}`, file, { access: 'public', handleUploadUrl: '/api/upload-url', clientPayload: JSON.stringify({ token: getToken() }) });
-      if (result.url) return result.url;
+      const { uploadFile: doUpload } = await import('../lib/upload');
+      const url = await doUpload(file as File, folder, `${Date.now()}-${filename}`, getToken());
+      if (url) return url;
     } catch (e: any) {
-      console.error('Client upload failed:', e);
-    }
-    // Fallback: server-side upload (limited to ~4.5MB)
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', headers: { 'X-Filename': `${Date.now()}-${filename}`, 'X-Folder': folder, 'Authorization': `Bearer ${getToken()}` }, body: file });
-      if (res.ok) { const data = await res.json(); if (data.url) return data.url; }
-      else {
-        const err = await res.json().catch(() => ({}));
-        console.error('Server upload failed:', res.status, err);
-      }
-    } catch (e: any) {
-      console.error('Server upload error:', e);
+      console.error('Upload error:', e);
     }
     setUploadError('Error al subir archivo. Comprueba tu conexion e intenta de nuevo.');
     return '';

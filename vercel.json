@@ -2,6 +2,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "functions": {
+    "api/upload.ts": { "maxDuration": 60 },
+    "api/presign-upload.ts": { "maxDuration": 30 },
+    "api/download.ts": { "maxDuration": 60 },
+    "api/download-zip.ts": { "maxDuration": 60 }
+  },
   "headers": [
     {
       "source": "/(.*)",

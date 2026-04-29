@@ -101,14 +101,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (profile && (profile.artistName || profile.bio || profile.socialLinks)) {
       const PROFILES_KEY = 'collab-profiles';
       const profiles = ((await redis.get(PROFILES_KEY)) || {}) as Record<string, any>;
+
+      // Auto-assign a unique color from a palette
+      const colorPalette = [
+        { primary: '#3b82f6', secondary: '#2563eb' }, // blue
+        { primary: '#ef4444', secondary: '#dc2626' }, // red
+        { primary: '#10b981', secondary: '#059669' }, // green
+        { primary: '#f97316', secondary: '#ea580c' }, // orange
+        { primary: '#06b6d4', secondary: '#0891b2' }, // cyan
+        { primary: '#ec4899', secondary: '#db2777' }, // pink
+        { primary: '#8b5cf6', secondary: '#7c3aed' }, // violet
+        { primary: '#f59e0b', secondary: '#d97706' }, // amber
+        { primary: '#14b8a6', secondary: '#0d9488' }, // teal
+        { primary: '#a855f7', secondary: '#9333ea' }, // purple
+        { primary: '#84cc16', secondary: '#65a30d' }, // lime
+        { primary: '#e11d48', secondary: '#be123c' }, // rose
+      ];
+      const usedColors = new Set(Object.values(profiles).map((p: any) => p.colorPrimary));
+      const available = colorPalette.find(c => !usedColors.has(c.primary));
+      const assignedColor = available || colorPalette[Object.keys(profiles).length % colorPalette.length];
+
       profiles[collaboratorId] = {
         bio: (profile.bio || '').substring(0, 300),
         photoUrl: '',
         bannerUrl: '',
         artistName: (profile.artistName || '').substring(0, 50),
         socialLinks: profile.socialLinks || {},
-        colorPrimary: '#FACC15',
-        colorSecondary: '#EAB308',
+        colorPrimary: assignedColor.primary,
+        colorSecondary: assignedColor.secondary,
       };
       await redis.set(PROFILES_KEY, profiles);
     }

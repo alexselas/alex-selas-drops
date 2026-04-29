@@ -116,6 +116,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const err = validateTrackData(item);
         if (err) return res.status(400).json({ error: err });
       }
+      // For packs: distribute price evenly if some tracks have price 0
+      const packItems = items.filter((i: any) => i.packId);
+      if (packItems.length > 1) {
+        const totalPrice = packItems.reduce((s: number, i: any) => s + (i.price || 0), 0);
+        if (totalPrice > 0) {
+          const perTrack = Math.floor((totalPrice / packItems.length) * 100) / 100;
+          const remainder = Math.round((totalPrice - perTrack * packItems.length) * 100) / 100;
+          packItems.forEach((item: any, idx: number) => {
+            item.price = idx === packItems.length - 1 ? Math.round((perTrack + remainder) * 100) / 100 : perTrack;
+          });
+        }
+      }
+
+      const existingIds = new Set(tracks.map((t: any) => t.id));
       const newTracks: any[] = [];
       for (const data of items) {
         if (collab.valid && collab.collaboratorId) {
@@ -123,6 +137,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           data.collaboratorId = collab.collaboratorId;
         }
         const newTrack = { ...data, id: data.id || `track-${Date.now()}-${crypto.randomBytes(4).toString('hex')}` };
+        // Skip if ID already exists (prevents duplicates from retries)
+        if (existingIds.has(newTrack.id)) continue;
+        existingIds.add(newTrack.id);
         enforceFeaturedLimit(tracks, newTrack);
         tracks.unshift(newTrack);
         newTracks.push(newTrack);

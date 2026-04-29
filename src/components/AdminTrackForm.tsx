@@ -100,68 +100,20 @@ function FileDropZone({
       setLocalPreview(URL.createObjectURL(file));
     }
 
-    // Try client-side upload to Vercel Blob
+    // Upload to R2 (uses presigned URL for large files)
     try {
-      const { upload } = await import('@vercel/blob/client');
-      const blob = await upload(
-        `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
-        file,
-        {
-          access: 'public',
-          handleUploadUrl: '/api/upload-url',
-          clientPayload: JSON.stringify({ token: getAdminToken() }),
-        },
-      );
-      if (blob.url) {
-        onUploaded(blob.url);
+      const { uploadFile: doUpload } = await import('../lib/upload');
+      const url = await doUpload(file, folder, `${Date.now()}-${file.name}`, getAdminToken());
+      if (url) {
+        onUploaded(url);
         setStatus('done');
         return;
       }
     } catch (e) {
-      console.log('Blob client upload failed, trying server:', e);
+      console.error('Upload failed:', e);
     }
 
-    // Fallback: server-side upload (local dev)
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'X-Filename': file.name,
-          'X-Folder': folder,
-          'Content-Type': file.type,
-          'Authorization': `Bearer ${getAdminToken()}`,
-        },
-        body: file,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          onUploaded(data.url);
-          setStatus('done');
-          return;
-        }
-      }
-    } catch (e) {
-      console.log('Server upload failed:', e);
-    }
-
-    // Last fallback: convert to persistent data URL (base64) for images,
-    // or temporary blob URL for non-images
-    if (isImage) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        onUploaded(reader.result as string);
-        setStatus('done');
-      };
-      reader.onerror = () => {
-        onUploaded(URL.createObjectURL(file));
-        setStatus('done');
-      };
-      reader.readAsDataURL(file);
-      return;
-    }
-    onUploaded(URL.createObjectURL(file));
-    setStatus('done');
+    setStatus('error');
   };
 
   const handleDrop = (e: React.DragEvent) => {

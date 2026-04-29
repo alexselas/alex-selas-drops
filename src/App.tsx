@@ -106,8 +106,10 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           if (item.type === 'track') {
             const track = item.track;
             const isCurrent = player.currentTrack?.id === track.id;
-            const prof = collabProfiles[track.collaboratorId || ''];
+            const profKey = track.collaboratorId || 'alex-selas';
+            const prof = collabProfiles[profKey];
             const collabName = prof?.artistName || track.collaboratorId || (track.artist || 'Alex Selas');
+            const trackColor = (prof as any)?.colorPrimary || '#FACC15';
             return (
               <div key={track.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer" onClick={() => onDetail(track)}>
                 <button onClick={e => { e.stopPropagation(); player.play(track); }} className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
@@ -115,7 +117,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${({remixes:'bg-violet-400/10 text-violet-400',mashups:'bg-yellow-400/10 text-yellow-400',hypeintros:'bg-pink-400/10 text-pink-400',transiciones:'bg-cyan-400/10 text-cyan-400',sesiones:'bg-emerald-400/10 text-emerald-400',originales:'bg-orange-400/10 text-orange-400'} as Record<string,string>)[track.category] || 'bg-zinc-700/30 text-zinc-400'}`}>{({remixes:'REMIX',mashups:'MASHUP',hypeintros:'HYPE INTRO',transiciones:'TRANSICION',sesiones:'SESION',originales:'ORIGINAL'} as Record<string,string>)[track.category] || track.category.toUpperCase()}</span>{track.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(track.releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}</div>
-                  <p className="text-xs text-zinc-500 truncate">{collabName}{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}</p>
+                  <p className="text-xs text-zinc-500 truncate"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}</p>
                 </div>
                 <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
                 <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
@@ -124,13 +126,20 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           }
           // PACK
           const isExp = expandedPackId === item.packId;
+          const packProfKey = item.tracks[0]?.collaboratorId || 'alex-selas';
+          const packProf = collabProfiles[packProfKey] as any;
+          const packColor = packProf?.colorPrimary || '#FACC15';
+          const packFirstTrack = item.tracks[0];
+          const packIsPlaying = packFirstTrack && player.currentTrack?.id === packFirstTrack.id && player.isPlaying;
           return (
             <div key={item.packId} className="rounded-xl overflow-hidden">
               <div className={`flex items-center gap-3 p-3 bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer ${isExp ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`} onClick={() => setExpandedPackId(isExp ? null : item.packId)}>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400/20 to-blue-500/20 flex items-center justify-center"><Package className="w-5 h-5 text-blue-400" /></div>
+                <button onClick={e => { e.stopPropagation(); if (packFirstTrack) player.play(packFirstTrack); }} className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
+                  {packIsPlaying ? <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
+                </button>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p><span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span>{item.tracks[0]?.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(item.tracks[0].releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}</div>
-                  <p className="text-xs text-zinc-500 truncate">{item.artist} · {item.tracks.length} tracks · {item.genre}</p>
+                  <div className="flex items-center gap-2"><Package className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" /><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${({remixes:'bg-violet-400/10 text-violet-400',mashups:'bg-yellow-400/10 text-yellow-400',hypeintros:'bg-pink-400/10 text-pink-400',transiciones:'bg-cyan-400/10 text-cyan-400',sesiones:'bg-emerald-400/10 text-emerald-400',originales:'bg-orange-400/10 text-orange-400'} as Record<string,string>)[item.category] || 'bg-zinc-700/30 text-zinc-400'}`}>{({remixes:'REMIX',mashups:'MASHUP',hypeintros:'HYPE INTRO',transiciones:'TRANSICION',sesiones:'SESION',originales:'ORIGINAL'} as Record<string,string>)[item.category] || item.category.toUpperCase()}</span><span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK · {item.tracks.length}</span>{item.tracks[0]?.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(item.tracks[0].releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}</div>
+                  <p className="text-xs text-zinc-500 truncate"><span style={{ color: packColor }} className="font-medium">{item.artist}</span> · {item.genre}</p>
                 </div>
                 {isExp ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
                 <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(item.price)}</span>
@@ -574,22 +583,27 @@ export default function App() {
                   const trackCount = collab.id === 'alex-selas'
                     ? alexTrackCount
                     : allCatalogTracks.filter(t => t.collaboratorId === collab.id).length;
+                  const prof = collabProfiles[collab.id] as any;
+                  const pc = prof?.colorPrimary || '#FACC15';
                   return (
                     <button
                       key={collab.id}
                       onClick={() => navigate('colab-page', collab.id)}
-                      className="flex items-center gap-3 bg-yellow-400/5 rounded-xl border border-yellow-400/20 px-4 py-3 hover:border-yellow-400/50 hover:bg-yellow-400/10 transition-all"
+                      className="flex items-center gap-3 rounded-xl px-4 py-3 transition-all"
+                      style={{ backgroundColor: `${pc}0D`, border: `1px solid ${pc}33` }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${pc}80`; (e.currentTarget as HTMLElement).style.backgroundColor = `${pc}1A`; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = `${pc}33`; (e.currentTarget as HTMLElement).style.backgroundColor = `${pc}0D`; }}
                     >
                       {collab.photoUrl ? (
-                        <img src={collab.photoUrl} alt={collab.name} className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400/40 flex-shrink-0" />
+                        <img src={collab.photoUrl} alt={collab.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" style={{ border: `2px solid ${pc}66` }} />
                       ) : (
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-yellow-400/40 bg-yellow-400/10 flex-shrink-0">
-                          <span className="text-sm font-bold text-yellow-400">{collab.name.charAt(0)}</span>
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ border: `2px solid ${pc}66`, backgroundColor: `${pc}1A` }}>
+                          <span className="text-sm font-bold" style={{ color: pc }}>{collab.name.charAt(0)}</span>
                         </div>
                       )}
                       <div className="text-left">
-                        <h3 className="text-sm font-bold text-yellow-300 leading-tight">{collab.name}</h3>
-                        <p className="text-[11px] text-yellow-400/50">
+                        <h3 className="text-sm font-bold leading-tight" style={{ color: pc }}>{collab.name}</h3>
+                        <p className="text-[11px]" style={{ color: `${pc}80` }}>
                           {trackCount > 0 ? `${trackCount} track${trackCount !== 1 ? 's' : ''}` : 'Próximamente'}
                         </p>
                       </div>
@@ -906,9 +920,10 @@ export default function App() {
         {selectedTrack && (
           <TrackDetail
             track={selectedTrack}
+            packTotalPrice={selectedTrack.packId ? tracks.filter(t => t.packId === selectedTrack.packId).reduce((s, t) => s + t.price, 0) : undefined}
             isPlaying={player.isPlaying}
             isCurrentTrack={player.currentTrack?.id === selectedTrack.id}
-            isInCart={cart.isInCart(selectedTrack.id)}
+            isInCart={selectedTrack.packId ? tracks.filter(t => t.packId === selectedTrack.packId).some(t => cart.isInCart(t.id)) : cart.isInCart(selectedTrack.id)}
             onClose={() => {
               setSelectedTrack(null);
               if (window.location.pathname.startsWith('/track/')) {
@@ -921,7 +936,13 @@ export default function App() {
               }
             }}
             onPlay={() => player.play(selectedTrack)}
-            onAddToCart={() => cart.addItem(selectedTrack)}
+            onAddToCart={() => {
+              if (selectedTrack.packId) {
+                tracks.filter(t => t.packId === selectedTrack.packId).forEach(t => cart.addItem(t));
+              } else {
+                cart.addItem(selectedTrack);
+              }
+            }}
           />
         )}
       </AnimatePresence>

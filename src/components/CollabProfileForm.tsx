@@ -81,41 +81,13 @@ export default function CollabProfileForm({ collaboratorId, collaboratorName, co
     const stopLoading = () => { if (isBanner) setUploadingBanner(false); else setUploadingPhoto(false); };
     const setUrl = (url: string) => setForm(prev => ({ ...prev, [field]: url }));
 
-    // Try Vercel Blob client-side upload
+    // Upload to R2 via server
     try {
-      const { upload } = await import('@vercel/blob/client');
-      const result = await upload(
-        `${folder}/${Date.now()}-${filename}.jpg`,
-        blob,
-        {
-          access: 'public',
-          handleUploadUrl: '/api/upload-url',
-          clientPayload: JSON.stringify({ token: collabToken }),
-        },
-      );
-      if (result.url) { setUrl(result.url); clearPreview(); stopLoading(); return; }
+      const { uploadFile } = await import('../lib/upload');
+      const url = await uploadFile(blob as any, folder, `${Date.now()}-${filename}.jpg`, collabToken);
+      if (url) { setUrl(url); clearPreview(); stopLoading(); return; }
     } catch (e) {
-      console.log('Blob client upload failed, trying server:', e);
-    }
-
-    // Fallback: server-side upload
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'X-Filename': `${folder}-${Date.now()}-${filename}.jpg`,
-          'X-Folder': folder,
-          'Content-Type': 'image/jpeg',
-          'Authorization': `Bearer ${collabToken}`,
-        },
-        body: blob,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) { setUrl(data.url); clearPreview(); stopLoading(); return; }
-      }
-    } catch (e) {
-      console.log('Server upload failed, using base64:', e);
+      console.log('Upload failed, using base64:', e);
     }
 
     // Last fallback: base64 data URL

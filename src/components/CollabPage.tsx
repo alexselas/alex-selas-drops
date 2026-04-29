@@ -430,6 +430,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, is
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${({remixes:'bg-violet-400/10 text-violet-400',mashups:'bg-yellow-400/10 text-yellow-400',hypeintros:'bg-pink-400/10 text-pink-400',transiciones:'bg-cyan-400/10 text-cyan-400',sesiones:'bg-emerald-400/10 text-emerald-400',originales:'bg-orange-400/10 text-orange-400'} as Record<string,string>)[track.category] || 'bg-zinc-700/30 text-zinc-400'}`}>{({remixes:'REMIX',mashups:'MASHUP',hypeintros:'HYPE INTRO',transiciones:'TRANSICION',sesiones:'SESION',originales:'ORIGINAL'} as Record<string,string>)[track.category] || track.category.toUpperCase()}</span>
                       {track.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(track.releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}
                     </div>
                     <p className="text-xs text-zinc-500 truncate">
@@ -501,23 +502,29 @@ function PackRow({ item, expanded, onToggle, currentTrackId, isPlaying, isInCart
   onPlay: (track: Track) => void;
   onAddToCart: (track: Track) => void;
 }) {
+  const firstTrack = item.tracks[0];
+  const packIsPlaying = firstTrack && currentTrackId === firstTrack.id && isPlaying;
   return (
     <div className="rounded-xl overflow-hidden">
       <div
         className={`flex items-center gap-3 p-3 bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer ${expanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
         onClick={onToggle}
       >
-        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex items-center justify-center">
-          <Package className="w-5 h-5 text-yellow-400" />
-        </div>
+        <button
+          onClick={e => { e.stopPropagation(); if (firstTrack) onPlay(firstTrack); }}
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play"
+        >
+          {packIsPlaying ? <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
+        </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span>
+            <Package className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" /><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p>
+            {item.tracks[0]?.category && <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${({remixes:'bg-violet-400/10 text-violet-400',mashups:'bg-yellow-400/10 text-yellow-400',hypeintros:'bg-pink-400/10 text-pink-400',transiciones:'bg-cyan-400/10 text-cyan-400',sesiones:'bg-emerald-400/10 text-emerald-400',originales:'bg-orange-400/10 text-orange-400'} as Record<string,string>)[item.tracks[0].category] || 'bg-zinc-700/30 text-zinc-400'}`}>{({remixes:'REMIX',mashups:'MASHUP',hypeintros:'HYPE INTRO',transiciones:'TRANSICION',sesiones:'SESION',originales:'ORIGINAL'} as Record<string,string>)[item.tracks[0].category] || item.tracks[0].category.toUpperCase()}</span>}
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK · {item.tracks.length}</span>
             {item.tracks[0]?.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(item.tracks[0].releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}
           </div>
           <p className="text-xs text-zinc-500 truncate">
-            {item.artist} · {item.tracks.length} tracks · {item.genre}
+            {item.artist} · {item.genre}
           </p>
         </div>
         {expanded ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}

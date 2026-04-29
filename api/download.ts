@@ -113,8 +113,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Falta trackId' });
     }
 
-    // Only serve files from Vercel Blob storage
-    if (!fileUrl.includes('.vercel-storage.com') && !fileUrl.includes('.public.blob.vercel-storage.com')) {
+    // Only serve files from Vercel Blob or Cloudflare R2 storage
+    if (!fileUrl.includes('.vercel-storage.com') && !fileUrl.includes('.public.blob.vercel-storage.com') && !fileUrl.includes('.r2.dev') && !fileUrl.includes('.r2.cloudflarestorage.com')) {
       return res.status(400).json({ error: 'URL de archivo no válida' });
     }
 
@@ -146,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (coverUrl && !coverUrl.startsWith('data:')) {
         try {
-          if (coverUrl.includes('.vercel-storage.com') || coverUrl.includes('.public.blob.vercel-storage.com')) {
+          if (coverUrl.includes('.vercel-storage.com') || coverUrl.includes('.public.blob.vercel-storage.com') || coverUrl.includes('.r2.dev') || coverUrl.includes('.r2.cloudflarestorage.com')) {
             const coverRes = await fetch(coverUrl);
             if (coverRes.ok) {
               const coverBuffer = Buffer.from(await coverRes.arrayBuffer());

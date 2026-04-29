@@ -33,7 +33,7 @@ async function tagMP3(buffer: Buffer, track: any): Promise<Buffer> {
     comment: { language: 'spa', text: 'musicdrop.es' },
   };
   if (track.bpm && Number(track.bpm) > 0 && Number(track.bpm) < 999) tags.bpm = String(track.bpm);
-  if (track.coverUrl && !track.coverUrl.startsWith('data:') && track.coverUrl.includes('.vercel-storage.com')) {
+  if (track.coverUrl && !track.coverUrl.startsWith('data:') && (track.coverUrl.includes('.vercel-storage.com') || track.coverUrl.includes('.r2.dev') || track.coverUrl.includes('.r2.cloudflarestorage.com'))) {
     try {
       const cr = await fetch(track.coverUrl);
       if (cr.ok) {

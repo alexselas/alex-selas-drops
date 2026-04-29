@@ -11,13 +11,14 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1038.0",
+    "@aws-sdk/s3-request-presigner": "^3.1038.0",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@stripe/stripe-js": "^9.0.1",
     "@tailwindcss/vite": "^4.1.14",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
-    "@vercel/blob": "^2.3.3",
     "@vitejs/plugin-react": "^5.0.4",
     "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",
