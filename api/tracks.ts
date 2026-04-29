@@ -177,9 +177,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'DELETE') {
       const id = req.query.id as string;
-      if (!id) return res.status(400).json({ error: 'Falta id' });
+      const packId = req.query.packId as string;
+
+      if (!id && !packId) return res.status(400).json({ error: 'Falta id o packId' });
+
       const tracks = await getTracks();
-      // Collaborators can only delete their own tracks
+
+      if (packId) {
+        // Delete entire pack at once (atomic)
+        const packTracks = tracks.filter((t: any) => t.packId === packId);
+        if (packTracks.length === 0) return res.status(404).json({ error: 'Pack no encontrado' });
+        if (collab.valid && !isAdmin) {
+          if (packTracks.some((t: any) => t.collaboratorId !== collab.collaboratorId)) {
+            return res.status(403).json({ error: 'No puedes eliminar este pack' });
+          }
+        }
+        const filtered = tracks.filter((t: any) => t.packId !== packId);
+        await redis.set(KV_KEY, filtered);
+        return res.status(200).json({ success: true, deleted: packTracks.length });
+      }
+
+      // Single track delete
       if (collab.valid && !isAdmin) {
         const track = tracks.find((t: any) => t.id === id);
         if (!track || track.collaboratorId !== collab.collaboratorId) {

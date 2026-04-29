@@ -495,6 +495,23 @@ export default function App() {
     }
   }, []);
 
+  const handleDeletePack = useCallback(async (packId: string) => {
+    try {
+      const res = await fetch(`/api/tracks?packId=${encodeURIComponent(packId)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getActiveToken()}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(`Error al eliminar pack: ${data.error || res.status}`);
+        return;
+      }
+      setTracks(prev => prev.filter(t => t.packId !== packId));
+    } catch (e) {
+      alert('Error de conexion al eliminar. Intenta de nuevo.');
+    }
+  }, []);
+
   const handleReorderTracks = useCallback(async (reordered: Track[]) => {
     setTracks(reordered);
     try {
@@ -845,6 +862,7 @@ export default function App() {
                 onAddTracksBatch={handleAddTracksBatch}
                 onUpdateTrack={handleUpdateTrack}
                 onDeleteTrack={handleDeleteTrack}
+                onDeletePack={handleDeletePack}
                 onReorderTracks={handleReorderTracks}
                 onLogout={collabAdmin.logout}
                 collabToken={collabAdmin.getToken()}
@@ -906,6 +924,7 @@ export default function App() {
                 onAddTracksBatch={handleAddTracksBatch}
                 onUpdateTrack={handleUpdateTrack}
                 onDeleteTrack={handleDeleteTrack}
+                onDeletePack={handleDeletePack}
                 onReorderTracks={handleReorderTracks}
                 onLogout={admin.logout}
                 adminToken={admin.getToken()}

@@ -23,6 +23,7 @@ interface AdminPanelProps {
   onAddTracksBatch: (data: (Omit<Track, 'id'> & { id?: string })[]) => Promise<void> | void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => Promise<void> | void;
   onDeleteTrack: (id: string) => Promise<void> | void;
+  onDeletePack: (packId: string) => Promise<void> | void;
   onReorderTracks: (tracks: Track[]) => void;
   onLogout: () => void;
   adminToken?: string;
@@ -36,7 +37,7 @@ interface Order {
   date: string;
 }
 
-export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack, onReorderTracks, onLogout, adminToken }: AdminPanelProps) {
+export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack, onDeletePack, onReorderTracks, onLogout, adminToken }: AdminPanelProps) {
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -514,7 +515,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                                   <Edit2 className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={async e => { e.stopPropagation(); if (confirm(`¿Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) { for (const t of pack.tracks) await onDeleteTrack(t.id); } }}
+                                  onClick={e => { e.stopPropagation(); if (confirm(`¿Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) onDeletePack(pack.packId); }}
                                   className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                                   title="Eliminar pack"
                                 >
@@ -958,7 +959,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
 
       {/* ============ COLABORADORES ============ */}
       {tab === 'collabs' && (
-        <CollabManager adminToken={adminToken} tracks={tracks} onAddTrack={onAddTrack} onAddTracksBatch={onAddTracksBatch} onUpdateTrack={onUpdateTrack} onDeleteTrack={onDeleteTrack} />
+        <CollabManager adminToken={adminToken} tracks={tracks} onAddTrack={onAddTrack} onAddTracksBatch={onAddTracksBatch} onUpdateTrack={onUpdateTrack} onDeleteTrack={onDeleteTrack} onDeletePack={onDeletePack} />
       )}
     </div>
   );
@@ -972,11 +973,12 @@ interface CollabManagerProps {
   onAddTracksBatch: (data: (Omit<Track, 'id'> & { id?: string })[]) => Promise<void> | void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
   onDeleteTrack: (id: string) => void;
+  onDeletePack: (packId: string) => void;
 }
 
 interface CollabEntry { id: string; name: string; }
 
-function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack }: CollabManagerProps) {
+function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack, onDeletePack }: CollabManagerProps) {
   const [allCollabs, setAllCollabs] = useState<CollabEntry[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [collabSubTab, setCollabSubTab] = useState<'profile' | 'tracks' | 'billing'>('tracks');
@@ -1468,7 +1470,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                     <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
                       <button onClick={async () => { for (const t of pack.tracks) { await handleDownload(t); await new Promise(r => setTimeout(r, 500)); } }} className="p-2 rounded-lg text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors" title="Descargar pack"><Download className="w-4 h-4" /></button>
                       <button onClick={() => { setEditingPackTracks(pack.tracks); setIsAddingPack(false); setEditingTrack(null); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar pack"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => { if (confirm(`Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) pack.tracks.forEach(t => onDeleteTrack(t.id)); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar pack"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => { if (confirm(`Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) onDeletePack(pack.packId); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar pack"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 ))}

@@ -29,6 +29,7 @@ interface CollabPanelProps {
   onAddTracksBatch: (data: (Omit<Track, 'id'> & { id?: string })[]) => Promise<void> | void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
   onDeleteTrack: (id: string) => void;
+  onDeletePack: (packId: string) => void;
   onReorderTracks: (tracks: Track[]) => void;
   onLogout: () => void;
   collabToken: string;
@@ -41,6 +42,7 @@ export default function CollabPanel({
   onAddTracksBatch,
   onUpdateTrack,
   onDeleteTrack,
+  onDeletePack,
   onReorderTracks,
   onLogout,
   collabToken,
@@ -516,7 +518,7 @@ export default function CollabPanel({
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={async e => { e.stopPropagation(); for (const t of pack.tracks) onDeleteTrack(t.id); }}
+                          onClick={e => { e.stopPropagation(); if (confirm(`¿Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) onDeletePack(pack.packId); }}
                           className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                           title="Eliminar pack"
                         >
