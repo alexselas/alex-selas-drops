@@ -59,12 +59,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             bpm: results.bpm > 0 ? results.bpm : t.bpm,
             key: results.key || t.key,
             duration: results.duration > 0 ? results.duration : t.duration,
+            genre: results.genre_detected || t.genre,
+            tags: results.tags && results.tags.length > 0 ? results.tags : t.tags,
             // New fields from analysis
             analysis: {
               danceability: results.danceability || 0,
               loudness_lufs: results.loudness_lufs || 0,
               loudness_range: results.loudness_range || 0,
               energy_curve: results.energy_curve || [],
+              genre_detected: results.genre_detected || '',
               bpm_confidence: results.bpm_confidence || 0,
               key_confidence: results.key_confidence || 0,
               replay_gain: results.replay_gain || 0,

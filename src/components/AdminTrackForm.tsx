@@ -297,6 +297,8 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           bpm: a.bpm > 0 ? a.bpm : prev.bpm,
           key: a.key || prev.key,
           duration: a.duration > 0 ? a.duration : prev.duration,
+          genre: a.genre_detected || prev.genre,
+          tags: a.tags && a.tags.length > 0 ? a.tags.join(', ') : prev.tags,
         }));
       }
     } catch (e) {

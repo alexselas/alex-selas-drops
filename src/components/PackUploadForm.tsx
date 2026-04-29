@@ -158,7 +158,7 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
             if (data.success && data.analysis) {
               const a = data.analysis;
               setTracks(prev => prev.map(t =>
-                t.fileUrl === url ? { ...t, bpm: a.bpm > 0 ? a.bpm : t.bpm, key: a.key || t.key, duration: a.duration > 0 ? a.duration : t.duration } : t
+                t.fileUrl === url ? { ...t, bpm: a.bpm > 0 ? a.bpm : t.bpm, key: a.key || t.key, duration: a.duration > 0 ? a.duration : t.duration, genre: a.genre_detected || t.genre } : t
               ));
             }
           }).catch(() => {});
