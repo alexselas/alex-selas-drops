@@ -147,6 +147,22 @@ export default function PackUploadForm({ onSavePack, onCancel, adminToken, defau
             ? { ...t, fileUrl: url, bpm: analysis.bpm, duration: analysis.duration, key: analysis.key, analyzing: false }
             : t
         ));
+        // Trigger Modal analysis for more accurate results
+        if (url && !url.startsWith('blob:')) {
+          const token = getToken();
+          fetch('/api/analyze-track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ trackId: 'pack-preview', audioUrl: url }),
+          }).then(r => r.json()).then(data => {
+            if (data.success && data.analysis) {
+              const a = data.analysis;
+              setTracks(prev => prev.map(t =>
+                t.fileUrl === url ? { ...t, bpm: a.bpm > 0 ? a.bpm : t.bpm, key: a.key || t.key, duration: a.duration > 0 ? a.duration : t.duration } : t
+              ));
+            }
+          }).catch(() => {});
+        }
       });
     });
   };

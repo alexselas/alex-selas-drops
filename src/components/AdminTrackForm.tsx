@@ -263,6 +263,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
     if (!file.type.startsWith('audio/')) return;
     setAnalyzing(true);
     try {
+      // Quick browser analysis first (instant feedback)
       const result = await analyzeAudio(file);
       setForm(prev => ({
         ...prev,
@@ -272,6 +273,34 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
       }));
     } catch (e) {
       console.error('Audio analysis failed:', e);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // Server-side Modal analysis (more accurate, runs after upload completes)
+  const handleModalAnalysis = async (fileUrl: string) => {
+    if (!fileUrl || fileUrl.startsWith('blob:')) return;
+    setAnalyzing(true);
+    try {
+      const token = sessionStorage.getItem('alex-selas-drops-token') || sessionStorage.getItem('alex-selas-drops-collab-token') || '';
+      const res = await fetch('/api/analyze-track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ trackId: 'preview', audioUrl: fileUrl }),
+      });
+      const data = await res.json();
+      if (data.success && data.analysis) {
+        const a = data.analysis;
+        setForm(prev => ({
+          ...prev,
+          bpm: a.bpm > 0 ? a.bpm : prev.bpm,
+          key: a.key || prev.key,
+          duration: a.duration > 0 ? a.duration : prev.duration,
+        }));
+      }
+    } catch (e) {
+      console.error('Modal analysis failed:', e);
     } finally {
       setAnalyzing(false);
     }
@@ -446,7 +475,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
             icon={FileAudio}
             currentUrl={form.fileUrl}
             folder="tracks"
-            onUploaded={url => setForm(prev => ({ ...prev, fileUrl: url }))}
+            onUploaded={url => { setForm(prev => ({ ...prev, fileUrl: url })); handleModalAnalysis(url); }}
             onClear={() => { setForm(prev => ({ ...prev, fileUrl: '' })); setTrackFileBlob(null); }}
             onFileSelected={(file) => { setTrackFileBlob(file); handleAudioAnalysis(file); }}
           />
