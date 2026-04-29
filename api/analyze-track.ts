@@ -62,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             tags: results.tags && results.tags.length > 0 ? results.tags : t.tags,
             // New fields from analysis
             analysis: {
-              danceability: results.danceability || 0,
+              intensity: results.intensity || 0,
               loudness_lufs: results.loudness_lufs || 0,
               loudness_range: results.loudness_range || 0,
               energy_curve: results.energy_curve || [],

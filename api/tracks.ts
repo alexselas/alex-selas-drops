@@ -167,7 +167,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     key: r.key || t.key,
                     duration: r.duration > 0 ? r.duration : t.duration,
                     tags: r.tags && r.tags.length > 0 ? r.tags : t.tags,
-                    analysis: { danceability: r.danceability || 0, loudness_lufs: r.loudness_lufs || 0, energy_curve: r.energy_curve || [], genre_detected: r.genre_detected || '', key_confidence: r.key_confidence || 0, bpm_confidence: r.bpm_confidence || 0, analyzed_at: new Date().toISOString() },
+                    analysis: { intensity: r.intensity || 0, loudness_lufs: r.loudness_lufs || 0, energy_curve: r.energy_curve || [], genre_detected: r.genre_detected || '', key_confidence: r.key_confidence || 0, bpm_confidence: r.bpm_confidence || 0, analyzed_at: new Date().toISOString() },
                   } : t);
                   await redis.set(KV_KEY, updated);
                 }

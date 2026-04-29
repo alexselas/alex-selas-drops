@@ -91,49 +91,47 @@ def analyze_track(audio_url: str) -> dict:
             results["loudness_lufs"] = 0
             results["loudness_range"] = 0
 
-    # 4. Danceability (combined: beat strength + rhythm regularity + BPM sweet spot)
+    # 4. Intensity (RMS power + spectral density + dynamic range + onset density)
     try:
-        # A) Essentia DFA score (0-3 range typically)
-        danceability_extractor = es.Danceability()
-        dfa_score, _ = danceability_extractor(audio_44k)
-        dfa_norm = min(1.0, float(dfa_score) / 2.0)  # normalize 0-2 range to 0-1
+        # A) RMS energy — overall loudness/power of the signal
+        rms_vals = []
+        frame_size = 2048
+        hop = 1024
+        for i in range(0, len(audio_44k) - frame_size, hop):
+            frame = audio_44k[i:i + frame_size]
+            rms_vals.append(float(np.sqrt(np.mean(frame ** 2))))
+        avg_rms = np.mean(rms_vals) if rms_vals else 0
+        # Normalize: typical RMS range is 0.01 (quiet) to 0.3 (loud)
+        rms_score = min(1.0, max(0, (avg_rms - 0.01) / 0.25))
 
-        # B) Beat strength — how strong/clear are the beats
+        # B) Spectral density — how "full" the sound is
+        spectral = es.SpectralCentroidTime()
+        centroid = float(spectral(audio_44k))
+        # Higher centroid = brighter/more intense. Range ~500-5000 Hz
+        spectral_score = min(1.0, max(0, (centroid - 500) / 3500))
+
+        # C) Onset density — how many hits/transients per second
         onset_rate = es.OnsetRate()
         onsets, onset_rate_val = onset_rate(audio_44k)
-        # Good dance music has 2-8 onsets per second
-        beat_score = min(1.0, max(0, onset_rate_val / 6.0))
+        # Range: 1-2 (sparse) to 8-12 (very dense)
+        onset_score = min(1.0, max(0, (onset_rate_val - 1) / 9.0))
 
-        # C) BPM sweet spot — most danceable BPMs are 95-135
-        bpm_val = results.get("bpm", 0)
-        if 95 <= bpm_val <= 135:
-            bpm_score = 1.0
-        elif 80 <= bpm_val < 95 or 135 < bpm_val <= 150:
-            bpm_score = 0.8
-        elif 70 <= bpm_val < 80 or 150 < bpm_val <= 170:
-            bpm_score = 0.6
+        # D) Dynamic range — less dynamic = more compressed = more intense
+        if rms_vals:
+            rms_std = float(np.std(rms_vals))
+            rms_mean = float(np.mean(rms_vals))
+            # Low std relative to mean = compressed = intense
+            compression = 1.0 - min(1.0, rms_std / max(rms_mean, 0.001))
         else:
-            bpm_score = 0.3
+            compression = 0.5
 
-        # D) Rhythm regularity — consistent energy = more danceable
-        ec = results.get("energy_curve", [])
-        if ec and len(ec) >= 4:
-            ec_std = float(np.std(ec))
-            ec_mean = float(np.mean(ec))
-            regularity = max(0, 1.0 - (ec_std / max(ec_mean, 1))) if ec_mean > 0 else 0.5
-        else:
-            regularity = 0.5
-
-        # Combined score (weighted — BPM and beats matter most for DJ music)
-        combined = (dfa_norm * 0.15) + (beat_score * 0.35) + (bpm_score * 0.30) + (regularity * 0.20)
-        # Boost: if BPM is in dance range and has clear beats, minimum 60
-        if bpm_score >= 0.8 and beat_score >= 0.3:
-            combined = max(combined, 0.60)
-        results["danceability"] = min(100, max(0, round(combined * 100)))
-        print(f"Danceability: {results['danceability']}/100 (dfa={dfa_norm:.2f} beat={beat_score:.2f} bpm={bpm_score:.2f} reg={regularity:.2f})")
+        # Combined intensity score
+        intensity = (rms_score * 0.35) + (onset_score * 0.25) + (spectral_score * 0.20) + (compression * 0.20)
+        results["intensity"] = min(100, max(0, round(intensity * 100)))
+        print(f"Intensity: {results['intensity']}/100 (rms={rms_score:.2f} onsets={onset_score:.2f} spectral={spectral_score:.2f} compression={compression:.2f})")
     except Exception as e:
-        print(f"Danceability error: {e}")
-        results["danceability"] = 0
+        print(f"Intensity error: {e}")
+        results["intensity"] = 0
 
     # 5. Energy curve (16 segments)
     try:
@@ -188,14 +186,15 @@ def analyze_track(audio_url: str) -> dict:
     # 8. Tags (based on audio features)
     tags = []
 
-    # Danceability tags
-    if dance > 70:
-        tags.append("bailable")
-    if dance > 90:
-        tags.append("energetico")
-    if dance < 40:
-        tags.append("chill")
-    if dance >= 50 and dance <= 75:
+    # Intensity tags
+    intensity = results.get("intensity", 0)
+    if intensity > 75:
+        tags.append("potente")
+    if intensity > 90:
+        tags.append("agresivo")
+    if intensity < 35:
+        tags.append("suave")
+    if intensity >= 40 and intensity <= 65:
         tags.append("groovy")
 
     # BPM-based tags

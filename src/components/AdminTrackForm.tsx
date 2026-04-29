@@ -258,7 +258,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
 
   const [aiLoading, setAiLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<{ danceability: number; loudness_lufs: number; energy_curve: number[] } | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<{ intensity: number; loudness_lufs: number; energy_curve: number[] } | null>(null);
 
   const handleAudioAnalysis = async (file: File) => {
     if (!file.type.startsWith('audio/')) return;
@@ -302,7 +302,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           tags: a.tags && a.tags.length > 0 ? a.tags.join(', ') : prev.tags,
         }));
         setAiAnalysis({
-          danceability: a.danceability || 0,
+          intensity: a.intensity || 0,
           loudness_lufs: a.loudness_lufs || 0,
           energy_curve: a.energy_curve || [],
         });
@@ -544,14 +544,14 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           <div className="p-4 bg-zinc-800/30 border border-zinc-700/50 rounded-2xl space-y-3">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-yellow-400">Análisis IA</h4>
             <div className="grid grid-cols-2 gap-4">
-              {/* Danceability */}
+              {/* Intensity */}
               <div className="space-y-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Bailabilidad</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Intensidad</p>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-green-400 transition-all" style={{ width: `${aiAnalysis.danceability}%` }} />
+                    <div className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-red-500 transition-all" style={{ width: `${aiAnalysis.intensity}%` }} />
                   </div>
-                  <span className="text-sm font-black text-zinc-200 w-10 text-right">{aiAnalysis.danceability}</span>
+                  <span className="text-sm font-black text-zinc-200 w-10 text-right">{aiAnalysis.intensity}</span>
                 </div>
               </div>
               {/* Loudness */}
