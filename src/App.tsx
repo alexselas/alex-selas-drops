@@ -82,14 +82,14 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
   return (
     <>
       <h2 className="text-2xl font-bold text-zinc-50 mb-6">Todos los tracks</h2>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+      <div className="space-y-3 mb-6">
         <CategoryFilter selected={catFilter} onSelect={v => setCatFilter(v)} showOriginales />
-        <div className="flex items-center gap-3 sm:ml-auto w-full sm:w-auto">
-          <div className="relative flex-1 sm:flex-initial">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="w-full sm:w-56 pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="w-full pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors" />
           </div>
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <select value={sort} onChange={e => setSort(e.target.value as SortOption)} className="pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors appearance-none cursor-pointer">
               <option value="newest">Más recientes</option>
