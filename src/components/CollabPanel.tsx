@@ -368,7 +368,9 @@ export default function CollabPanel({
             existingTracks={editingPackTracks || undefined}
             onSavePack={async (packTracks) => {
               if (editingPackTracks) {
-                for (const t of packTracks) handleSave({ ...t, id: t.id });
+                for (const t of packTracks) {
+                  onUpdateTrack({ ...t, id: t.id, collaborator: true, collaboratorId: collaborator.id, artist: t.artist || collaborator.name });
+                }
               } else {
                 const enriched = packTracks.map(t => ({
                   ...t,
