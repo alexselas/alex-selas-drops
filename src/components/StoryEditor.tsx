@@ -91,7 +91,7 @@ export async function renderStoryCanvas(elements: StoryEl[], bgColor: string, lo
 
     if (el.type === 'image' && el.src) {
       let img = loadedImages[el.src];
-      if (!img) { img = await new Promise<HTMLImageElement>(res => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => res(i); i.src = el.src!; }); }
+      if (!img) { const proxied = el.src!.includes('r2.dev') ? `/api/proxy-image?url=${encodeURIComponent(el.src!)}` : el.src!; img = await new Promise<HTMLImageElement>(res => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => res(i); i.src = proxied; }); }
       if (img.complete && img.naturalWidth > 0) {
         ctx.save();
         if (el.borderRadius) { ctx.beginPath(); ctx.roundRect(el.x, el.y, el.w, el.h, el.borderRadius); ctx.clip(); }
@@ -146,12 +146,16 @@ export default function StoryEditor({ track, onClose, onGenerate }: StoryEditorP
 
   useEffect(() => {
     if (!track.coverUrl) return;
+    // Proxy R2 images to avoid CORS canvas tainting
+    const proxiedUrl = track.coverUrl.includes('r2.dev')
+      ? `/api/proxy-image?url=${encodeURIComponent(track.coverUrl)}`
+      : track.coverUrl;
     const img = new Image(); img.crossOrigin = 'anonymous';
     img.onload = () => {
       setLoadedImages(prev => ({ ...prev, [track.coverUrl]: img }));
       const c = getDominantColor(img); if (c) setBgColor(c);
     };
-    img.src = track.coverUrl;
+    img.src = proxiedUrl;
   }, [track.coverUrl]);
 
   const guides = useMemo(() => {
@@ -277,7 +281,7 @@ export default function StoryEditor({ track, onClose, onGenerate }: StoryEditorP
                     pointerEvents:isDragging&&!isBeingDragged?'none':undefined}}
                   className={isSel?(el.locked?'ring-2 ring-yellow-400/60':'ring-2 ring-blue-500/80'):''}>
                   {el.type==='image'&&el.src&&(
-                    <img src={el.src} className="w-full h-full object-cover pointer-events-none select-none"
+                    <img src={el.src.includes('r2.dev') ? `/api/proxy-image?url=${encodeURIComponent(el.src)}` : el.src} className="w-full h-full object-cover pointer-events-none select-none"
                       style={{borderRadius:el.borderRadius?el.borderRadius*scale:0}} draggable={false} crossOrigin="anonymous"/>
                   )}
                   {el.type==='text'&&el.content&&el.id==='link'&&(
