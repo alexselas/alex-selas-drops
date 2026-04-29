@@ -1,4 +1,3 @@
-import { Disc3, Radio, Repeat, Layers, Package, Zap, ArrowLeftRight, Mic, Combine } from 'lucide-react';
 import type { Category } from '../types';
 
 interface CategoryFilterProps {
@@ -7,39 +6,43 @@ interface CategoryFilterProps {
   showOriginales?: boolean;
 }
 
-const categories: { value: Category | 'all' | 'packs'; label: string; icon: typeof Disc3; color: string; onlyCollab?: boolean }[] = [
-  { value: 'all', label: 'Todos', icon: Disc3, color: 'text-zinc-300 border-zinc-600' },
-  { value: 'remixes', label: 'Remixes', icon: Repeat, color: 'text-violet-400 border-violet-400/40' },
-  { value: 'mashups', label: 'Mashups', icon: Layers, color: 'text-yellow-400 border-yellow-400/40' },
-  { value: 'livemashups', label: 'Live Mashups', icon: Combine, color: 'text-fuchsia-400 border-fuchsia-400/40' },
-  { value: 'hypeintros', label: 'Hype Intros', icon: Zap, color: 'text-pink-400 border-pink-400/40' },
-  { value: 'transiciones', label: 'Transiciones', icon: ArrowLeftRight, color: 'text-cyan-400 border-cyan-400/40' },
-  { value: 'packs', label: 'Packs', icon: Package, color: 'text-blue-400 border-blue-400/40' },
-  { value: 'sesiones', label: 'Sesiones', icon: Radio, color: 'text-emerald-400 border-emerald-400/40' },
-  { value: 'originales', label: 'Originales', icon: Mic, color: 'text-orange-400 border-orange-400/40', onlyCollab: true },
+const categories: { value: Category | 'all' | 'packs'; label: string; dot: string; activeBg: string; onlyCollab?: boolean }[] = [
+  { value: 'all', label: 'Todos', dot: 'bg-zinc-400', activeBg: 'gradient-bg text-black' },
+  { value: 'remixes', label: 'Remixes', dot: 'bg-violet-400', activeBg: 'bg-violet-400/20 text-violet-400 border-violet-400/40' },
+  { value: 'mashups', label: 'Mashups', dot: 'bg-yellow-400', activeBg: 'bg-yellow-400/20 text-yellow-400 border-yellow-400/40' },
+  { value: 'livemashups', label: 'Live Mashups', dot: 'bg-fuchsia-400', activeBg: 'bg-fuchsia-400/20 text-fuchsia-400 border-fuchsia-400/40' },
+  { value: 'hypeintros', label: 'Hype Intros', dot: 'bg-pink-400', activeBg: 'bg-pink-400/20 text-pink-400 border-pink-400/40' },
+  { value: 'transiciones', label: 'Transiciones', dot: 'bg-cyan-400', activeBg: 'bg-cyan-400/20 text-cyan-400 border-cyan-400/40' },
+  { value: 'packs', label: 'Packs', dot: 'bg-blue-400', activeBg: 'bg-blue-400/20 text-blue-400 border-blue-400/40' },
+  { value: 'sesiones', label: 'Sesiones', dot: 'bg-emerald-400', activeBg: 'bg-emerald-400/20 text-emerald-400 border-emerald-400/40' },
+  { value: 'originales', label: 'Originales', dot: 'bg-orange-400', activeBg: 'bg-orange-400/20 text-orange-400 border-orange-400/40', onlyCollab: true },
 ];
 
 export default function CategoryFilter({ selected, onSelect, showOriginales }: CategoryFilterProps) {
   return (
-    <div className="flex gap-1 flex-wrap">
-      {categories.filter(cat => !cat.onlyCollab || showOriginales).map(cat => {
-        const Icon = cat.icon;
-        const active = selected === cat.value;
-        return (
-          <button
-            key={cat.value}
-            onClick={() => onSelect(cat.value)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap border ${
-              active
-                ? 'gradient-bg text-black border-yellow-400 shadow-lg glow'
-                : `bg-zinc-900/50 ${cat.color} hover:bg-zinc-800/80`
-            }`}
-          >
-            <Icon className="w-3 h-3" />
-            {cat.label}
-          </button>
-        );
-      })}
+    <div className="relative">
+      <div
+        className="flex gap-1.5 overflow-x-auto pb-1"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
+        {categories.filter(cat => !cat.onlyCollab || showOriginales).map(cat => {
+          const active = selected === cat.value;
+          return (
+            <button
+              key={cat.value}
+              onClick={() => onSelect(cat.value)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide transition-all whitespace-nowrap flex-shrink-0 border ${
+                active
+                  ? cat.value === 'all' ? 'gradient-bg text-black border-transparent shadow-lg' : `${cat.activeBg}`
+                  : 'bg-transparent text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:border-zinc-700'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active ? (cat.value === 'all' ? 'bg-black' : cat.dot) : cat.dot} ${active ? 'opacity-100' : 'opacity-50'}`} />
+              {cat.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
