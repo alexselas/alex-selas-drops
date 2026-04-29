@@ -91,12 +91,46 @@ def analyze_track(audio_url: str) -> dict:
             results["loudness_lufs"] = 0
             results["loudness_range"] = 0
 
-    # 4. Danceability
+    # 4. Danceability (combined: beat strength + rhythm regularity + BPM sweet spot)
     try:
+        # A) Essentia DFA score (0-3 range typically)
         danceability_extractor = es.Danceability()
-        danceability, _ = danceability_extractor(audio_44k)
-        results["danceability"] = min(100, max(0, round(float(danceability) / 3.0 * 100)))
-        print(f"Danceability: {results['danceability']}/100")
+        dfa_score, _ = danceability_extractor(audio_44k)
+        dfa_norm = min(1.0, float(dfa_score) / 2.0)  # normalize 0-2 range to 0-1
+
+        # B) Beat strength — how strong/clear are the beats
+        onset_rate = es.OnsetRate()
+        onsets, onset_rate_val = onset_rate(audio_44k)
+        # Good dance music has 2-8 onsets per second
+        beat_score = min(1.0, max(0, onset_rate_val / 6.0))
+
+        # C) BPM sweet spot — most danceable BPMs are 95-135
+        bpm_val = results.get("bpm", 0)
+        if 95 <= bpm_val <= 135:
+            bpm_score = 1.0
+        elif 80 <= bpm_val < 95 or 135 < bpm_val <= 150:
+            bpm_score = 0.8
+        elif 70 <= bpm_val < 80 or 150 < bpm_val <= 170:
+            bpm_score = 0.6
+        else:
+            bpm_score = 0.3
+
+        # D) Rhythm regularity — consistent energy = more danceable
+        ec = results.get("energy_curve", [])
+        if ec and len(ec) >= 4:
+            ec_std = float(np.std(ec))
+            ec_mean = float(np.mean(ec))
+            regularity = max(0, 1.0 - (ec_std / max(ec_mean, 1))) if ec_mean > 0 else 0.5
+        else:
+            regularity = 0.5
+
+        # Combined score (weighted — BPM and beats matter most for DJ music)
+        combined = (dfa_norm * 0.15) + (beat_score * 0.35) + (bpm_score * 0.30) + (regularity * 0.20)
+        # Boost: if BPM is in dance range and has clear beats, minimum 60
+        if bpm_score >= 0.8 and beat_score >= 0.3:
+            combined = max(combined, 0.60)
+        results["danceability"] = min(100, max(0, round(combined * 100)))
+        print(f"Danceability: {results['danceability']}/100 (dfa={dfa_norm:.2f} beat={beat_score:.2f} bpm={bpm_score:.2f} reg={regularity:.2f})")
     except Exception as e:
         print(f"Danceability error: {e}")
         results["danceability"] = 0
