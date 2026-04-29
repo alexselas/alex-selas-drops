@@ -10,29 +10,17 @@ export function useStoryGenerator() {
   const [progress, setProgress] = useState(0);
   const ffmpegRef = useRef<FFmpeg | null>(null);
 
-  const loadImage = async (src: string): Promise<HTMLImageElement> => {
-    // For external URLs (R2), fetch as blob to avoid CORS canvas tainting
-    if (src.startsWith('http')) {
-      try {
-        const resp = await fetch(src);
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
-          img.src = url;
-        });
-      } catch {
-        // Fallback to direct load
-      }
-    }
+  const loadImage = (src: string): Promise<HTMLImageElement> => {
+    // For external R2 URLs, proxy through our API to avoid CORS
+    const finalSrc = src.startsWith('http') && src.includes('r2.dev')
+      ? `/api/proxy-image?url=${encodeURIComponent(src)}`
+      : src;
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => resolve(img);
       img.onerror = reject;
-      img.src = src;
+      img.src = finalSrc;
     });
   };
 
