@@ -7,21 +7,21 @@ interface CategoryFilterProps {
   showOriginales?: boolean;
 }
 
-const categories: { value: Category | 'all' | 'packs'; label: string; icon: typeof Disc3; onlyCollab?: boolean }[] = [
-  { value: 'all', label: 'Todos', icon: Disc3 },
-  { value: 'remixes', label: 'Remixes', icon: Repeat },
-  { value: 'mashups', label: 'Mashups', icon: Layers },
-  { value: 'livemashups', label: 'Live Mashups', icon: Combine },
-  { value: 'hypeintros', label: 'Hype Intros', icon: Zap },
-  { value: 'transiciones', label: 'Transiciones', icon: ArrowLeftRight },
-  { value: 'packs', label: 'Packs', icon: Package },
-  { value: 'sesiones', label: 'Sesiones', icon: Radio },
-  { value: 'originales', label: 'Originales', icon: Mic, onlyCollab: true },
+const categories: { value: Category | 'all' | 'packs'; label: string; icon: typeof Disc3; color: string; onlyCollab?: boolean }[] = [
+  { value: 'all', label: 'Todos', icon: Disc3, color: 'text-zinc-300 border-zinc-600' },
+  { value: 'remixes', label: 'Remixes', icon: Repeat, color: 'text-violet-400 border-violet-400/40' },
+  { value: 'mashups', label: 'Mashups', icon: Layers, color: 'text-yellow-400 border-yellow-400/40' },
+  { value: 'livemashups', label: 'Live Mashups', icon: Combine, color: 'text-fuchsia-400 border-fuchsia-400/40' },
+  { value: 'hypeintros', label: 'Hype Intros', icon: Zap, color: 'text-pink-400 border-pink-400/40' },
+  { value: 'transiciones', label: 'Transiciones', icon: ArrowLeftRight, color: 'text-cyan-400 border-cyan-400/40' },
+  { value: 'packs', label: 'Packs', icon: Package, color: 'text-blue-400 border-blue-400/40' },
+  { value: 'sesiones', label: 'Sesiones', icon: Radio, color: 'text-emerald-400 border-emerald-400/40' },
+  { value: 'originales', label: 'Originales', icon: Mic, color: 'text-orange-400 border-orange-400/40', onlyCollab: true },
 ];
 
 export default function CategoryFilter({ selected, onSelect, showOriginales }: CategoryFilterProps) {
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+    <div className="flex gap-1 flex-wrap">
       {categories.filter(cat => !cat.onlyCollab || showOriginales).map(cat => {
         const Icon = cat.icon;
         const active = selected === cat.value;
@@ -29,13 +29,13 @@ export default function CategoryFilter({ selected, onSelect, showOriginales }: C
           <button
             key={cat.value}
             onClick={() => onSelect(cat.value)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap border ${
               active
-                ? 'gradient-bg text-black shadow-lg glow'
-                : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                ? 'gradient-bg text-black border-yellow-400 shadow-lg glow'
+                : `bg-zinc-900/50 ${cat.color} hover:bg-zinc-800/80`
             }`}
           >
-            <Icon className="w-3.5 h-3.5" />
+            <Icon className="w-3 h-3" />
             {cat.label}
           </button>
         );
