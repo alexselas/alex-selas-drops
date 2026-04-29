@@ -258,6 +258,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
 
   const [aiLoading, setAiLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<{ danceability: number; loudness_lufs: number; energy_curve: number[] } | null>(null);
 
   const handleAudioAnalysis = async (file: File) => {
     if (!file.type.startsWith('audio/')) return;
@@ -300,6 +301,11 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           genre: a.genre_detected || prev.genre,
           tags: a.tags && a.tags.length > 0 ? a.tags.join(', ') : prev.tags,
         }));
+        setAiAnalysis({
+          danceability: a.danceability || 0,
+          loudness_lufs: a.loudness_lufs || 0,
+          energy_curve: a.energy_curve || [],
+        });
       }
     } catch (e) {
       console.error('Modal analysis failed:', e);
@@ -530,6 +536,51 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
               <p className="text-sm text-yellow-400 font-medium">Analizando audio...</p>
               <p className="text-xs text-zinc-500">Detectando BPM, tonalidad y duración</p>
             </div>
+          </div>
+        )}
+
+        {/* AI Analysis Results — read only */}
+        {aiAnalysis && (
+          <div className="p-4 bg-zinc-800/30 border border-zinc-700/50 rounded-2xl space-y-3">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-yellow-400">Análisis IA</h4>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Danceability */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Bailabilidad</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-green-400 transition-all" style={{ width: `${aiAnalysis.danceability}%` }} />
+                  </div>
+                  <span className="text-sm font-black text-zinc-200 w-10 text-right">{aiAnalysis.danceability}</span>
+                </div>
+              </div>
+              {/* Loudness */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Loudness</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-zinc-200">{aiAnalysis.loudness_lufs} LUFS</span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${aiAnalysis.loudness_lufs === 0 ? 'bg-zinc-800 text-zinc-500' : aiAnalysis.loudness_lufs > -8 ? 'bg-red-400/15 text-red-400' : aiAnalysis.loudness_lufs > -14 ? 'bg-green-400/15 text-green-400' : 'bg-yellow-400/15 text-yellow-400'}`}>
+                    {aiAnalysis.loudness_lufs === 0 ? 'N/A' : aiAnalysis.loudness_lufs > -8 ? 'MUY ALTO' : aiAnalysis.loudness_lufs > -14 ? 'OK' : 'DINÁMICO'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* Energy curve */}
+            {aiAnalysis.energy_curve.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Curva de energía</p>
+                <div className="flex items-end gap-[3px] h-12">
+                  {aiAnalysis.energy_curve.map((v, i) => (
+                    <div key={i} className="flex-1 rounded-sm bg-gradient-to-t from-yellow-400/60 to-yellow-400 transition-all" style={{ height: `${v}%` }} />
+                  ))}
+                </div>
+                <div className="flex justify-between text-[8px] text-zinc-600">
+                  <span>Inicio</span>
+                  <span>Medio</span>
+                  <span>Final</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
