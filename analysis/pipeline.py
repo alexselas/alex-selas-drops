@@ -101,20 +101,20 @@ def analyze_track(audio_url: str) -> dict:
             frame = audio_44k[i:i + frame_size]
             rms_vals.append(float(np.sqrt(np.mean(frame ** 2))))
         avg_rms = np.mean(rms_vals) if rms_vals else 0
-        # Normalize: typical RMS range is 0.01 (quiet) to 0.3 (loud)
-        rms_score = min(1.0, max(0, (avg_rms - 0.01) / 0.25))
+        # Normalize: typical RMS for MP3 previews is 0.02 (quiet) to 0.15 (loud)
+        rms_score = min(1.0, max(0, (avg_rms - 0.01) / 0.12))
 
         # B) Spectral density — how "full" the sound is
         spectral = es.SpectralCentroidTime()
         centroid = float(spectral(audio_44k))
-        # Higher centroid = brighter/more intense. Range ~500-5000 Hz
-        spectral_score = min(1.0, max(0, (centroid - 500) / 3500))
+        # Higher centroid = brighter/more intense. Range ~500-3000 Hz for MP3
+        spectral_score = min(1.0, max(0, (centroid - 300) / 2000))
 
         # C) Onset density — how many hits/transients per second
         onset_rate = es.OnsetRate()
         onsets, onset_rate_val = onset_rate(audio_44k)
-        # Range: 1-2 (sparse) to 8-12 (very dense)
-        onset_score = min(1.0, max(0, (onset_rate_val - 1) / 9.0))
+        # Range: 1-2 (sparse) to 6-10 (very dense)
+        onset_score = min(1.0, max(0, (onset_rate_val - 1) / 5.0))
 
         # D) Dynamic range — less dynamic = more compressed = more intense
         if rms_vals:
@@ -125,8 +125,16 @@ def analyze_track(audio_url: str) -> dict:
         else:
             compression = 0.5
 
+        # BPM boost — faster = more intense
+        bpm_val = results.get("bpm", 0)
+        bpm_boost = 0
+        if bpm_val >= 140:
+            bpm_boost = 0.15
+        elif bpm_val >= 130:
+            bpm_boost = 0.08
+
         # Combined intensity score
-        intensity = (rms_score * 0.35) + (onset_score * 0.25) + (spectral_score * 0.20) + (compression * 0.20)
+        intensity = (rms_score * 0.30) + (onset_score * 0.25) + (spectral_score * 0.20) + (compression * 0.15) + bpm_boost
         results["intensity"] = min(100, max(0, round(intensity * 100)))
         print(f"Intensity: {results['intensity']}/100 (rms={rms_score:.2f} onsets={onset_score:.2f} spectral={spectral_score:.2f} compression={compression:.2f})")
     except Exception as e:
