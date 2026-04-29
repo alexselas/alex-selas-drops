@@ -230,6 +230,44 @@ export default function TrackDetail({
               </button>
             </div>
 
+            {/* AI Analysis Data */}
+            {track.analysis && (
+              <div className="mt-5 p-4 bg-zinc-900/50 border border-zinc-800/50 rounded-xl space-y-3">
+                <div className="flex items-center gap-4">
+                  {/* Intensity */}
+                  {track.analysis.intensity != null && track.analysis.intensity > 0 && (
+                    <div className="flex-1 space-y-1">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Intensidad</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-red-500" style={{ width: `${track.analysis.intensity}%` }} />
+                        </div>
+                        <span className="text-[10px] font-black text-zinc-300">{track.analysis.intensity}</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* Loudness */}
+                  {track.analysis.loudness_lufs != null && track.analysis.loudness_lufs !== 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Loudness</p>
+                      <span className="text-[10px] font-black text-zinc-300">{track.analysis.loudness_lufs} LUFS</span>
+                    </div>
+                  )}
+                </div>
+                {/* Energy curve */}
+                {track.analysis.energy_curve && track.analysis.energy_curve.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Energía</p>
+                    <div className="flex items-end gap-[2px] h-8">
+                      {track.analysis.energy_curve.map((v: number, i: number) => (
+                        <div key={i} className="flex-1 rounded-sm bg-gradient-to-t from-yellow-400/50 to-yellow-400" style={{ height: `${v}%` }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <p className="mt-4 text-xs text-zinc-600 text-center">
               MP3 320kbps &middot; Descarga inmediata tras el pago &middot; Preview con marca de agua
             </p>

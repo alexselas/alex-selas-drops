@@ -22,6 +22,13 @@ export interface Track {
   collaboratorId?: string;
   packId?: string;
   packName?: string;
+  analysis?: {
+    intensity?: number;
+    loudness_lufs?: number;
+    energy_curve?: number[];
+    genre_detected?: string;
+    analyzed_at?: string;
+  };
 }
 
 export interface CollaboratorProfile {
