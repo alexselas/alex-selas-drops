@@ -1,97 +1,50 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import {
-  Plus, Edit2, Trash2, LogOut, Music, Package, Tag, Clock,
-  LayoutDashboard, ListMusic, ShoppingBag, Settings, Users, Mail,
-  TrendingUp, DollarSign, Eye, Play, Radio, Layers, Library,
-  Search, ChevronDown, Star, ChevronUp, GripVertical, Copy,
-  Save, Loader2, User, Upload, Image, Link, CheckCircle, Download,
+  Plus, Edit2, Trash2, LogOut, Music, Tag, Clock,
+  LayoutDashboard, ListMusic, Users, Mail,
+  DollarSign, Eye, Radio, Layers,
+  Search, ChevronDown, Star, GripVertical, Copy,
+  Save, Loader2, User, Upload, Image, CheckCircle, Download,
 } from 'lucide-react';
 import type { Track, Category, CollaboratorProfile } from '../types';
-import { formatPrice, formatDuration } from '../lib/utils';
+import { CREDIT_COSTS, CATEGORY_LABELS, CATEGORY_COLORS } from '../types';
+import { formatPrice, formatDuration, formatCredits } from '../lib/utils';
 import { collaborators } from '../data/collaborators';
 import AdminTrackForm from './AdminTrackForm';
-import PackUploadForm from './PackUploadForm';
 import ImageCropper from './ImageCropper';
 import CollabProfileForm from './CollabProfileForm';
 
-type AdminTab = 'dashboard' | 'tracks' | 'orders' | 'newsletter' | 'settings' | 'collabs';
+type AdminTab = 'dashboard' | 'tracks' | 'newsletter' | 'settings' | 'collabs' | 'economia' | 'pirateria';
 
 interface AdminPanelProps {
   tracks: Track[];
   onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => Promise<void> | void;
-  onAddTracksBatch: (data: (Omit<Track, 'id'> & { id?: string })[]) => Promise<void> | void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => Promise<void> | void;
   onDeleteTrack: (id: string) => Promise<void> | void;
-  onDeletePack: (packId: string) => Promise<void> | void;
   onReorderTracks: (tracks: Track[]) => void;
   onLogout: () => void;
   adminToken?: string;
 }
 
-interface Order {
-  id: string;
-  tracks: string[];
-  email: string;
-  amount: number;
-  date: string;
-}
-
-export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack, onDeletePack, onReorderTracks, onLogout, adminToken }: AdminPanelProps) {
+export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDeleteTrack, onReorderTracks, onLogout, adminToken }: AdminPanelProps) {
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [isAddingPack, setIsAddingPack] = useState(false);
-  const [editingPackTracks, setEditingPackTracks] = useState<Track[] | null>(null);
+  const [adminArtist, setAdminArtist] = useState<'alex-selas' | 'music-drop'>('alex-selas');
   const [trackSearch, setTrackSearch] = useState('');
-  const [trackFilter, setTrackFilter] = useState<Category | 'all' | 'packs'>('all');
+  const [trackFilter, setTrackFilter] = useState<Category | 'all'>('all');
   const [showAllTracks, setShowAllTracks] = useState(false);
-  const [expandedAdminPackId, setExpandedAdminPackId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  // Orders
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [ordersRevenue, setOrdersRevenue] = useState(0);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [ordersPeriod, setOrdersPeriod] = useState('month');
-  const [ordersError, setOrdersError] = useState('');
-  const [ordersPage, setOrdersPage] = useState(1);
-  const ORDERS_PER_PAGE = 20;
-
   const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || '';
-
-  const fetchOrders = (period: string) => {
-    setOrdersLoading(true);
-    setOrdersPeriod(period);
-    setOrdersError('');
-    setOrdersPage(1);
-    fetch(`/api/orders?period=${period}&limit=100`, {
-      headers: { Authorization: `Bearer ${getAdminToken()}` },
-    })
-      .then(r => {
-        if (!r.ok) throw new Error(r.status === 401 ? 'Sesion expirada. Cierra sesion y vuelve a entrar.' : `Error ${r.status}`);
-        return r.json();
-      })
-      .then(data => {
-        if (data.orders) {
-          setOrders(data.orders);
-          setOrdersRevenue(data.revenue || 0);
-        }
-      })
-      .catch((e) => { setOrdersError(e.message || 'Error al cargar pedidos'); })
-      .finally(() => setOrdersLoading(false));
-  };
-
-  const totalOrderPages = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
-  const paginatedOrders = orders.slice((ordersPage - 1) * ORDERS_PER_PAGE, ordersPage * ORDERS_PER_PAGE);
-
-  useEffect(() => { fetchOrders('month'); }, []);
 
   // Stats (only own tracks, not collaborator uploads)
   const myTracks = tracks.filter(t => !t.collaboratorId);
-  const stats = {
+  const stats: Record<string, any> = {
     total: myTracks.length,
+    extended: myTracks.filter(t => t.category === 'extended').length,
     sesiones: myTracks.filter(t => t.category === 'sesiones').length,
     remixes: myTracks.filter(t => t.category === 'remixes').length,
     mashups: myTracks.filter(t => t.category === 'mashups').length,
@@ -100,65 +53,31 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
     transiciones: myTracks.filter(t => t.category === 'transiciones').length,
     originales: myTracks.filter(t => t.category === 'originales').length,
     featured: myTracks.filter(t => t.featured).length,
-    revenue: ordersRevenue,
-    orders: orders.length,
-  };
-
-  const categoryLabels: Record<string, string> = {
-    sesiones: 'Sesion',
-    remixes: 'Remix',
-    mashups: 'Mashup',
-    livemashups: 'Live Mashup',
-    hypeintros: 'Hype Intro',
-    transiciones: 'Transicion',
-    originales: 'Original',
-  };
-
-  const categoryColors: Record<string, string> = {
-    sesiones: 'text-emerald-400',
-    remixes: 'text-violet-400',
-    mashups: 'text-yellow-400',
-    livemashups: 'text-fuchsia-400',
-    hypeintros: 'text-pink-400',
-    transiciones: 'text-cyan-400',
-    originales: 'text-orange-400',
   };
 
   const categoryIcons: Record<string, typeof Music> = {
+    extended: Music,
     sesiones: Radio,
     remixes: Tag,
     mashups: Layers,
     livemashups: Layers,
-    librerias: Library,
   };
 
   // Filter tracks for list
   const filteredTracks = tracks.filter(t => {
     if (!showAllTracks && t.collaboratorId) return false;
-    if (trackFilter === 'packs') {
-      if (!t.packId) return false;
-    } else if (trackFilter !== 'all') {
+    if (trackFilter !== 'all') {
       if (t.category !== trackFilter) return false;
     }
     if (trackSearch.trim()) {
       const q = trackSearch.toLowerCase();
-      return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q) || (t.packName || '').toLowerCase().includes(q);
+      return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q);
     }
     return true;
   });
 
-  // Newsletter: unique emails from orders
-  const newsletterEmails = (() => {
-    const seen = new Set<string>();
-    const list: { email: string; lastOrder: string; type: string }[] = [];
-    for (const o of orders) {
-      const e = o.email?.toLowerCase().trim();
-      if (!e || e === 'sin email' || e === 'descarga gratuita' || seen.has(e)) continue;
-      seen.add(e);
-      list.push({ email: o.email, lastOrder: o.date, type: o.amount > 0 ? 'Pago' : 'Gratis' });
-    }
-    return list;
-  })();
+  // Newsletter state
+  const newsletterEmails: { email: string; lastOrder: string; type: string }[] = [];
   const [emailsCopied, setEmailsCopied] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [sendingNewsletter, setSendingNewsletter] = useState(false);
@@ -166,16 +85,14 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
   const [selectedTracks, setSelectedTracks] = useState<Set<string>>(new Set());
   const [showNewsletterPreview, setShowNewsletterPreview] = useState(false);
 
-  // Init selected emails when newsletter emails change
-  useEffect(() => { setSelectedEmails(new Set(newsletterEmails.map(e => e.email))); }, [orders]);
-
   const tabs: { id: AdminTab; label: string; icon: typeof Music }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tracks', label: 'Tracks', icon: ListMusic },
-    { id: 'orders', label: 'Pedidos', icon: ShoppingBag },
     { id: 'newsletter', label: 'Newsletter', icon: Mail },
     { id: 'settings', label: 'Perfil', icon: User },
     { id: 'collabs', label: 'Colaboradores', icon: Users },
+    { id: 'economia', label: 'Economia', icon: DollarSign },
+    { id: 'pirateria', label: 'Pirateria', icon: Eye },
   ];
 
   return (
@@ -225,12 +142,10 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
       {tab === 'dashboard' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           {/* Stat cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {[
               { label: 'Tracks', value: stats.total, icon: ListMusic, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
               { label: 'Destacados', value: stats.featured, icon: Star, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-              { label: 'Pedidos', value: stats.orders, icon: ShoppingBag, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-              { label: 'Ingresos', value: formatPrice(stats.revenue), icon: DollarSign, color: 'text-violet-400', bg: 'bg-violet-500/10' },
             ].map(s => (
               <div key={s.label} className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
                 <div className={`w-9 h-9 rounded-lg ${s.bg} flex items-center justify-center mb-3`}>
@@ -246,15 +161,15 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
           <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
             <h3 className="text-sm font-semibold text-zinc-300 mb-4">Por categoría</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {(['sesiones', 'remixes', 'mashups', 'librerias'] as Category[]).map(cat => {
-                const Icon = categoryIcons[cat];
-                const count = stats[cat];
+              {(['extended', 'mashups', 'remixes', 'sesiones', 'livemashups', 'hypeintros', 'transiciones', 'originales'] as Category[]).map(cat => {
+                const Icon = categoryIcons[cat] || Music;
+                const count = stats[cat] || 0;
                 return (
                   <div key={cat} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/30">
-                    <Icon className={`w-5 h-5 ${categoryColors[cat]}`} />
+                    <Icon className="w-5 h-5 text-yellow-400" />
                     <div>
                       <div className="text-lg font-bold text-zinc-200">{count}</div>
-                      <div className="text-xs text-zinc-500">{categoryLabels[cat]}s</div>
+                      <div className="text-xs text-zinc-500">{CATEGORY_LABELS[cat]}s</div>
                     </div>
                   </div>
                 );
@@ -262,38 +177,8 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
             </div>
           </div>
 
-          {/* Recent orders */}
-          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-zinc-300">Últimos pedidos</h3>
-              <button
-                onClick={() => setTab('orders')}
-                className="text-xs text-yellow-400 hover:text-yellow-300 transition-colors"
-              >
-                Ver todos
-              </button>
-            </div>
-            <div className="space-y-2">
-              {orders.length === 0 && !ordersLoading && (
-                <p className="text-sm text-zinc-600 text-center py-4">Sin pedidos aún</p>
-              )}
-              {orders.slice(0, 3).map(order => (
-                <div key={order.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/30">
-                  <div className="min-w-0">
-                    <p className="text-sm text-zinc-300 truncate">{order.tracks.join(', ') || 'Track'}</p>
-                    <p className="text-xs text-zinc-500">{order.email}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-4">
-                    <p className="text-sm font-semibold text-yellow-400">{formatPrice(order.amount)}</p>
-                    <p className="text-xs text-zinc-600">{order.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Quick actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               onClick={() => { setTab('tracks'); setIsAdding(true); }}
               className="flex items-center gap-3 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-yellow-400/30 transition-all text-left group"
@@ -318,18 +203,6 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                 <p className="text-xs text-zinc-500">Edita o elimina tracks</p>
               </div>
             </button>
-            <button
-              onClick={() => setTab('orders')}
-              className="flex items-center gap-3 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-yellow-400/30 transition-all text-left group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-zinc-200">Ver ventas</p>
-                <p className="text-xs text-zinc-500">Historial de pedidos</p>
-              </div>
-            </button>
           </div>
         </motion.div>
       )}
@@ -338,39 +211,43 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
       {tab === 'tracks' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           {/* Form */}
-          {(isAddingPack || editingPackTracks) ? (
-            <PackUploadForm
-              adminToken={adminToken}
-              existingTracks={editingPackTracks || undefined}
-              onSavePack={async (packTracks) => {
-                if (editingPackTracks) {
-                  for (const t of packTracks) await onUpdateTrack(t);
-                } else {
-                  await onAddTracksBatch(packTracks);
-                }
-                setIsAddingPack(false);
-                setEditingPackTracks(null);
-              }}
-              onCancel={() => { setIsAddingPack(false); setEditingPackTracks(null); }}
-            />
-          ) : (isAdding || editingTrack) ? (
-            <AdminTrackForm
-              track={editingTrack}
-              adminToken={adminToken}
-              onSave={(data) => {
-                if (editingTrack) {
-                  onUpdateTrack(data);
-                } else {
-                  onAddTrack(data);
-                }
-                setEditingTrack(null);
-                setIsAdding(false);
-              }}
-              onCancel={() => {
-                setEditingTrack(null);
-                setIsAdding(false);
-              }}
-            />
+          {(isAdding || editingTrack) ? (
+            <>
+              {/* Artist selector — only for new tracks */}
+              {isAdding && !editingTrack && (
+                <div className="mb-4 flex items-center gap-3">
+                  <label className="text-xs text-zinc-500 font-medium">Publicar como:</label>
+                  <select value={adminArtist} onChange={e => setAdminArtist(e.target.value as any)} className="px-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm">
+                    <option value="alex-selas">Alex Selas</option>
+                    <option value="music-drop">Music Drop</option>
+                  </select>
+                </div>
+              )}
+              <AdminTrackForm
+                track={editingTrack}
+                adminToken={adminToken}
+                defaultArtist={adminArtist === 'music-drop' ? 'Music Drop' : 'Alex Selas'}
+                onSave={(data) => {
+                  // If publishing as Music Drop, mark as collaborator
+                  if (adminArtist === 'music-drop' && !editingTrack) {
+                    data.collaborator = true;
+                    data.collaboratorId = 'music-drop';
+                    data.artist = 'Music Drop';
+                  }
+                  if (editingTrack) {
+                    onUpdateTrack(data);
+                  } else {
+                    onAddTrack(data);
+                  }
+                  setEditingTrack(null);
+                  setIsAdding(false);
+                }}
+                onCancel={() => {
+                  setEditingTrack(null);
+                  setIsAdding(false);
+                }}
+              />
+            </>
           ) : (
             <>
               {/* Toolbar */}
@@ -382,13 +259,6 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                   >
                     <Plus className="w-5 h-5" />
                     Subir Track
-                  </button>
-                  <button
-                    onClick={() => setIsAddingPack(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold hover:border-yellow-400/30 hover:text-white transition-colors"
-                  >
-                    <Package className="w-5 h-5" />
-                    Subir Pack
                   </button>
                   <button
                     onClick={() => setShowAllTracks(!showAllTracks)}
@@ -417,123 +287,31 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
                     <select
                       value={trackFilter}
-                      onChange={e => setTrackFilter(e.target.value as Category | 'all' | 'packs')}
+                      onChange={e => setTrackFilter(e.target.value as Category | 'all')}
                       className="pl-4 pr-10 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 appearance-none cursor-pointer"
                     >
                       <option value="all">Todas</option>
-                      <option value="sesiones">Sesiones</option>
-                      <option value="remixes">Remixes</option>
+                      <option value="extended">Extended</option>
                       <option value="mashups">Mashups</option>
                       <option value="livemashups">Live Mashups</option>
                       <option value="hypeintros">Hype Intros</option>
                       <option value="transiciones">Transiciones</option>
-                      <option value="packs">Packs</option>
+                      <option value="remixes">Remixes</option>
+                      <option value="sesiones">Sesiones</option>
                       <option value="originales">Originales</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* Count */}
-              {(() => {
-                // Build display items: standalone tracks + packs grouped
-                const seenPacks = new Set<string>();
-                const standaloneTracks = filteredTracks.filter(t => !t.packId);
-                const packItems: { packId: string; packName: string; tracks: Track[]; coverUrl: string; category: string; price: number }[] = [];
-                for (const t of filteredTracks) {
-                  if (t.packId && !seenPacks.has(t.packId)) {
-                    seenPacks.add(t.packId);
-                    const packTracks = filteredTracks.filter(ft => ft.packId === t.packId);
-                    packItems.push({ packId: t.packId, packName: t.packName || 'Pack', tracks: packTracks, coverUrl: t.coverUrl, category: t.category, price: packTracks.reduce((s, pt) => s + pt.price, 0) });
-                  }
-                }
-                const totalItems = standaloneTracks.length + packItems.length;
+              {/* Count & list */}
+              <p className="text-sm text-zinc-500">
+                {filteredTracks.length} track{filteredTracks.length !== 1 ? 's' : ''}
+              </p>
 
-                return (
-                  <>
-                    <p className="text-sm text-zinc-500">
-                      {standaloneTracks.length} track{standaloneTracks.length !== 1 ? 's' : ''}{packItems.length > 0 ? ` · ${packItems.length} pack${packItems.length !== 1 ? 's' : ''}` : ''}
-                    </p>
-
-                    <div className="space-y-2">
-                      {/* Packs — draggable */}
-                      {packItems.map(pack => {
-                        const isExpanded = expandedAdminPackId === pack.packId;
-                        const packDragging = dragId === pack.packId;
-                        const packDragOver = dragOverId === pack.packId;
-                        return (
-                          <div
-                            key={pack.packId}
-                            className="rounded-xl overflow-hidden"
-                            draggable
-                            onDragStart={e => { setDragId(pack.packId); e.dataTransfer.effectAllowed = 'move'; }}
-                            onDragEnd={() => { setDragId(null); setDragOverId(null); }}
-                            onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverId !== pack.packId) setDragOverId(pack.packId); }}
-                            onDragLeave={() => { if (dragOverId === pack.packId) setDragOverId(null); }}
-                            onDrop={e => {
-                              e.preventDefault();
-                              if (dragId && dragId !== pack.packId) {
-                                const r = [...tracks];
-                                const fromIdx = r.findIndex(t => t.id === dragId || t.packId === dragId);
-                                const toIdx = r.findIndex(t => t.packId === pack.packId);
-                                if (fromIdx !== -1 && toIdx !== -1) {
-                                  const [moved] = r.splice(fromIdx, 1);
-                                  r.splice(toIdx, 0, moved);
-                                  onReorderTracks(r);
-                                }
-                              }
-                              setDragId(null);
-                              setDragOverId(null);
-                            }}
-                          >
-                            <div
-                              className={`flex items-center gap-4 p-4 border transition-all group ${
-                                packDragging ? 'opacity-40 bg-zinc-900/30 border-zinc-800/30' :
-                                packDragOver ? 'bg-yellow-400/5 border-yellow-400/30' :
-                                'bg-zinc-900/50 border-zinc-800/50 hover:border-zinc-700/50'
-                              } rounded-xl`}
-                            >
-                              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-400/20 to-amber-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                {pack.coverUrl ? (
-                                  <img src={pack.coverUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <Package className="w-6 h-6 text-yellow-400" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium text-zinc-200 truncate">{pack.packName}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
-                                  <span className={`font-medium ${categoryColors[pack.category]}`}>{categoryLabels[pack.category]}</span>
-                                  <span>{pack.tracks.length} tracks</span>
-                                </div>
-                              </div>
-                              <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(pack.price)}</span>
-                              <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={e => { e.stopPropagation(); setEditingPackTracks(pack.tracks); }}
-                                  className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
-                                  title="Editar pack"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={e => { e.stopPropagation(); if (confirm(`¿Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) onDeletePack(pack.packId); }}
-                                  className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                                  title="Eliminar pack"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Standalone tracks — draggable */}
-                      {standaloneTracks.map((track, i) => {
+              <div className="space-y-2">
+                {/* Tracks — draggable */}
+                {filteredTracks.map((track, i) => {
                         const CatIcon = categoryIcons[track.category] || Music;
                         const isDragging = dragId === track.id;
                         const isDragOver = dragOverId === track.id;
@@ -575,7 +353,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                               {track.coverUrl ? (
                                 <img src={track.coverUrl} alt="" className="w-full h-full object-cover" draggable={false} />
                               ) : (
-                                <CatIcon className={`w-6 h-6 ${categoryColors[track.category]}`} />
+                                <CatIcon className="w-6 h-6 text-zinc-600" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -584,7 +362,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                                 {track.featured && <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 fill-yellow-400" />}
                               </div>
                               <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
-                                <span className={`font-medium ${categoryColors[track.category]}`}>{categoryLabels[track.category]}</span>
+                                <span className="font-medium text-yellow-400">{CATEGORY_LABELS[track.category]}</span>
                                 <span>{track.genre}</span>
                                 {track.bpm > 0 && <span>{track.bpm} BPM</span>}
                                 {track.duration > 0 && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{formatDuration(track.duration)}</span>}
@@ -595,7 +373,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${track.fileUrl ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>Archivo {track.fileUrl ? '✓' : '—'}</span>
                               </div>
                             </div>
-                            <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(track.price)}</span>
+                            <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatCredits(CREDIT_COSTS[track.category] || 1)}</span>
                             <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => { setEditingTrack(track); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button>
                               <button onClick={() => onDeleteTrack(track.id)} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
@@ -604,153 +382,15 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                         );
                       })}
 
-                      {totalItems === 0 && (
-                        <div className="text-center py-16">
-                          <ListMusic className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                          <p className="text-zinc-500">No se encontraron tracks</p>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                );
-              })()}
+                {filteredTracks.length === 0 && (
+                  <div className="text-center py-16">
+                    <ListMusic className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+                    <p className="text-zinc-500">No se encontraron tracks</p>
+                  </div>
+                )}
+              </div>
             </>
           )}
-        </motion.div>
-      )}
-
-      {/* ============ ORDERS ============ */}
-      {tab === 'orders' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          {/* Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-2">
-                <ShoppingBag className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div className="text-2xl font-bold text-zinc-50">{orders.length}</div>
-              <div className="text-xs text-zinc-500">Total pedidos</div>
-            </div>
-            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
-              <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center mb-2">
-                <DollarSign className="w-5 h-5 text-violet-400" />
-              </div>
-              <div className="text-2xl font-bold text-zinc-50">{formatPrice(ordersRevenue)}</div>
-              <div className="text-xs text-zinc-500">Ingresos totales</div>
-            </div>
-            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
-              <div className="w-9 h-9 rounded-lg bg-yellow-400/10 flex items-center justify-center mb-2">
-                <TrendingUp className="w-5 h-5 text-yellow-400" />
-              </div>
-              <div className="text-2xl font-bold text-zinc-50">{orders.length > 0 ? formatPrice(ordersRevenue / orders.length) : '0,00 €'}</div>
-              <div className="text-xs text-zinc-500">Promedio por pedido</div>
-            </div>
-          </div>
-
-          {/* Period filter */}
-          <div className="flex flex-wrap gap-2">
-            {([
-              { value: 'today', label: 'Hoy' },
-              { value: 'week', label: 'Semana' },
-              { value: 'month', label: 'Mes' },
-              { value: 'year', label: 'Año' },
-              { value: 'all', label: 'Todo' },
-            ] as const).map(p => (
-              <button
-                key={p.value}
-                onClick={() => fetchOrders(p.value)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  ordersPeriod === p.value
-                    ? 'gradient-bg text-black shadow-lg'
-                    : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Order list */}
-          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden">
-            <div className="p-4 border-b border-zinc-800/50">
-              <h3 className="text-sm font-semibold text-zinc-300">Historial de pedidos</h3>
-            </div>
-
-            {/* Table header */}
-            <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 text-xs text-zinc-500 font-medium border-b border-zinc-800/30">
-              <div className="col-span-1">ID</div>
-              <div className="col-span-4">Tracks</div>
-              <div className="col-span-3">Comprador</div>
-              <div className="col-span-2 text-right">Precio</div>
-              <div className="col-span-2 text-right">Fecha</div>
-            </div>
-
-            {ordersError ? (
-              <div className="text-center py-8 text-red-400 text-sm">{ordersError}</div>
-            ) : ordersLoading ? (
-              <div className="text-center py-8 text-zinc-500 text-sm">Cargando pedidos...</div>
-            ) : orders.length === 0 ? (
-              <div className="text-center py-8 text-zinc-600 text-sm">Sin pedidos aun</div>
-            ) : (
-              <div className="divide-y divide-zinc-800/30">
-                {paginatedOrders.map(order => (
-                  <div key={order.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
-                    <div className="sm:col-span-1 text-xs text-zinc-500 font-mono">{order.id}</div>
-                    <div className="sm:col-span-4 text-sm text-zinc-300 truncate">{order.tracks.join(', ')}</div>
-                    <div className="sm:col-span-3 text-sm text-zinc-400 truncate">{order.email}</div>
-                    <div className="sm:col-span-2 text-sm font-semibold sm:text-right">
-                      {order.amount > 0 ? (
-                        <span className="text-emerald-400">{formatPrice(order.amount)}</span>
-                      ) : (
-                        <span className="text-zinc-500">Gratis</span>
-                      )}
-                    </div>
-                    <div className="sm:col-span-2 text-xs text-zinc-500 sm:text-right">{order.date}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Pagination */}
-          {totalOrderPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <button
-                onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
-                disabled={ordersPage <= 1}
-                className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                Anterior
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalOrderPages }, (_, i) => i + 1).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setOrdersPage(p)}
-                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
-                      ordersPage === p
-                        ? 'gradient-bg text-black'
-                        : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setOrdersPage(p => Math.min(totalOrderPages, p + 1))}
-                disabled={ordersPage >= totalOrderPages}
-                className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                Siguiente
-              </button>
-            </div>
-          )}
-
-          <p className="text-xs text-zinc-600 text-center">
-            Pagina {ordersPage} de {totalOrderPages} · {orders.length} pedidos
-          </p>
-
         </motion.div>
       )}
 
@@ -834,7 +474,7 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
           )}
 
           <p className="text-xs text-zinc-600 text-center">
-            Los emails se extraen de los pedidos del periodo seleccionado en Pedidos ({ordersPeriod === 'today' ? 'Hoy' : ordersPeriod === 'week' ? 'Semana' : ordersPeriod === 'month' ? 'Mes' : ordersPeriod === 'year' ? 'Ano' : 'Todo'})
+            Gestiona los emails de suscriptores para enviar newsletters
           </p>
 
           {/* Track selection for newsletter */}
@@ -846,8 +486,8 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                 <label key={t.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/30 cursor-pointer">
                   <input type="checkbox" checked={selectedTracks.has(t.id)} onChange={e => { const n = new Set(selectedTracks); if (e.target.checked) n.add(t.id); else n.delete(t.id); setSelectedTracks(n); }} className="w-4 h-4 accent-yellow-400 cursor-pointer" />
                   {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-zinc-800 flex-shrink-0" />}
-                  <span className="text-sm text-zinc-300 truncate flex-1">{t.packName && t.packId ? `[PACK] ${t.packName}` : t.title}</span>
-                  <span className="text-xs text-zinc-500">{formatPrice(t.price)}</span>
+                  <span className="text-sm text-zinc-300 truncate flex-1">{t.title}</span>
+                  <span className="text-xs text-zinc-500">{formatCredits(CREDIT_COSTS[t.category] || 1)}</span>
                 </label>
               ))}
             </div>
@@ -928,10 +568,10 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
                   <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/50">
                     {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex-shrink-0" />}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-zinc-200 truncate">{t.packName && t.packId ? t.packName : t.title}</p>
-                      <p className="text-xs text-zinc-500">{t.genre}{t.bpm > 0 ? ` · ${t.bpm} BPM` : ''} · {formatPrice(t.price)}</p>
+                      <p className="text-sm font-semibold text-zinc-200 truncate">{t.title}</p>
+                      <p className="text-xs text-zinc-500">{t.genre}{t.bpm > 0 ? ` · ${t.bpm} BPM` : ''} · {formatCredits(CREDIT_COSTS[t.category] || 1)}</p>
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${t.price > 0 ? 'bg-yellow-400/10 text-yellow-400' : 'bg-emerald-400/10 text-emerald-400'}`}>{t.price > 0 ? 'NEW' : 'FREE'}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${(CREDIT_COSTS[t.category] || 1) > 0 ? 'bg-yellow-400/10 text-yellow-400' : 'bg-emerald-400/10 text-emerald-400'}`}>{(CREDIT_COSTS[t.category] || 1) > 0 ? 'NEW' : 'FREE'}</span>
                   </div>
                 ))}
               </div>
@@ -940,9 +580,9 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
               </div>
               <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
               <div className="text-center">
-                <p className="text-xs text-zinc-500 mb-1">Anade 3+ tracks y usa el codigo:</p>
-                <span className="text-yellow-400 font-bold text-lg tracking-widest">DROPS20</span>
-                <p className="text-[10px] text-zinc-600 mt-1">20% de descuento</p>
+                <p className="text-xs text-zinc-500 mb-1">Codigo de bienvenida:</p>
+                <span className="text-yellow-400 font-bold text-lg tracking-widest">WELCOME20</span>
+                <p className="text-[10px] text-zinc-600 mt-1">20% extra en primera compra de drops</p>
               </div>
             </div>
             <div className="p-4 border-t border-zinc-800 text-center text-xs text-zinc-600">
@@ -954,17 +594,22 @@ export default function AdminPanel({ tracks, onAddTrack, onAddTracksBatch, onUpd
 
       {/* ============ PERFIL ============ */}
       {tab === 'settings' && (
-        <CollabProfileForm
-          collaboratorId="alex-selas"
-          collaboratorName="Alex Selas"
-          collabToken={getAdminToken()}
-          adminEditCollabId="alex-selas"
-        />
+        <AdminProfilesPanel adminToken={getAdminToken()} />
       )}
 
       {/* ============ COLABORADORES ============ */}
       {tab === 'collabs' && (
-        <CollabManager adminToken={adminToken} tracks={tracks} onAddTrack={onAddTrack} onAddTracksBatch={onAddTracksBatch} onUpdateTrack={onUpdateTrack} onDeleteTrack={onDeleteTrack} onDeletePack={onDeletePack} />
+        <CollabManager adminToken={adminToken} tracks={tracks} onAddTrack={onAddTrack} onUpdateTrack={onUpdateTrack} onDeleteTrack={onDeleteTrack} />
+      )}
+
+      {/* ============ ECONOMIA ============ */}
+      {tab === 'economia' && (
+        <EconomiaPanel adminToken={adminToken} />
+      )}
+
+      {/* ============ PIRATERIA ============ */}
+      {tab === 'pirateria' && (
+        <PirateriaPanel adminToken={adminToken} />
       )}
     </div>
   );
@@ -975,15 +620,13 @@ interface CollabManagerProps {
   adminToken?: string;
   tracks: Track[];
   onAddTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
-  onAddTracksBatch: (data: (Omit<Track, 'id'> & { id?: string })[]) => Promise<void> | void;
   onUpdateTrack: (data: Omit<Track, 'id'> & { id?: string }) => void;
   onDeleteTrack: (id: string) => void;
-  onDeletePack: (packId: string) => void;
 }
 
 interface CollabEntry { id: string; name: string; }
 
-function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpdateTrack, onDeleteTrack, onDeletePack }: CollabManagerProps) {
+function CollabManager({ adminToken, tracks, onAddTrack, onUpdateTrack, onDeleteTrack }: CollabManagerProps) {
   const [allCollabs, setAllCollabs] = useState<CollabEntry[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [collabSubTab, setCollabSubTab] = useState<'profile' | 'tracks' | 'billing'>('tracks');
@@ -1001,8 +644,6 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
   const [saved, setSaved] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [isAddingPack, setIsAddingPack] = useState(false);
-  const [editingPackTracks, setEditingPackTracks] = useState<Track[] | null>(null);
   const [trackSearch, setTrackSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -1125,7 +766,7 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { if (selectedId) { loadProfile(selectedId); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); } }, [selectedId]);
+  useEffect(() => { if (selectedId) { loadProfile(selectedId); setEditingTrack(null); setIsAdding(false); } }, [selectedId]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -1216,20 +857,6 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
   const inputClass = 'w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-yellow-400/50 text-sm';
   const collabEntry = allCollabs.find(c => c.id === selectedId);
 
-  const cmCatLabels: Record<string, string> = { sesiones: 'Sesion', remixes: 'Remix', mashups: 'Mashup', livemashups: 'Live Mashup', hypeintros: 'Hype Intro', transiciones: 'Transicion', originales: 'Original' };
-  const cmCatColors: Record<string, string> = { sesiones: 'text-emerald-400', remixes: 'text-violet-400', mashups: 'text-yellow-400', livemashups: 'text-fuchsia-400', hypeintros: 'text-pink-400', transiciones: 'text-cyan-400', originales: 'text-orange-400' };
-
-  // Group packs for collab tracks list
-  const cmSeenPacks = new Set<string>();
-  const cmStandalone = filteredCollabTracks.filter(t => !t.packId);
-  const cmPacks: { packId: string; packName: string; tracks: Track[]; coverUrl: string; category: string; price: number }[] = [];
-  for (const t of filteredCollabTracks) {
-    if (t.packId && !cmSeenPacks.has(t.packId)) {
-      cmSeenPacks.add(t.packId);
-      const pt = filteredCollabTracks.filter(x => x.packId === t.packId);
-      cmPacks.push({ packId: t.packId, packName: t.packName || 'Pack', tracks: pt, coverUrl: t.coverUrl, category: t.category, price: pt.reduce((s, x) => s + x.price, 0) });
-    }
-  }
 
   if (allCollabs.length === 0) {
     return (
@@ -1276,21 +903,21 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
       {/* Sub-tabs: Tracks / Billing / Profile */}
       <div className="flex gap-1 p-1 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
         <button
-          onClick={() => { setCollabSubTab('tracks'); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); }}
+          onClick={() => { setCollabSubTab('tracks'); setEditingTrack(null); setIsAdding(false); }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${collabSubTab === 'tracks' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
         >
           <ListMusic className="w-4 h-4" />
           Tracks ({collabTracks.length})
         </button>
         <button
-          onClick={() => { setCollabSubTab('billing'); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); }}
+          onClick={() => { setCollabSubTab('billing'); setEditingTrack(null); setIsAdding(false); }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${collabSubTab === 'billing' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
         >
           <DollarSign className="w-4 h-4" />
           Facturacion
         </button>
         <button
-          onClick={() => { setCollabSubTab('profile'); setEditingTrack(null); setIsAdding(false); setIsAddingPack(false); }}
+          onClick={() => { setCollabSubTab('profile'); setEditingTrack(null); setIsAdding(false); }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${collabSubTab === 'profile' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
         >
           <User className="w-4 h-4" />
@@ -1303,112 +930,12 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
           <Loader2 className="w-6 h-6 text-yellow-400 animate-spin" />
         </div>
       ) : collabSubTab === 'billing' ? (
-        /* ===== BILLING TAB ===== */
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
-              <div className="text-2xl font-bold text-zinc-50">{collabOrders.length}</div>
-              <div className="text-xs text-zinc-500">Ventas</div>
-            </div>
-            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
-              <div className="text-2xl font-bold text-zinc-50">{formatPrice(collabOrdersRevenue)}</div>
-              <div className="text-xs text-zinc-500">Total vendido</div>
-            </div>
-            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
-              <div className="text-2xl font-bold text-emerald-400">{formatPrice(collabOrdersRevenue * 0.7)}</div>
-              <div className="text-xs text-zinc-500">Editor (70%)</div>
-            </div>
-            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
-              <div className="text-2xl font-bold text-yellow-400">{formatPrice(collabOrdersRevenue * 0.3)}</div>
-              <div className="text-xs text-zinc-500">Plataforma (30%)</div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {(['today','week','month','year','all'] as const).map(p => (
-              <button key={p} onClick={() => fetchCollabOrders(p)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${collabOrdersPeriod === p ? 'gradient-bg text-black shadow-lg' : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}>
-                {{today:'Hoy',week:'Semana',month:'Mes',year:'Ano',all:'Todo'}[p]}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden">
-            <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 text-xs text-zinc-500 font-medium border-b border-zinc-800/30">
-              <div className="col-span-4">Tracks</div>
-              <div className="col-span-2">Precio</div>
-              <div className="col-span-2 text-right">Editor (70%)</div>
-              <div className="col-span-2 text-right">Plataforma (30%)</div>
-              <div className="col-span-2 text-right">Fecha</div>
-            </div>
-            {collabOrdersLoading ? (
-              <div className="text-center py-8 text-zinc-500 text-sm">Cargando...</div>
-            ) : collabOrders.length === 0 ? (
-              <div className="text-center py-8 text-zinc-600 text-sm">Sin ventas en este periodo</div>
-            ) : (
-              <div className="divide-y divide-zinc-800/30">
-                {collabOrders.map((o: any) => (
-                  <div key={o.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 hover:bg-zinc-800/20 transition-colors">
-                    <div className="sm:col-span-4 text-sm text-zinc-300 truncate">{o.tracks.join(', ')}</div>
-                    <div className="sm:col-span-2 text-sm text-zinc-400">{o.amount > 0 ? formatPrice(o.amount) : 'Gratis'}</div>
-                    <div className="sm:col-span-2 text-sm font-semibold text-emerald-400 sm:text-right">{o.amount > 0 ? formatPrice(o.amount * 0.7) : '-'}</div>
-                    <div className="sm:col-span-2 text-sm text-zinc-500 sm:text-right">{o.amount > 0 ? formatPrice(o.amount * 0.3) : '-'}</div>
-                    <div className="sm:col-span-2 text-xs text-zinc-500 sm:text-right">{o.date}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Export PDF */}
-          <div className="flex justify-center">
-            <button
-              onClick={() => {
-                const name = collabEntry?.name || selectedId;
-                const w = window.open('', '_blank');
-                if (!w) return;
-                const rows = collabOrders.filter((o: any) => o.amount > 0).map((o: any) =>
-                  `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">${o.date}</td><td style="padding:8px 12px;border-bottom:1px solid #eee">${o.tracks.join(', ')}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">${formatPrice(o.amount)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;color:#16a34a;font-weight:600">${formatPrice(o.amount * 0.7)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;color:#888">${formatPrice(o.amount * 0.3)}</td></tr>`
-                ).join('');
-                const periodo = {today:'Hoy',week:'Semana',month:'Mes',year:'Ano',all:'Todo'}[collabOrdersPeriod] || collabOrdersPeriod;
-                w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Informe ${name}</title><style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:0 auto;padding:40px 30px;color:#1a1a1a}h1{font-size:20px;margin:0 0 4px}h2{font-size:14px;color:#666;margin:0 0 30px;font-weight:400}.logo{text-align:center;margin-bottom:20px}.logo span{font-size:24px;font-weight:800}.gold{color:#d97706}table{width:100%;border-collapse:collapse;margin:20px 0}th{background:#f5f5f5;padding:10px 12px;text-align:left;font-size:12px;color:#666;font-weight:600}td{font-size:13px}.summary{display:flex;gap:20px;margin:20px 0}.summary div{flex:1;background:#f9f9f9;border-radius:8px;padding:16px;text-align:center}.summary .val{font-size:22px;font-weight:700}.summary .label{font-size:11px;color:#888;margin-top:4px}.green{color:#16a34a}.footer{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:11px;color:#999}@media print{body{margin:0;padding:20px}}</style></head><body><div class="logo"><span>MUSIC <span class="gold">DROP</span></span><br><small style="color:#999;letter-spacing:2px;font-size:10px">by 360DJAcademy</small></div><h1>Informe de Ventas — ${name}</h1><h2>Periodo: ${periodo} · Generado: ${new Date().toLocaleDateString('es-ES')}</h2><div class="summary"><div><div class="val">${collabOrders.length}</div><div class="label">Ventas</div></div><div><div class="val">${formatPrice(collabOrdersRevenue)}</div><div class="label">Total vendido</div></div><div><div class="val green">${formatPrice(collabOrdersRevenue * 0.7)}</div><div class="label">Editor (70%)</div></div><div><div class="val">${formatPrice(collabOrdersRevenue * 0.3)}</div><div class="label">Plataforma (30%)</div></div></div><table><thead><tr><th>Fecha</th><th>Tracks</th><th style="text-align:right">Precio</th><th style="text-align:right">Editor (70%)</th><th style="text-align:right">Plataforma (30%)</th></tr></thead><tbody>${rows}<tr style="font-weight:700;background:#f5f5f5"><td style="padding:10px 12px" colspan="2">TOTALES</td><td style="padding:10px 12px;text-align:right">${formatPrice(collabOrdersRevenue)}</td><td style="padding:10px 12px;text-align:right;color:#16a34a">${formatPrice(collabOrdersRevenue * 0.7)}</td><td style="padding:10px 12px;text-align:right">${formatPrice(collabOrdersRevenue * 0.3)}</td></tr></tbody></table><div class="footer"><p>MusicDrop by 360DJAcademy · musicdrop.es</p><p>Comision: 70% editor / 30% plataforma</p></div></body></html>`);
-                w.document.close();
-                setTimeout(() => w.print(), 500);
-              }}
-              disabled={collabOrders.length === 0}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-black font-semibold shadow-lg hover:scale-[1.02] transition-transform disabled:opacity-30"
-            >
-              <Download className="w-4 h-4" />
-              Exportar informe PDF
-            </button>
-          </div>
-        </motion.div>
+        /* ===== BILLING TAB — DROPS SYSTEM ===== */
+        <CollabBillingPanel adminToken={adminToken} collaboratorId={selectedId} collaboratorName={collabEntry?.name || selectedId} />
       ) : collabSubTab === 'tracks' ? (
         /* ===== TRACKS TAB ===== */
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          {(isAddingPack || editingPackTracks) ? (
-            <PackUploadForm
-              adminToken={adminToken || ''}
-              defaultArtist={profile.artistName || collabEntry?.name || ''}
-              hideCollaboratorCheckbox
-              existingTracks={editingPackTracks || undefined}
-              onSavePack={async (packTracks) => {
-                if (editingPackTracks) {
-                  for (const t of packTracks) onUpdateTrack({ ...t, collaborator: true, collaboratorId: selectedId, artist: t.artist || profile.artistName || collabEntry?.name || selectedId });
-                } else {
-                  const enriched = packTracks.map(t => ({
-                    ...t,
-                    collaborator: true,
-                    collaboratorId: selectedId,
-                    artist: t.artist || profile.artistName || collabEntry?.name || selectedId,
-                  }));
-                  await onAddTracksBatch(enriched);
-                }
-                setIsAddingPack(false);
-                setEditingPackTracks(null);
-              }}
-              onCancel={() => { setIsAddingPack(false); setEditingPackTracks(null); }}
-            />
-          ) : (isAdding || editingTrack) ? (
+          {(isAdding || editingTrack) ? (
             <AdminTrackForm
               track={editingTrack}
               adminToken={adminToken || ''}
@@ -1421,22 +948,13 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
             <>
               {/* Toolbar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsAdding(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-white font-semibold shadow-lg hover:scale-[1.02] transition-transform"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Subir Track
-                  </button>
-                  <button
-                    onClick={() => setIsAddingPack(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold hover:border-yellow-400/30 hover:text-white transition-colors"
-                  >
-                    <Package className="w-5 h-5" />
-                    Subir Pack
-                  </button>
-                </div>
+                <button
+                  onClick={() => setIsAdding(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-white font-semibold shadow-lg hover:scale-[1.02] transition-transform"
+                >
+                  <Plus className="w-5 h-5" />
+                  Subir Track
+                </button>
                 <div className="relative flex-1 sm:flex-initial sm:ml-auto">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
@@ -1450,38 +968,12 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
               </div>
 
               <p className="text-sm text-zinc-500">
-                {cmStandalone.length} track{cmStandalone.length !== 1 ? 's' : ''}{cmPacks.length > 0 ? ` · ${cmPacks.length} pack${cmPacks.length !== 1 ? 's' : ''}` : ''}
+                {filteredCollabTracks.length} track{filteredCollabTracks.length !== 1 ? 's' : ''}
               </p>
 
               {/* Track list */}
               <div className="space-y-2">
-                {/* Packs */}
-                {cmPacks.map(pack => (
-                  <div key={pack.packId} className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors group">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-400/20 to-blue-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                      {pack.coverUrl ? <img src={pack.coverUrl} alt="" className="w-full h-full object-cover" /> : <Package className="w-6 h-6 text-blue-400" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-zinc-200 truncate">{pack.packName}</p>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
-                        <span className={`font-medium ${cmCatColors[pack.category]}`}>{cmCatLabels[pack.category]}</span>
-                        <span>{pack.tracks.length} tracks</span>
-                      </div>
-                    </div>
-                    <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(pack.price)}</span>
-                    <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
-                      <button onClick={async () => { for (const t of pack.tracks) { await handleDownload(t); await new Promise(r => setTimeout(r, 500)); } }} className="p-2 rounded-lg text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors" title="Descargar pack"><Download className="w-4 h-4" /></button>
-                      <button onClick={() => { setEditingPackTracks(pack.tracks); setIsAddingPack(false); setEditingTrack(null); setIsAdding(false); }} className="p-2 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors" title="Editar pack"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => { if (confirm(`Eliminar pack "${pack.packName}" y sus ${pack.tracks.length} tracks?`)) onDeletePack(pack.packId); }} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar pack"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Standalone tracks */}
-                {cmStandalone.map((track, i) => (
+                {filteredCollabTracks.map((track, i) => (
                   <motion.div
                     key={track.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -1498,13 +990,13 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
                         {track.featured && <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 fill-yellow-400" />}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
-                        <span className={`font-medium ${cmCatColors[track.category]}`}>{cmCatLabels[track.category]}</span>
+                        <span className="font-medium text-yellow-400">{CATEGORY_LABELS[track.category]}</span>
                         <span>{track.genre}</span>
                         {track.bpm > 0 && <span>{track.bpm} BPM</span>}
                         {track.duration > 0 && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{formatDuration(track.duration)}</span>}
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatPrice(track.price)}</span>
+                    <span className="text-sm font-bold text-yellow-400 hidden sm:block flex-shrink-0">{formatCredits(CREDIT_COSTS[track.category] || 1)}</span>
                     <div className="flex items-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity">
                       {track.fileUrl && (
                         <button onClick={() => handleDownload(track)} disabled={downloadingId === track.id} className="p-2 rounded-lg text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors" title="Descargar">
@@ -1679,5 +1171,360 @@ function CollabManager({ adminToken, tracks, onAddTrack, onAddTracksBatch, onUpd
         </motion.div>
       )}
     </motion.div>
+  );
+}
+
+// ============ ECONOMIA PANEL ============
+function EconomiaPanel({ adminToken }: { adminToken?: string }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/revenue?month=${month}`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    })
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [month, adminToken]);
+
+  const formatEur = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
+
+  // Generate last 6 months for selector
+  const months: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    months.push(d.toISOString().slice(0, 7));
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-yellow-400" />
+          Economia
+        </h3>
+        <select value={month} onChange={e => setMonth(e.target.value)} className="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm">
+          {months.map(m => <option key={m} value={m}>{new Date(m + '-01').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</option>)}
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-yellow-400 animate-spin" /></div>
+      ) : !data || data.error ? (
+        <div className="text-center py-16 text-zinc-500">No hay datos para este mes</div>
+      ) : (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 p-5">
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Ingresos Stripe</p>
+              <p className="text-2xl font-black gradient-text mt-2">{formatEur(data.totalStripeRevenue || 0)}</p>
+              <p className="text-[10px] text-zinc-600 mt-1">{data.dropPurchaseCount || 0} compras de drops</p>
+            </div>
+            <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 p-5">
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Pago colaboradores</p>
+              <p className="text-2xl font-black text-red-400 mt-2">{formatEur(data.totalCollabPayments || 0)}</p>
+            </div>
+            <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 p-5">
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Beneficio plataforma</p>
+              <p className="text-2xl font-black text-green-400 mt-2">{formatEur(data.totalPlatformRevenue || 0)}</p>
+            </div>
+            <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 p-5">
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Descargas externas</p>
+              <p className="text-2xl font-black text-white mt-2">{data.transactionCount || 0}</p>
+              <p className="text-xs text-zinc-500 mt-1">{data.totalDropsConsumed || 0} drops</p>
+            </div>
+          </div>
+
+          {/* Collaborator breakdown */}
+          <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 overflow-hidden">
+            <div className="p-5 border-b border-zinc-800/50">
+              <h4 className="text-sm font-bold text-white">Desglose por colaborador</h4>
+              <p className="text-[10px] text-zinc-500 mt-0.5">65% colaborador / 35% plataforma (solo descargas de clientes reales)</p>
+            </div>
+            {(!data.collaborators || data.collaborators.length === 0) ? (
+              <div className="text-center py-12 text-zinc-500 text-sm">Sin descargas externas este mes</div>
+            ) : (
+              <div className="divide-y divide-zinc-800/50">
+                {data.collaborators.map((c: any) => (
+                  <div key={c.collaboratorId} className="flex items-center gap-4 px-5 py-4">
+                    <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
+                      <User className="w-4 h-4 text-zinc-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-zinc-200">{c.collaboratorId}</p>
+                      <p className="text-xs text-zinc-500">{c.downloads} descargas · {c.drops} drops</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-green-400">{formatEur(c.eurEarned)}</p>
+                      <p className="text-[10px] text-zinc-600">a pagar</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Drop purchases (Stripe payments) */}
+          <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 overflow-hidden">
+            <div className="p-5 border-b border-zinc-800/50">
+              <h4 className="text-sm font-bold text-white">Compras de drops (Stripe)</h4>
+              <p className="text-[10px] text-zinc-500 mt-0.5">Pagos reales con datos completos del comprador</p>
+            </div>
+            {(!data.dropPurchases || data.dropPurchases.length === 0) ? (
+              <div className="text-center py-12 text-zinc-500 text-sm">Sin compras de drops este mes</div>
+            ) : (
+              <div className="divide-y divide-zinc-800/50">
+                {data.dropPurchases.map((p: any, i: number) => (
+                  <div key={i} className="px-5 py-4 hover:bg-zinc-800/20 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center">
+                          <DollarSign className="w-4 h-4 text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-green-400">{formatEur(p.amount || 0)}</p>
+                          <p className="text-[10px] text-zinc-500">{p.packId} · {p.credits}{p.bonus ? ` +${p.bonus} bonus` : ''} drops</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-zinc-400">{p.date ? new Date(p.date).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</p>
+                        {p.promoCode && <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-bold">{p.promoCode}</span>}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                      <div><span className="text-zinc-600">Nombre:</span> <span className="text-zinc-300">{p.stripeName || p.userName || '-'}</span></div>
+                      <div><span className="text-zinc-600">Email:</span> <span className="text-zinc-300">{p.stripeEmail || p.userEmail || '-'}</span></div>
+                      <div><span className="text-zinc-600">Pais:</span> <span className="text-zinc-300">{p.stripeCountry || '-'}{p.stripeCity ? `, ${p.stripeCity}` : ''}</span></div>
+                      <div><span className="text-zinc-600">IP:</span> <span className="text-zinc-300 font-mono text-[10px]">{p.ip || '-'}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============ PIRATERIA PANEL ============
+function PirateriaPanel({ adminToken }: { adminToken?: string }) {
+  const [watermark, setWatermark] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleTrace = async () => {
+    if (!watermark.trim()) return;
+    setLoading(true);
+    setError('');
+    setResult(null);
+    try {
+      const res = await fetch(`/api/trace-watermark?watermark=${encodeURIComponent(watermark.trim())}`, {
+        headers: { 'Authorization': `Bearer ${adminToken}` },
+      });
+      const data = await res.json();
+      if (res.ok) setResult(data);
+      else setError(data.error || 'No encontrado');
+    } catch { setError('Error de conexion'); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+          <Eye className="w-5 h-5 text-red-400" />
+          Rastreo de pirateria
+        </h3>
+        <p className="text-sm text-zinc-500 mt-1">Identifica quien ha filtrado un track a partir del codigo de marca de agua</p>
+      </div>
+
+      <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 p-6">
+        <h4 className="text-sm font-bold text-white mb-3">Como rastrear un MP3 pirata</h4>
+        <div className="space-y-3 text-sm text-zinc-400">
+          <div className="flex gap-3"><span className="w-6 h-6 rounded-full bg-yellow-400/10 text-yellow-400 text-xs font-bold flex items-center justify-center flex-shrink-0">1</span><p>Descarga el MP3 pirata que hayas encontrado</p></div>
+          <div className="flex gap-3"><span className="w-6 h-6 rounded-full bg-yellow-400/10 text-yellow-400 text-xs font-bold flex items-center justify-center flex-shrink-0">2</span><p>Clic derecho sobre el archivo &gt; Propiedades &gt; Detalles (o usa Mp3tag / Kid3)</p></div>
+          <div className="flex gap-3"><span className="w-6 h-6 rounded-full bg-yellow-400/10 text-yellow-400 text-xs font-bold flex items-center justify-center flex-shrink-0">3</span><p>Busca el campo <span className="text-yellow-400 font-mono">Comentario</span>: <span className="font-mono text-zinc-300">musicdrop.es|a1b2c3d4e5f6</span></p></div>
+          <div className="flex gap-3"><span className="w-6 h-6 rounded-full bg-yellow-400/10 text-yellow-400 text-xs font-bold flex items-center justify-center flex-shrink-0">4</span><p>Copia los 12 caracteres despues del <span className="font-mono text-zinc-300">|</span> y pegalos aqui abajo</p></div>
+        </div>
+      </div>
+
+      <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 p-6">
+        <h4 className="text-sm font-bold text-white mb-3">Buscar por marca de agua</h4>
+        <div className="flex gap-3">
+          <input type="text" value={watermark} onChange={e => setWatermark(e.target.value.replace(/[^a-fA-F0-9]/g, ''))} placeholder="Pega el codigo (ej: a1b2c3d4e5f6)" className="flex-1 px-4 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-red-400/50 text-sm font-mono tracking-wider" maxLength={12} />
+          <button onClick={handleTrace} disabled={loading || watermark.length < 6} className="px-6 py-3 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:scale-95 transition-all disabled:opacity-40 flex items-center gap-2">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            Rastrear
+          </button>
+        </div>
+        {error && <div className="mt-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">{error}</div>}
+        {result && (
+          <div className="mt-4 bg-red-500/5 border border-red-500/20 rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 bg-red-500/10 border-b border-red-500/20 flex items-center justify-between">
+              <p className="text-sm font-bold text-red-400">Filtrador identificado</p>
+              {result.isInternal && <span className="text-[9px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold">CUENTA INTERNA</span>}
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Cuenta MusicDrop */}
+              <div>
+                <p className="text-[9px] text-red-400/60 font-bold uppercase tracking-widest mb-2">Cuenta MusicDrop</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Nombre</p><p className="text-sm font-semibold text-white">{result.name || '-'}</p></div>
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Email</p><p className="text-sm font-semibold text-white">{result.email || '-'}</p></div>
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Cuenta creada</p><p className="text-sm text-zinc-300">{result.accountCreated ? new Date(result.accountCreated).toLocaleDateString('es-ES') : '-'}</p></div>
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Drops actuales</p><p className="text-sm text-zinc-300">{result.currentCredits ?? '-'} dr</p></div>
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Total descargas</p><p className="text-sm text-zinc-300">{result.totalDownloads ?? '-'}</p></div>
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">User ID</p><p className="text-[11px] text-zinc-500 font-mono">{result.userId || '-'}</p></div>
+                </div>
+              </div>
+              {/* Descarga rastreada */}
+              <div className="pt-3 border-t border-red-500/10">
+                <p className="text-[9px] text-red-400/60 font-bold uppercase tracking-widest mb-2">Descarga rastreada</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2"><p className="text-[10px] text-zinc-600 mb-0.5">Track</p><p className="text-sm text-white font-medium">{result.trackTitle || result.trackId || '-'}</p></div>
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Fecha y hora</p><p className="text-sm text-zinc-300">{result.downloadDate ? new Date(result.downloadDate).toLocaleString('es-ES') : '-'}</p></div>
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">IP descarga</p><p className="text-sm text-zinc-300 font-mono">{result.downloadIp || '-'}</p></div>
+                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Watermark</p><p className="text-sm text-red-400 font-mono font-bold">{result.watermark}</p></div>
+                </div>
+              </div>
+              {/* Datos de pago Stripe */}
+              {(result.stripeName || result.stripeEmail || result.stripeCountry) && (
+                <div className="pt-3 border-t border-red-500/10">
+                  <p className="text-[9px] text-red-400/60 font-bold uppercase tracking-widest mb-2">Datos de pago (Stripe)</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div><p className="text-[10px] text-zinc-600 mb-0.5">Nombre tarjeta</p><p className="text-sm text-white font-medium">{result.stripeName || '-'}</p></div>
+                    <div><p className="text-[10px] text-zinc-600 mb-0.5">Email pago</p><p className="text-sm text-zinc-300">{result.stripeEmail || '-'}</p></div>
+                    <div><p className="text-[10px] text-zinc-600 mb-0.5">Pais / Ciudad</p><p className="text-sm text-zinc-300">{result.stripeCountry || '-'}{result.stripeCity ? `, ${result.stripeCity}` : ''}</p></div>
+                    <div><p className="text-[10px] text-zinc-600 mb-0.5">IP compra</p><p className="text-sm text-zinc-300 font-mono">{result.purchaseIp || '-'}</p></div>
+                    <div><p className="text-[10px] text-zinc-600 mb-0.5">Fecha compra</p><p className="text-sm text-zinc-300">{result.purchaseDate ? new Date(result.purchaseDate).toLocaleString('es-ES') : '-'}</p></div>
+                  </div>
+                </div>
+              )}
+              {!result.stripeName && !result.stripeEmail && !result.stripeCountry && (
+                <div className="pt-3 border-t border-red-500/10">
+                  <p className="text-[9px] text-zinc-600 uppercase tracking-widest mb-1">Datos de pago (Stripe)</p>
+                  <p className="text-xs text-zinc-600">Este usuario no ha comprado drops con tarjeta (sus drops fueron anadidos manualmente)</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 p-6">
+        <h4 className="text-sm font-bold text-white mb-3">Proteccion activa</h4>
+        <div className="space-y-2 text-sm text-zinc-400">
+          <p>Cada MP3 descargado lleva una <span className="text-yellow-400">marca de agua unica</span> del usuario en los metadatos ID3.</p>
+          <p>La marca se aplica <span className="text-white">automaticamente</span> en cada descarga. No necesitas hacer nada.</p>
+          <p>Si alguien sube un track a internet, extrae el codigo y rastrealo aqui para obtener nombre, email e IP.</p>
+          <p className="text-zinc-600 text-xs mt-2">Las marcas se almacenan 1 ano. Todos los tracks descargados desde la web ya llevan marca.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ COLLAB BILLING (DROPS SYSTEM) ============
+function CollabBillingPanel({ adminToken, collaboratorId, collaboratorName }: { adminToken?: string; collaboratorId: string; collaboratorName: string }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+
+  useEffect(() => {
+    if (!collaboratorId) return;
+    setLoading(true);
+    fetch(`/api/revenue?month=${month}`, { headers: { 'Authorization': `Bearer ${adminToken}` } })
+      .then(r => r.json())
+      .then(d => {
+        const collab = d.collaborators?.find((c: any) => c.collaboratorId === collaboratorId);
+        setData({ ...d, collab });
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [month, collaboratorId, adminToken]);
+
+  const formatEur = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
+  const months: string[] = [];
+  for (let i = 0; i < 6; i++) { const d = new Date(); d.setMonth(d.getMonth() - i); months.push(d.toISOString().slice(0, 7)); }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-bold text-white">Facturacion — {collaboratorName}</h4>
+        <select value={month} onChange={e => setMonth(e.target.value)} className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs">
+          {months.map(m => <option key={m} value={m}>{new Date(m + '-01').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</option>)}
+        </select>
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 text-yellow-400 animate-spin" /></div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="text-2xl font-bold text-zinc-50">{data?.collab?.downloads || 0}</div>
+              <div className="text-xs text-zinc-500">Descargas</div>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="text-2xl font-bold gradient-text">{data?.collab?.drops || 0} dr</div>
+              <div className="text-xs text-zinc-500">Drops consumidos</div>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="text-2xl font-bold text-green-400">{formatEur(data?.collab?.eurEarned || 0)}</div>
+              <div className="text-xs text-zinc-500">Editor (65%)</div>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-4">
+              <div className="text-2xl font-bold text-yellow-400">{formatEur(data?.collab?.eurPlatform || 0)}</div>
+              <div className="text-xs text-zinc-500">Plataforma (35%)</div>
+            </div>
+          </div>
+          <p className="text-xs text-zinc-600">Solo descargas de clientes reales (no internas). Reparto: 65% editor / 35% plataforma.</p>
+          {(!data?.collab || data.collab.downloads === 0) && (
+            <div className="text-center py-8 text-zinc-600 text-sm">Sin descargas externas en {new Date(month + '-01').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</div>
+          )}
+        </>
+      )}
+    </motion.div>
+  );
+}
+
+// ============ ADMIN PROFILES (Alex Selas + Music Drop) ============
+function AdminProfilesPanel({ adminToken }: { adminToken: string }) {
+  const [activeProfile, setActiveProfile] = useState<'alex-selas' | 'music-drop'>('alex-selas');
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 p-1 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
+        <button
+          onClick={() => setActiveProfile('alex-selas')}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeProfile === 'alex-selas' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
+        >
+          <User className="w-4 h-4" />
+          Alex Selas
+        </button>
+        <button
+          onClick={() => setActiveProfile('music-drop')}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeProfile === 'music-drop' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
+        >
+          <Music className="w-4 h-4" />
+          Music Drop
+        </button>
+      </div>
+
+      <CollabProfileForm
+        key={activeProfile}
+        collaboratorId={activeProfile}
+        collaboratorName={activeProfile === 'alex-selas' ? 'Alex Selas' : 'Music Drop'}
+        collabToken={adminToken}
+        adminEditCollabId={activeProfile}
+      />
+    </div>
   );
 }

@@ -13,6 +13,11 @@ export function formatPrice(price: number): string {
   }).format(price);
 }
 
+export function formatCredits(credits: number): string {
+  if (credits === 0) return 'FREE';
+  return `${credits} dr`;
+}
+
 export function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);

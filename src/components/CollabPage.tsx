@@ -52,7 +52,7 @@ export default function CollabPage({
   const featuredTracks = myTracks.filter(t => t.featured);
 
   const defaultOwnerProfile = {
-    bio: 'DJ & Producer — Fundador de Music Drop y 360DJAcademy',
+    bio: 'DJ & Producer -- Fundador de Music Drop y 360DJAcademy',
     photoUrl: '/logo.png',
     bannerUrl: '',
     artistName: 'Alex Selas',
@@ -65,7 +65,7 @@ export default function CollabPage({
   };
 
   useEffect(() => {
-    // Always fetch from API — for owner, use saved profile or fallback to defaults
+    // Always fetch from API -- for owner, use saved profile or fallback to defaults
     fetch(`/api/collab-profile?id=${isOwner ? 'alex-selas' : collaboratorId}`)
       .then(r => r.json())
       .then(data => {
@@ -91,9 +91,9 @@ export default function CollabPage({
 
   return (
     <div className="min-h-screen bg-[#0a0a0b]">
-      {/* ====== HERO — video / image with smooth fade ====== */}
+      {/* ====== HERO -- video / image with smooth fade ====== */}
       <div className="relative overflow-hidden">
-        {/* Background — video for music-drop profile, image for others, gradient fallback */}
+        {/* Background -- video for music-drop profile, image for others, gradient fallback */}
         {collaboratorId === 'music-drop' ? (
           <>
             <video
@@ -114,7 +114,7 @@ export default function CollabPage({
           <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${c1} 0%, ${c2} 40%, #0a0a0b 100%)` }} />
         )}
 
-        {/* Gradient fade — smooth into content */}
+        {/* Gradient fade -- smooth into content */}
         {(collaboratorId === 'music-drop' || profile?.bannerUrl) && (
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(10,10,11,0) 0%, rgba(10,10,11,0) 40%, rgba(10,10,11,0.3) 60%, rgba(10,10,11,0.7) 80%, rgba(10,10,11,1) 100%)' }} />
         )}
@@ -122,19 +122,20 @@ export default function CollabPage({
         {/* Back */}
         <button
           onClick={() => onNavigate('colabs')}
-          className="fixed top-20 left-5 z-20 flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors bg-black/40 backdrop-blur-md px-3.5 py-2 rounded-xl"
+          className="fixed top-20 left-5 z-20 flex items-center gap-2 text-sm text-white/80 hover:text-white transition-all bg-black/40 backdrop-blur-xl px-4 py-2.5 rounded-xl border border-white/[0.08] hover:border-white/[0.15] hover:bg-black/50"
+          aria-label="Volver al catalogo"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver
         </button>
 
-        {/* Hero content — sits at the bottom of the image */}
+        {/* Hero content -- sits at the bottom of the image */}
         <div className="relative z-10 pt-44 pb-16 sm:pt-56 sm:pb-20 flex flex-col items-center px-6 text-center">
           {/* Name */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="text-6xl sm:text-8xl lg:text-9xl font-black text-white uppercase leading-[0.85] mb-5"
             style={{
               letterSpacing: '0.08em',
@@ -149,7 +150,7 @@ export default function CollabPage({
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
               className="text-white/90 text-sm sm:text-base max-w-lg mx-auto leading-relaxed mb-6 text-center break-words"
               style={{ textShadow: '0 1px 12px rgba(0,0,0,0.8)' }}
             >
@@ -162,7 +163,7 @@ export default function CollabPage({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
               className="flex items-center gap-3 mb-5"
             >
               {Object.entries(profile!.socialLinks).map(([key, url]) => {
@@ -175,8 +176,9 @@ export default function CollabPage({
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm border border-white/15 hover:bg-white/20"
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm border border-white/[0.12] hover:bg-white/20 hover:border-white/[0.2]"
                     title={icon.label}
+                    aria-label={icon.label}
                   >
                     <svg className="w-[18px] h-[18px] text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d={icon.path} />
@@ -188,13 +190,13 @@ export default function CollabPage({
           )}
 
           {/* Track count */}
-          <span className="text-xs font-semibold text-white/40 uppercase tracking-[0.2em]">
+          <span className="text-xs font-semibold text-white/35 uppercase tracking-[0.2em]">
             {myTracks.length} {myTracks.length === 1 ? 'Track' : 'Tracks'}
           </span>
         </div>
       </div>
 
-      {/* ====== CONTENT — solid dark bg ====== */}
+      {/* ====== CONTENT -- solid dark bg ====== */}
       <div className="relative bg-[#0a0a0b]">
         <CollabContent
           myTracks={myTracks}
@@ -212,7 +214,7 @@ export default function CollabPage({
   );
 }
 
-/* ====== CONTENT SECTION — replicates Home layout ====== */
+/* ====== CONTENT SECTION -- replicates Home layout ====== */
 function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, progress, isInCart, onPlay, onAddToCart, onDetail }: {
   myTracks: Track[];
   featuredTracks: Track[];
@@ -258,10 +260,12 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
   if (myTracks.length === 0) {
     return (
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-10 pb-28">
-        <div className="text-center py-20 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800/50">
-          <Music className="w-14 h-14 text-zinc-700 mx-auto mb-4" />
-          <p className="text-zinc-400 text-lg font-medium">Próximamente</p>
-          <p className="text-zinc-600 text-sm mt-1">Este artista aún no ha publicado tracks</p>
+        <div className="text-center py-20 bg-white/[0.02] backdrop-blur-sm rounded-2xl border border-white/[0.06]">
+          <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-5">
+            <Music className="w-8 h-8 text-zinc-700" />
+          </div>
+          <p className="text-zinc-400 text-lg font-medium">Proximamente</p>
+          <p className="text-zinc-600 text-sm mt-1.5">Este artista aun no ha publicado tracks</p>
         </div>
       </div>
     );
@@ -271,13 +275,13 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
     <>
       {/* ====== FEATURED ====== */}
       {featuredTracks.length > 0 && (
-        <section className="relative z-10 py-8">
+        <section className="relative z-10 py-8 sm:py-10">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center gap-3 mb-6">
               <Sparkles className="w-6 h-6 text-yellow-400" />
               <h2 className="text-3xl font-bold text-zinc-50">Destacados</h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
               {featuredTracks.map(track => (
                 <TrackCard
                   key={track.id}
@@ -301,29 +305,41 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
         {/* Promo banner */}
         <div className="relative overflow-hidden rounded-2xl mb-8">
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500" />
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
+          <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.08) 10px, rgba(0,0,0,0.08) 20px)' }} />
           <div className="relative px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
             <div className="text-center sm:text-left">
               <p className="text-black/90 font-bold text-lg sm:text-xl">20% extra en tu primera compra de drops</p>
-              <p className="text-black/60 text-sm mt-0.5">Introduce el codigo al comprar tus drops</p>
+              <p className="text-black/55 text-sm mt-0.5">Introduce el codigo al comprar tus drops</p>
             </div>
-            <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg">WELCOME20</span>
+            <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg shadow-black/20">WELCOME20</span>
           </div>
         </div>
 
         <h2 id="todos-tracks" className="text-2xl font-bold text-zinc-50 mb-6">Todos los tracks</h2>
 
-        {/* Filters — same layout as main page */}
+        {/* Filters -- same layout as main page */}
         <div className="space-y-3 mb-6">
           <CategoryFilter selected={categoryFilter} onSelect={v => setCategoryFilter(v)} showOriginales />
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="w-full pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-zinc-200 placeholder-zinc-600 text-sm focus:outline-none focus:border-yellow-400/40 focus:ring-1 focus:ring-yellow-400/20 transition-all"
+                aria-label="Buscar tracks"
+              />
             </div>
             <div className="relative flex-shrink-0">
-              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <select value={sort} onChange={e => setSort(e.target.value as SortOption)} className="pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors appearance-none cursor-pointer">
+              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+              <select
+                value={sort}
+                onChange={e => setSort(e.target.value as SortOption)}
+                className="pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/40 transition-all appearance-none cursor-pointer"
+                aria-label="Ordenar por"
+              >
                 <option value="newest">Mas recientes</option>
                 <option value="oldest">Mas antiguos</option>
                 <option value="credits-asc">Drops: menor</option>
@@ -341,52 +357,75 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
             return (
               <div
                 key={track.id}
-                className={`relative flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer overflow-hidden ${isCurrentTrack ? 'bg-yellow-400/5 border-yellow-400/30' : 'bg-[#1a1a1a] border-zinc-800/50 hover:border-yellow-400/20'}`}
+                className={`relative flex items-center gap-3 p-3.5 rounded-xl border transition-all cursor-pointer overflow-hidden ${isCurrentTrack ? 'bg-yellow-400/[0.04] border-yellow-400/25' : 'bg-[#141414] border-white/[0.04] hover:border-yellow-400/15 hover:bg-white/[0.02]'}`}
                 onClick={() => onPlay(track)}
               >
-                {isCurrentTrack && <div className="absolute left-0 top-0 bottom-0 bg-yellow-400/10 transition-all duration-200" style={{ width: `${progress}%` }} />}
-                <button className="relative flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
+                {isCurrentTrack && <div className="absolute left-0 top-0 bottom-0 bg-yellow-400/[0.06] transition-all duration-200" style={{ width: `${progress}%` }} />}
+                <button
+                  className="relative flex-shrink-0 w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.06] hover:gradient-bg hover:border-transparent flex items-center justify-center transition-all group/play"
+                  aria-label={isCurrentTrack && isPlaying ? 'Pausar' : 'Reproducir'}
+                >
                   {isCurrentTrack && isPlaying ? <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
                 </button>
                 <div className="relative flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className={`text-sm font-semibold truncate ${isCurrentTrack ? 'text-yellow-400' : 'text-zinc-100'}`}>{track.title}</p>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${CATEGORY_COLORS[track.category]}`}>{CATEGORY_LABELS[track.category]}</span>
-                    {track.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(track.releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}
+                    {track.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0 hidden sm:inline">{new Date(track.releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}
                   </div>
-                  <p className="text-xs text-zinc-500 truncate">
+                  <p className="text-xs text-zinc-500 truncate mt-0.5">
                     {track.authors ? `${track.authors} · ` : ''}{track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.camelot ? ` · ${track.camelot}` : (track.key ? ` · ${track.key}` : '')}
                   </p>
                 </div>
-                <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatCredits(CREDIT_COSTS[track.category])}</span>
-                <button onClick={e => { e.stopPropagation(); onAddToCart(track); }} disabled={isInCart(track.id)} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
+                <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block tabular-nums">{formatCredits(CREDIT_COSTS[track.category])}</span>
+                <button
+                  onClick={e => { e.stopPropagation(); onAddToCart(track); }}
+                  disabled={isInCart(track.id)}
+                  className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`}
+                  aria-label={isInCart(track.id) ? 'Ya en el carrito' : 'Anadir al carrito'}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                </button>
               </div>
             );
           })}
 
           {filteredTracks.length === 0 && (
             <div className="text-center py-16">
-              <Music className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-              <p className="text-zinc-500">No se encontraron tracks</p>
+              <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                <Music className="w-7 h-7 text-zinc-700" />
+              </div>
+              <p className="text-zinc-500 font-medium">No se encontraron tracks</p>
             </div>
           )}
         </div>
 
         {totalListPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
-            <button onClick={() => { setListPage(p => Math.max(1, p - 1)); document.getElementById('todos-tracks')?.scrollIntoView(); }} disabled={listPage <= 1} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Anterior</button>
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <button
+              onClick={() => { setListPage(p => Math.max(1, p - 1)); document.getElementById('todos-tracks')?.scrollIntoView(); }}
+              disabled={listPage <= 1}
+              className="px-3.5 py-2 rounded-lg text-sm bg-white/[0.04] border border-white/[0.06] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              Anterior
+            </button>
             <div className="flex items-center gap-1">
               {Array.from({ length: totalListPages }, (_, i) => i + 1).map(p => (
-                <button key={p} onClick={() => { setListPage(p); document.getElementById('todos-tracks')?.scrollIntoView(); }} className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${listPage === p ? 'gradient-bg text-black' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'}`}>{p}</button>
+                <button key={p} onClick={() => { setListPage(p); document.getElementById('todos-tracks')?.scrollIntoView(); }} className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${listPage === p ? 'gradient-bg text-black shadow-sm shadow-yellow-400/15' : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]'}`}>{p}</button>
               ))}
             </div>
-            <button onClick={() => { setListPage(p => Math.min(totalListPages, p + 1)); document.getElementById('todos-tracks')?.scrollIntoView(); }} disabled={listPage >= totalListPages} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Siguiente</button>
+            <button
+              onClick={() => { setListPage(p => Math.min(totalListPages, p + 1)); document.getElementById('todos-tracks')?.scrollIntoView(); }}
+              disabled={listPage >= totalListPages}
+              className="px-3.5 py-2 rounded-lg text-sm bg-white/[0.04] border border-white/[0.06] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              Siguiente
+            </button>
           </div>
         )}
-        {filteredTracks.length > 0 && <p className="text-xs text-zinc-600 text-center mt-2">Pagina {listPage} de {totalListPages} · {filteredTracks.length} tracks</p>}
+        {filteredTracks.length > 0 && <p className="text-xs text-zinc-600 text-center mt-3 tabular-nums">Pagina {listPage} de {totalListPages} · {filteredTracks.length} tracks</p>}
       </div>
       </div>
     </>
   );
 }
-

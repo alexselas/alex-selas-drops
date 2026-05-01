@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { Redis } from '@upstash/redis';
 import { Ratelimit } from '@upstash/ratelimit';
 import crypto from 'crypto';
+const U_TOKEN_MAX_AGE=30*24*60*60*1000;function verifyUserToken(h:string|undefined):{valid:boolean;userId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('user.'))return{valid:false};const p=t.split('.');if(p.length!==4)return{valid:false};const[,uid,ts,hm]=p;if(!uid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>U_TOKEN_MAX_AGE||a<0)return{valid:false};const s=process.env.ADMIN_SECRET||'';const py=`user.${uid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,userId:uid};}catch{return{valid:false};}}
 
 function sanitizeTag(s: string, max = 200): string {
   return s ? s.replace(/[\x00-\x1F\x7F]/g, '').trim().substring(0, max) : '';
@@ -67,6 +68,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(403).json({ error: 'No autorizado' });
         }
       }
+      // Credit-based downloads: verify user owns this track
+      else if (session_id === 'credits') {
+        const userAuth = verifyUserToken(req.headers.authorization);
+        if (!userAuth.valid || !userAuth.userId) {
+          return res.status(403).json({ error: 'No autorizado' });
+        }
+        const downloads = (await redis.get(`user-downloads:${userAuth.userId}`) as any[]) || [];
+        if (!downloads.find((d: any) => d.trackId === trackId)) {
+          return res.status(403).json({ error: 'No has comprado este track' });
+        }
+      }
       // Free downloads
       else if (session_id === 'free') {
         // For free tracks OR tracks that belong to a free pack
@@ -127,9 +139,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const arrayBuffer = await fileRes.arrayBuffer();
     let buffer = Buffer.from(arrayBuffer);
 
+    // Generate user fingerprint for watermark tracking
+    const userAuthWm = verifyUserToken(req.headers.authorization);
+    const fingerprintId = userAuthWm.valid && userAuthWm.userId ? userAuthWm.userId : 'anon';
+    const watermark = crypto.createHash('sha256').update(`${fingerprintId}:${trackId}:${process.env.ADMIN_SECRET || ''}`).digest('hex').slice(0, 12);
+
     // Only add ID3 tags to MP3 files
     const isMP3 = fileUrl.toLowerCase().includes('.mp3');
     if (isMP3) {
+
       const tags: NodeID3.Tags = {
         title: sanitizeTag(title || ''),
         artist: authors ? sanitizeTag(authors) : sanitizeTag(artist || ''),
@@ -137,7 +155,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         album: 'MusicDrop',
         genre: sanitizeTag(genre || '', 100),
         year: new Date().getFullYear().toString(),
-        comment: { language: 'spa', text: 'musicdrop.es' },
+        // Watermark: user fingerprint hidden in comment — if leaked, we can trace who downloaded it
+        comment: { language: 'spa', text: `musicdrop.es|${watermark}` },
+        // Also embed in a custom TXXX frame
+        userDefinedText: [{ description: 'MDID', value: watermark }],
       };
 
       if (bpm && /^\d{1,3}$/.test(bpm) && Number(bpm) > 0 && Number(bpm) < 999) {
@@ -171,12 +192,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Log watermark for piracy tracking
+    if (isMP3 && watermark && fingerprintId !== 'anon') {
+      redis.set(`watermark:${watermark}`, {
+        userId: fingerprintId,
+        trackId: trackId || 'unknown',
+        date: new Date().toISOString(),
+        ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown',
+      }, { ex: 365 * 24 * 60 * 60 }).catch(() => {}); // expires in 1 year
+    }
+
     const fileName = authors ? `${authors} - ${title || 'track'}` : (title || 'track');
     const ext = fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
 
     res.setHeader('Content-Type', isMP3 ? 'audio/mpeg' : 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}.${ext}"`);
     res.setHeader('Content-Length', buffer.length);
+    // Prevent caching of downloaded files
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
     return res.send(buffer);
   } catch (error: any) {

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import crypto from 'crypto';
 const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}function verifyCollabToken(h:string|undefined):{valid:boolean;collaboratorId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('collab.'))return{valid:false};const s=process.env.ADMIN_SECRET||'dev-secret';const p=t.split('.');if(p.length!==4)return{valid:false};const[,cid,ts,hm]=p;if(!cid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return{valid:false};const py=`collab.${cid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,collaboratorId:cid};}catch{return{valid:false};}}function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Filename, X-Folder'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
@@ -10,20 +11,38 @@ const redis = new Redis({
 
 const KV_KEY = 'tracks';
 
-const demoTracks = [
-  { id: 'track-010', title: 'Midnight Circuit Live', artist: 'Alex Selas', authors: '', category: 'sesiones', price: 9.99, bpm: 128, genre: 'Tech House', duration: 3720, releaseDate: '2026-03-15', description: 'Sesión grabada en vivo en Midnight Circuit. Tech house oscuro con líneas de bajo profundas y percusiones hipnóticas.', coverUrl: '', previewUrl: '/previews/midnight-circuit-preview.mp3', fileUrl: '/tracks/midnight-circuit.mp3', featured: true, tags: ['sesión', 'tech house', 'live', 'dark'] },
-  { id: 'track-011', title: 'Warehouse Sessions', artist: 'Alex Selas', authors: '', category: 'sesiones', price: 9.99, bpm: 132, genre: 'Techno', duration: 4200, releaseDate: '2026-04-01', description: 'Sesión de techno grabada en un warehouse. Sonidos raw, oscuros y contundentes.', coverUrl: '', previewUrl: '/previews/warehouse-sessions-preview.mp3', fileUrl: '/tracks/warehouse-sessions.mp3', featured: true, tags: ['sesión', 'techno', 'warehouse', 'underground'] },
-  { id: 'track-012', title: 'Sunset Terrace Set', artist: 'Alex Selas', authors: '', category: 'sesiones', price: 9.99, bpm: 122, genre: 'Melodic House', duration: 3600, releaseDate: '2026-02-14', description: 'Sesión melódica grabada al atardecer. Progresiones emotivas y un viaje sonoro de una hora.', coverUrl: '', previewUrl: '/previews/sunset-terrace-preview.mp3', fileUrl: '/tracks/sunset-terrace.mp3', featured: false, tags: ['sesión', 'melodic house', 'sunset', 'emotional'] },
-  { id: 'track-001', title: 'Frequency Shift (Alex Selas Remix)', artist: 'Alex Selas', authors: 'Rebūke', category: 'remixes', price: 4.99, bpm: 130, genre: 'Techno', duration: 420, releaseDate: '2026-03-01', description: 'Remix potente con carácter techno. Bajos distorsionados y atmósferas industriales.', coverUrl: '', previewUrl: '/previews/frequency-shift-preview.mp3', fileUrl: '/tracks/frequency-shift-remix.mp3', featured: true, tags: ['techno', 'remix', 'peak time', 'industrial'] },
-  { id: 'track-002', title: 'Solar Flare (Alex Selas Edit)', artist: 'Alex Selas', authors: 'Black Coffee, Keinemusik', category: 'remixes', price: 4.99, bpm: 124, genre: 'Afro House', duration: 390, releaseDate: '2026-01-10', description: 'Edit con influencias afro house. Percusiones orgánicas y groove irresistible.', coverUrl: '', previewUrl: '/previews/solar-flare-preview.mp3', fileUrl: '/tracks/solar-flare-edit.mp3', featured: false, tags: ['afro house', 'edit', 'tribal', 'groovy'] },
-  { id: 'track-003', title: 'Velvet Underground (Alex Selas Remix)', artist: 'Alex Selas', authors: 'Solomun', category: 'remixes', price: 4.99, bpm: 122, genre: 'Deep House', duration: 450, releaseDate: '2026-03-28', description: 'Remix deep y elegante con pads aterciopelados y progresión magistral.', coverUrl: '', previewUrl: '/previews/velvet-underground-preview.mp3', fileUrl: '/tracks/velvet-underground-remix.mp3', featured: true, tags: ['deep house', 'remix', 'elegant', 'smooth'] },
-  { id: 'track-004', title: 'Neon Pulse vs. Midnight', artist: 'Alex Selas', authors: 'Anyma, CamelPhat', category: 'mashups', price: 3.99, bpm: 126, genre: 'House', duration: 330, releaseDate: '2026-02-20', description: 'Mashup vibrante que fusiona dos clásicos del house melódico.', coverUrl: '', previewUrl: '/previews/neon-pulse-preview.mp3', fileUrl: '/tracks/neon-pulse-mashup.mp3', featured: true, tags: ['house', 'mashup', 'melodic', 'sunset'] },
-  { id: 'track-005', title: 'Groove Theory x Disco Fever', artist: 'Alex Selas', authors: 'Purple Disco Machine, Daft Punk', category: 'mashups', price: 3.99, bpm: 125, genre: 'Funky House', duration: 310, releaseDate: '2026-03-20', description: 'Mashup funky y lleno de energía. Guitarras disco y groove adictivo.', coverUrl: '', previewUrl: '/previews/groove-theory-preview.mp3', fileUrl: '/tracks/groove-theory-mashup.mp3', featured: false, tags: ['funky house', 'mashup', 'disco', 'festival'] },
-  { id: 'track-006', title: 'Warehouse Anthem Clash', artist: 'Alex Selas', authors: 'ANNA, Charlotte de Witte', category: 'mashups', price: 3.99, bpm: 132, genre: 'Techno', duration: 345, releaseDate: '2026-04-01', description: 'Mashup techno con dos himnos underground fusionados.', coverUrl: '', previewUrl: '/previews/warehouse-anthem-preview.mp3', fileUrl: '/tracks/warehouse-anthem-mashup.mp3', featured: true, tags: ['techno', 'mashup', 'warehouse', 'underground'] },
-  { id: 'track-007', title: 'Drums & Textures Vol.1', artist: 'Alex Selas', authors: '', category: 'librerias', price: 14.99, bpm: 0, genre: 'Multi-género', duration: 0, releaseDate: '2026-02-01', description: 'Pack de 120+ samples exclusivos. Royalty-free para tus producciones.', coverUrl: '', previewUrl: '/previews/drums-textures-preview.mp3', fileUrl: '/tracks/drums-textures-v1.zip', featured: true, tags: ['librería', 'drums', 'textures', 'fx', 'royalty-free'] },
-  { id: 'track-008', title: 'Synth Essentials Vol.1', artist: 'Alex Selas', authors: '', category: 'librerias', price: 12.99, bpm: 0, genre: 'Multi-género', duration: 0, releaseDate: '2026-03-10', description: 'Colección de 80+ loops y one-shots de sintetizadores.', coverUrl: '', previewUrl: '/previews/synth-essentials-preview.mp3', fileUrl: '/tracks/synth-essentials-v1.zip', featured: false, tags: ['librería', 'synths', 'loops', 'one-shots'] },
-  { id: 'track-009', title: 'Vocal Chops & FX Vol.1', artist: 'Alex Selas', authors: '', category: 'librerias', price: 11.99, bpm: 0, genre: 'Multi-género', duration: 0, releaseDate: '2026-03-25', description: 'Librería de vocales procesadas y chops rítmicos. 60+ samples.', coverUrl: '', previewUrl: '/previews/vocal-chops-preview.mp3', fileUrl: '/tracks/vocal-chops-v1.zip', featured: false, tags: ['librería', 'vocals', 'chops', 'fx'] },
-];
+const s3 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const R2_BUCKET = 'musicdrop';
+
+function deleteR2File(url: string) {
+  if (!url || url.startsWith('/') || url.startsWith('blob:')) return;
+  const r2PublicBase = process.env.R2_PUBLIC_URL || '';
+  if (!r2PublicBase || !url.startsWith(r2PublicBase)) return;
+  const key = url.slice(r2PublicBase.length + 1);
+  if (!key) return;
+  s3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key })).catch(() => {});
+}
+
+function deleteTrackFiles(track: any) {
+  if (track.fileUrl) deleteR2File(track.fileUrl);
+  if (track.previewUrl) deleteR2File(track.previewUrl);
+  // coverUrl is now always the default static image, no need to delete
+}
+
+// Credit costs per category
+const CREDIT_COSTS: Record<string, number> = {
+  extended: 1, mashups: 2, livemashups: 2, hypeintros: 2, transiciones: 2, remixes: 3, sesiones: 5, originales: 0,
+};
+
+const demoTracks: any[] = [];
 
 async function getTracks() {
   const tracks = await redis.get(KV_KEY);
@@ -72,7 +91,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const isAdmin = verifyAdminToken(req.headers.authorization);
       const collab = verifyCollabToken(req.headers.authorization);
       if (isAdmin) return res.status(200).json(tracks);
-      if (collab.valid) return res.status(200).json(tracks);
+      if (collab.valid && collab.collaboratorId) {
+        // Collaborators only see fileUrl for their own tracks
+        return res.status(200).json(tracks.map((t: any) =>
+          t.collaboratorId === collab.collaboratorId ? t : { ...t, fileUrl: undefined }
+        ));
+      }
       return res.status(200).json(stripFileUrls(tracks));
     }
 
@@ -116,7 +140,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const err = validateTrackData(item);
         if (err) return res.status(400).json({ error: err });
       }
-      // For packs: distribute price evenly if some tracks have price 0
+      // Key to Camelot conversion
+      const K2C:Record<string,string>={'Ab':'4B','Abm':'1A','A':'11B','Am':'8A','Bb':'6B','Bbm':'3A','B':'1B','Bm':'10A','C':'8B','Cm':'5A','C#':'3B','C#m':'12A','Db':'3B','Dbm':'12A','D':'10B','Dm':'7A','Eb':'5B','Ebm':'2A','E':'12B','Em':'9A','F':'7B','Fm':'4A','F#':'2B','F#m':'11A','Gb':'2B','Gbm':'11A','G':'9B','Gm':'6A','G#':'4B','G#m':'1A'};
+
+      // Auto-assign credits, camelot, cover
+      for (const item of items) {
+        item.credits = CREDIT_COSTS[item.category] || 1;
+        item.coverUrl = 'https://pub-cfc51dd31a2545cab8567d8d24e56ae1.r2.dev/uploads/1777578123001-covers_cover-default.png';
+        if (item.key && K2C[item.key]) item.camelot = K2C[item.key];
+      }
+
+      // Legacy pack price distribution (no longer used but kept for safety)
       const packItems = items.filter((i: any) => i.packId);
       if (packItems.length > 1) {
         const totalPrice = packItems.reduce((s: number, i: any) => s + (i.price || 0), 0);
@@ -163,8 +197,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (allTracks) {
                   const updated = allTracks.map((t: any) => t.id === nt.id ? {
                     ...t,
-                    bpm: r.bpm > 0 ? r.bpm : t.bpm,
-                    key: r.key || t.key,
+                    bpm: r.bpm > 0 ? (r.bpm > 162 ? Math.round(r.bpm / 2) : r.bpm) : t.bpm,
+                    key: t.key || r.key || '', // Never overwrite editor's key
+                    camelot: t.key ? (K2C[t.key] || t.camelot || '') : (r.camelot || (r.key ? K2C[r.key] || '' : '') || t.camelot),
                     duration: r.duration > 0 ? r.duration : t.duration,
                     tags: r.tags && r.tags.length > 0 ? r.tags : t.tags,
                     analysis: { intensity: r.intensity || 0, loudness_lufs: r.loudness_lufs || 0, energy_curve: r.energy_curve || [], genre_detected: r.genre_detected || '', key_confidence: r.key_confidence || 0, bpm_confidence: r.bpm_confidence || 0, analyzed_at: new Date().toISOString() },
@@ -226,18 +261,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const filtered = tracks.filter((t: any) => t.packId !== packId);
         await redis.set(KV_KEY, filtered);
+        // Delete files from R2 (fire-and-forget)
+        packTracks.forEach((t: any) => deleteTrackFiles(t));
         return res.status(200).json({ success: true, deleted: packTracks.length });
       }
 
       // Single track delete
-      if (collab.valid && !isAdmin) {
-        const track = tracks.find((t: any) => t.id === id);
-        if (!track || track.collaboratorId !== collab.collaboratorId) {
-          return res.status(403).json({ error: 'No puedes eliminar este track' });
-        }
+      const track = tracks.find((t: any) => t.id === id);
+      if (!track) return res.status(404).json({ error: 'Track no encontrado' });
+      if (collab.valid && !isAdmin && track.collaboratorId !== collab.collaboratorId) {
+        return res.status(403).json({ error: 'No puedes eliminar este track' });
       }
       const filtered = tracks.filter((t: any) => t.id !== id);
       await redis.set(KV_KEY, filtered);
+      // Delete files from R2 (fire-and-forget)
+      deleteTrackFiles(track);
       return res.status(200).json({ success: true });
     }
 

@@ -128,7 +128,7 @@ export default function ImageCropper({ imageUrl, shape = 'circle', onCrop, onCan
 
     canvas.toBlob(blob => {
       if (blob) onCrop(blob);
-    }, 'image/jpeg', 0.92);
+    }, 'image/jpeg', 0.95);
   };
 
   const borderRadius = shape === 'circle' ? '50%' : shape === 'banner' ? 16 : 16;

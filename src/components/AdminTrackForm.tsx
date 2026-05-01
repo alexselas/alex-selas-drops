@@ -1,6 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, Image, FileAudio, Music, Trash2, CheckCircle, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Upload, FileAudio, Music, Trash2, CheckCircle, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import type { Track, Category } from '../types';
+import { CREDIT_COSTS } from '../types';
+
+const KEY_TO_CAMELOT: Record<string, string> = {
+  'Ab': '4B', 'Abm': '1A', 'A': '11B', 'Am': '8A',
+  'Bb': '6B', 'Bbm': '3A', 'B': '1B', 'Bm': '10A',
+  'C': '8B', 'Cm': '5A', 'C#': '3B', 'C#m': '12A',
+  'Db': '3B', 'Dbm': '12A', 'D': '10B', 'Dm': '7A',
+  'Eb': '5B', 'Ebm': '2A', 'E': '12B', 'Em': '9A',
+  'F': '7B', 'Fm': '4A', 'F#': '2B', 'F#m': '11A',
+  'Gb': '2B', 'Gbm': '11A', 'G': '9B', 'Gm': '6A',
+  'G#': '4B', 'G#m': '1A',
+};
 import { analyzeAudio } from '../lib/audioAnalyzer';
 import { PreviewGenerator, type PreviewGeneratorHandle } from './PreviewGenerator';
 
@@ -229,6 +241,47 @@ function FileDropZone({
   );
 }
 
+// --- Helper: parse existing title back into songName/songNameB ---
+function parseExistingTitle(title: string, category: Category, artist: string): { songName: string; songNameB: string } {
+  const esc = artist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  if (category === 'livemashups') {
+    // Pattern: {Camelot} {Cancion} ({Artist} Live Mashup {BPM}Bpm)
+    const m = title.match(/^(?:\w+\s+)?(.+?)\s*\(.*Live Mashup.*\)$/i);
+    if (m) return { songName: m[1].trim(), songNameB: '' };
+  }
+  if (category === 'extended') {
+    const m = title.match(/^(.+?)\s*\(.*Extended.*\)$/i);
+    if (m) return { songName: m[1].trim(), songNameB: '' };
+  }
+  if (category === 'hypeintros') {
+    const m = title.match(/^(.+?)\s*\(.*Hype Intro.*\)$/i);
+    if (m) return { songName: m[1].trim(), songNameB: '' };
+  }
+  if (category === 'mashups') {
+    // Pattern: {A} X {B} ({Artist} Mashup)
+    const m = title.match(/^(.+?)\s+[Xx]\s+(.+?)\s*\(.*Mashup.*\)$/i);
+    if (m) return { songName: m[1].trim(), songNameB: m[2].trim() };
+  }
+  if (category === 'remixes') {
+    const m = title.match(/^(.+?)\s*\(.*Remix.*\)$/i);
+    if (m) return { songName: m[1].trim(), songNameB: '' };
+  }
+  if (category === 'transiciones') {
+    // Pattern: {A} x {B} ({Artist} Transition {BPMstart}-{BPMend}BPM)
+    const m = title.match(/^(.+?)\s+[Xx]\s+(.+?)\s*\(.*Transition.*\)$/i);
+    if (m) return { songName: m[1].trim(), songNameB: m[2].trim() };
+  }
+  if (category === 'sesiones') {
+    return { songName: title, songNameB: '' };
+  }
+  if (category === 'originales') {
+    return { songName: title, songNameB: '' };
+  }
+  // Fallback
+  return { songName: title, songNameB: '' };
+}
+
 export default function AdminTrackForm({ track, onSave, onCancel, adminToken, defaultArtist, hideCollaboratorCheckbox }: AdminTrackFormProps) {
   const previewGenRef = useRef<PreviewGeneratorHandle>(null);
   const [trackFileBlob, setTrackFileBlob] = useState<Blob | null>(null);
@@ -236,6 +289,13 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
   const [submitting, setSubmitting] = useState(false);
   const [previewLocalUrl, setPreviewLocalUrl] = useState('');
   const [uploadingPreview, setUploadingPreview] = useState(false);
+
+  // Smart title fields
+  const [songName, setSongName] = useState('');
+  const [songNameB, setSongNameB] = useState('');
+  const [bpmStart, setBpmStart] = useState(0);
+  const [bpmEnd, setBpmEnd] = useState(0);
+
   const [form, setForm] = useState({
     title: '',
     artist: defaultArtist || 'Alex Selas',
@@ -248,7 +308,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
     duration: 0,
     releaseDate: new Date().toISOString().split('T')[0],
     description: '',
-    coverUrl: '',
+    coverUrl: 'https://pub-cfc51dd31a2545cab8567d8d24e56ae1.r2.dev/uploads/1777578123001-covers_cover-default.png',
     previewUrl: '',
     fileUrl: '',
     featured: false,
@@ -259,6 +319,75 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
   const [aiLoading, setAiLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<{ intensity: number; loudness_lufs: number; energy_curve: number[] } | null>(null);
+
+  // Track which R2 URLs were uploaded in this session (for cleanup on cancel)
+  const uploadedUrls = useRef<string[]>([]);
+
+  const isCollaborator = !!hideCollaboratorCheckbox;
+
+  // Auto-generate title based on category
+  const autoTitle = useMemo(() => {
+    const camelot = form.key ? KEY_TO_CAMELOT[form.key] || '' : '';
+    const bpm = form.bpm;
+    const artist = form.artist;
+
+    switch (form.category) {
+      case 'livemashups':
+        return songName
+          ? `${camelot ? camelot + ' ' : ''}${songName} (${artist} Live Mashup ${bpm}Bpm)`
+          : '';
+      case 'extended':
+        return songName
+          ? `${songName} (${artist} Extended ${bpm}Bpm)`
+          : '';
+      case 'hypeintros':
+        return songName
+          ? `${songName} (${artist} Hype Intro ${bpm}Bpm)`
+          : '';
+      case 'mashups':
+        return songName && songNameB
+          ? `${songName} X ${songNameB} (${artist} Mashup ${bpm}Bpm)`
+          : songName
+            ? `${songName} (${artist} Mashup ${bpm}Bpm)`
+            : '';
+      case 'remixes':
+        return songName
+          ? `${songName} (${artist} Remix ${bpm}Bpm)`
+          : '';
+      case 'transiciones':
+        return songName && songNameB
+          ? `${songName} x ${songNameB} (${artist} Transition ${bpmStart}-${bpmEnd}BPM)`
+          : songName
+            ? `${songName} (${artist} Transition ${bpmStart}-${bpmEnd}BPM)`
+            : '';
+      case 'sesiones':
+        return songName || '';
+      case 'originales':
+        return songName || '';
+      default:
+        return songName || '';
+    }
+  }, [form.category, form.key, form.bpm, form.artist, songName, songNameB, bpmStart, bpmEnd]);
+
+  const cleanupUploadedFiles = () => {
+    const token = sessionStorage.getItem('alex-selas-drops-token') || sessionStorage.getItem('alex-selas-drops-collab-token') || '';
+    for (const url of uploadedUrls.current) {
+      if (url && !url.startsWith('/') && !url.startsWith('blob:')) {
+        fetch('/api/delete-blob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ url }),
+        }).catch(() => {});
+      }
+    }
+    uploadedUrls.current = [];
+  };
+
+  const handleCancel = () => {
+    // If this is a new track (not editing), clean up any files uploaded to R2
+    if (!track) cleanupUploadedFiles();
+    onCancel();
+  };
 
   const handleAudioAnalysis = async (file: File) => {
     if (!file.type.startsWith('audio/')) return;
@@ -328,18 +457,36 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
         duration: track.duration,
         releaseDate: track.releaseDate,
         description: track.description,
-        coverUrl: track.coverUrl,
+        coverUrl: 'https://pub-cfc51dd31a2545cab8567d8d24e56ae1.r2.dev/uploads/1777578123001-covers_cover-default.png',
         previewUrl: track.previewUrl,
         fileUrl: track.fileUrl,
         featured: track.featured,
         collaborator: track.collaborator || false,
         tags: track.tags.join(', '),
       });
+
+      // Parse existing title back into songName/songNameB
+      const parsed = parseExistingTitle(track.title, track.category, track.artist);
+      setSongName(parsed.songName);
+      setSongNameB(parsed.songNameB);
+
+      // Try to parse bpmStart/bpmEnd for transiciones
+      if (track.category === 'transiciones') {
+        const bpmMatch = track.title.match(/(\d+)-(\d+)BPM/i);
+        if (bpmMatch) {
+          setBpmStart(Number(bpmMatch[1]));
+          setBpmEnd(Number(bpmMatch[2]));
+        } else {
+          setBpmStart(track.bpm || 0);
+          setBpmEnd(track.bpm || 0);
+        }
+      }
     }
   }, [track]);
 
   const generateDescription = async () => {
-    if (!form.title) return;
+    const titleForDesc = autoTitle || songName;
+    if (!titleForDesc) return;
     setAiLoading(true);
     try {
       const adminToken = sessionStorage.getItem('alex-selas-drops-token') || sessionStorage.getItem('alex-selas-drops-collab-token') || '';
@@ -350,7 +497,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           'Authorization': `Bearer ${adminToken}`,
         },
         body: JSON.stringify({
-          title: form.title,
+          title: autoTitle || songName,
           artist: form.artist,
           authors: form.authors,
           category: form.category,
@@ -418,20 +565,28 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
       return;
     }
 
+    // Use auto-generated title
+    const finalTitle = autoTitle || songName || form.title;
+    const camelot = form.key ? KEY_TO_CAMELOT[form.key] || '' : '';
+
+    // For transiciones, store bpmStart as the bpm
+    const finalBpm = form.category === 'transiciones' ? bpmStart : Number(form.bpm);
+
     onSave({
       ...(track ? { id: track.id } : {}),
-      title: form.title,
+      title: finalTitle,
       artist: form.artist,
       authors: form.authors,
       category: form.category,
       price: Number(form.price),
-      bpm: Number(form.bpm),
+      bpm: finalBpm,
       key: form.key,
+      camelot,
       genre: form.genre,
       duration: Number(form.duration),
       releaseDate: form.releaseDate,
       description: form.description,
-      coverUrl: form.coverUrl,
+      coverUrl: 'https://pub-cfc51dd31a2545cab8567d8d24e56ae1.r2.dev/uploads/1777578123001-covers_cover-default.png',
       previewUrl: finalPreviewUrl,
       fileUrl: form.fileUrl,
       featured: form.featured,
@@ -442,6 +597,15 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
 
   const inputClass =
     'w-full px-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-yellow-400/50 focus:ring-1 focus:ring-yellow-400/25 transition-colors text-sm';
+
+  const readOnlyClass =
+    'w-full px-4 py-2.5 rounded-xl bg-zinc-900/50 border border-zinc-700/50 text-zinc-400 text-sm cursor-not-allowed';
+
+  // Determine which smart fields to show based on category
+  const needsSongNameB = form.category === 'mashups' || form.category === 'transiciones';
+  const needsAuthors = form.category !== 'sesiones';
+  const needsTransitionBpm = form.category === 'transiciones';
+  const isFreeTitle = form.category === 'sesiones' || form.category === 'originales';
 
   return (
     <div className="bg-[#141414] rounded-[18px] border border-zinc-800/50 overflow-hidden">
@@ -461,7 +625,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           </div>
         </div>
         <button
-          onClick={onCancel}
+          onClick={handleCancel}
           className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
         >
           <X className="w-5 h-5" />
@@ -475,38 +639,34 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
             <Upload className="w-4 h-4 text-yellow-400" />
             Archivos
           </h4>
-          {/* 1. Canción */}
+          {/* 1. Cancion */}
           <FileDropZone
-            label="Canción (archivo completo 320kbps)"
+            label="Cancion (archivo completo 320kbps)"
             accept="audio/mpeg,audio/mp3,application/zip"
             hint="MP3 o ZIP"
             icon={FileAudio}
             currentUrl={form.fileUrl}
             folder="tracks"
-            onUploaded={url => { setForm(prev => ({ ...prev, fileUrl: url })); handleModalAnalysis(url); }}
+            onUploaded={url => { uploadedUrls.current.push(url); setForm(prev => ({ ...prev, fileUrl: url })); handleModalAnalysis(url); }}
             onClear={() => { setForm(prev => ({ ...prev, fileUrl: '' })); setTrackFileBlob(null); }}
             onFileSelected={(file) => { setTrackFileBlob(file); handleAudioAnalysis(file); }}
           />
 
-          {/* 2. Portada */}
-          <FileDropZone
-            label="Portada (imagen)"
-            accept="image/jpeg,image/png,image/webp"
-            hint="JPG, PNG o WebP"
-            icon={Image}
-            currentUrl={form.coverUrl}
-            isImage
-            folder="covers"
-            onUploaded={url => setForm(prev => ({ ...prev, coverUrl: url }))}
-            onClear={() => setForm(prev => ({ ...prev, coverUrl: '' }))}
-          />
+          {/* Portada fija */}
+          <div>
+            <label className="block text-xs text-zinc-500 mb-1.5 font-medium">Portada</label>
+            <div className="flex items-center gap-3 p-3 rounded-[14px] bg-zinc-800/50 border border-yellow-400/20">
+              <img src="/cover-default.png" alt="Portada MusicDrop" className="w-12 h-12 rounded-xl object-cover" />
+              <p className="text-sm text-yellow-400 font-medium">Portada generica MusicDrop</p>
+            </div>
+          </div>
 
           {/* 3. Preview — auto-generada al publicar */}
           {(form.previewUrl || previewLocalUrl) ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                  Preview {previewLocalUrl && !form.previewUrl ? '(se subirá al publicar)' : ''}
+                  Preview {previewLocalUrl && !form.previewUrl ? '(se subira al publicar)' : ''}
                 </span>
                 <button onClick={() => { setForm(prev => ({ ...prev, previewUrl: '' })); setPreviewBlob(null); setPreviewLocalUrl(''); }} className="text-[10px] text-red-400 hover:text-red-300">Eliminar</button>
               </div>
@@ -534,7 +694,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
             <Loader2 className="w-5 h-5 text-yellow-400 animate-spin" />
             <div>
               <p className="text-sm text-yellow-400 font-medium">Analizando audio...</p>
-              <p className="text-xs text-zinc-500">Detectando BPM, tonalidad y duración</p>
+              <p className="text-xs text-zinc-500">Detectando BPM, tonalidad y duracion</p>
             </div>
           </div>
         )}
@@ -542,7 +702,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
         {/* AI Analysis Results — read only */}
         {aiAnalysis && (
           <div className="p-4 bg-zinc-800/30 border border-zinc-700/50 rounded-2xl space-y-3">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-yellow-400">Análisis IA</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-yellow-400">Analisis IA</h4>
             <div className="grid grid-cols-2 gap-4">
               {/* Intensity */}
               <div className="space-y-1.5">
@@ -560,7 +720,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-black text-zinc-200">{aiAnalysis.loudness_lufs} LUFS</span>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${aiAnalysis.loudness_lufs === 0 ? 'bg-zinc-800 text-zinc-500' : aiAnalysis.loudness_lufs > -8 ? 'bg-red-400/15 text-red-400' : aiAnalysis.loudness_lufs > -14 ? 'bg-green-400/15 text-green-400' : 'bg-yellow-400/15 text-yellow-400'}`}>
-                    {aiAnalysis.loudness_lufs === 0 ? 'N/A' : aiAnalysis.loudness_lufs > -8 ? 'MUY ALTO' : aiAnalysis.loudness_lufs > -14 ? 'OK' : 'DINÁMICO'}
+                    {aiAnalysis.loudness_lufs === 0 ? 'N/A' : aiAnalysis.loudness_lufs > -8 ? 'MUY ALTO' : aiAnalysis.loudness_lufs > -14 ? 'OK' : 'DINAMICO'}
                   </span>
                 </div>
               </div>
@@ -568,7 +728,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
             {/* Energy curve */}
             {aiAnalysis.energy_curve.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Curva de energía</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Curva de energia</p>
                 <div className="flex items-end gap-[3px] h-12">
                   {aiAnalysis.energy_curve.map((v, i) => (
                     <div key={i} className="flex-1 rounded-sm bg-gradient-to-t from-yellow-400/60 to-yellow-400 transition-all" style={{ height: `${v}%` }} />
@@ -584,41 +744,139 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           </div>
         )}
 
-        {/* === INFO BÁSICA === */}
+        {/* === INFO BASICA === */}
         <div>
-          <h4 className="text-sm font-semibold text-zinc-300 mb-3">Información básica</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <h4 className="text-sm font-semibold text-zinc-300 mb-3">Informacion basica</h4>
+
+          {/* Category selector — FIRST, everything depends on this */}
+          <div className="mb-4">
+            <label className="block text-xs text-zinc-500 mb-1">Categoria</label>
+            <select
+              value={form.category}
+              onChange={e => {
+                const cat = e.target.value as Category;
+                setForm({ ...form, category: cat });
+                // Reset songNameB when switching away from mashup/transicion
+                if (cat !== 'mashups' && cat !== 'transiciones') {
+                  setSongNameB('');
+                }
+                if (cat !== 'transiciones') {
+                  setBpmStart(0);
+                  setBpmEnd(0);
+                }
+              }}
+              className={inputClass}
+            >
+              <option value="extended">Extended ({CREDIT_COSTS.extended} dr)</option>
+              <option value="mashups">Mashup ({CREDIT_COSTS.mashups} dr)</option>
+              <option value="livemashups">Live Mashup ({CREDIT_COSTS.livemashups} dr)</option>
+              <option value="hypeintros">Hype Intro ({CREDIT_COSTS.hypeintros} dr)</option>
+              <option value="transiciones">Transicion ({CREDIT_COSTS.transiciones} dr)</option>
+              <option value="remixes">Remix ({CREDIT_COSTS.remixes} dr)</option>
+              <option value="sesiones">Sesion ({CREDIT_COSTS.sesiones} dr)</option>
+              <option value="originales">Original ({CREDIT_COSTS.originales} dr)</option>
+            </select>
+          </div>
+
+          {/* Smart title fields — change based on category */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            {/* Song name A (always shown) */}
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Titulo * (solo el nombre de la cancion, no pongas artistas)</label>
+              <label className="block text-xs text-zinc-500 mb-1">
+                {form.category === 'mashups' || form.category === 'transiciones'
+                  ? 'Cancion A *'
+                  : form.category === 'sesiones'
+                    ? 'Nombre sesion *'
+                    : form.category === 'originales'
+                      ? 'Titulo *'
+                      : 'Nombre cancion *'}
+              </label>
               <input
                 type="text"
-                value={form.title}
-                onChange={e => setForm({ ...form, title: e.target.value })}
-                placeholder="Ej: La Bicicleta Remix 125Bpm"
+                value={songName}
+                onChange={e => setSongName(e.target.value)}
+                placeholder={
+                  form.category === 'mashups' ? 'Ej: La Conoci Bailando'
+                    : form.category === 'transiciones' ? 'Ej: Fantasias'
+                    : form.category === 'sesiones' ? 'Ej: WARM UP 1'
+                    : form.category === 'originales' ? 'Ej: Midnight Groove'
+                    : 'Ej: Adictiva'
+                }
                 className={inputClass}
                 required
               />
             </div>
+
+            {/* Song name B (only for mashup / transicion) */}
+            {needsSongNameB && (
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Cancion B *</label>
+                <input
+                  type="text"
+                  value={songNameB}
+                  onChange={e => setSongNameB(e.target.value)}
+                  placeholder={
+                    form.category === 'mashups' ? 'Ej: La Vida Es Un Carnaval'
+                      : 'Ej: Aprietala'
+                  }
+                  className={inputClass}
+                  required
+                />
+              </div>
+            )}
+
+            {/* Artistas originales (all except sesiones) */}
+            {needsAuthors && (
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Artistas originales</label>
+                <input
+                  type="text"
+                  value={form.authors}
+                  onChange={e => setForm({ ...form, authors: e.target.value })}
+                  placeholder={
+                    form.category === 'mashups' ? 'Ej: Dr.Bellido, Celia Cruz'
+                      : 'Ej: Anuel AA, Daddy Yankee'
+                  }
+                  className={inputClass}
+                />
+              </div>
+            )}
+
+            {/* Productor */}
             <div>
               <label className="block text-xs text-zinc-500 mb-1">Productor</label>
               <input
                 type="text"
                 value={form.artist}
-                onChange={e => setForm({ ...form, artist: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">Autores originales</label>
-              <input
-                type="text"
-                value={form.authors}
-                onChange={e => setForm({ ...form, authors: e.target.value })}
-                placeholder="Drake, Bad Bunny..."
-                className={inputClass}
+                onChange={e => !isCollaborator && setForm({ ...form, artist: e.target.value })}
+                className={isCollaborator ? readOnlyClass : inputClass}
+                readOnly={isCollaborator}
               />
             </div>
           </div>
+
+          {/* Title preview — auto-generated, read-only highlighted box */}
+          {autoTitle && (
+            <div className="mb-4">
+              <label className="block text-xs text-zinc-500 mb-1">Titulo final (auto-generado)</label>
+              <div
+                className="w-full px-4 py-3 rounded-xl border-2 border-yellow-400/60 bg-zinc-900/80"
+                style={{ minHeight: '44px' }}
+              >
+                <span
+                  className="text-sm font-bold"
+                  style={{
+                    background: 'linear-gradient(90deg, #facc15, #f59e0b, #eab308)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {autoTitle}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* === DETALLES === */}
@@ -626,43 +884,18 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           <h4 className="text-sm font-semibold text-zinc-300 mb-3">Detalles</h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Categoría</label>
-              <select
-                value={form.category}
-                onChange={e => {
-                  const cat = e.target.value as Category;
-                  const defaultPrices: Record<string, number> = { remixes: 1.99, mashups: 0.99, livemashups: 0.99, hypeintros: 0.99, transiciones: 0.99, sesiones: 4.99, originales: form.price };
-                  setForm({ ...form, category: cat, price: defaultPrices[cat] ?? form.price });
-                }}
-                className={inputClass}
-              >
-                <option value="remixes">Remix (1,99 EUR)</option>
-                <option value="mashups">Mashup (0,99 EUR)</option>
-                <option value="livemashups">Live Mashup (0,99 EUR)</option>
-                <option value="hypeintros">Hype Intro (0,99 EUR)</option>
-                <option value="transiciones">Transicion (0,99 EUR)</option>
-                <option value="sesiones">Sesion (4,99 EUR)</option>
-                <option value="originales">Original (precio libre)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">Precio (EUR) *</label>
+              <label className="block text-xs text-zinc-500 mb-1">Creditos</label>
               <input
                 type="number"
-                step="0.01"
                 min="0"
-                value={form.price}
-                onChange={e => setForm({ ...form, price: Number(e.target.value) })}
+                value={CREDIT_COSTS[form.category]}
                 className={inputClass}
-                required
-                disabled={form.category !== 'librerias' && form.category !== 'originales'}
+                disabled
               />
-              {form.category !== 'librerias' && form.category !== 'originales' && (
-                <p className="text-[10px] text-zinc-600 mt-1">Precio fijo para esta categoria</p>
-              )}
+              <p className="text-[10px] text-zinc-600 mt-1">Creditos fijos segun categoria</p>
             </div>
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Género</label>
+              <label className="block text-xs text-zinc-500 mb-1">Genero</label>
               <input
                 type="text"
                 value={form.genre}
@@ -671,37 +904,77 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
                 className={inputClass}
               />
             </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">BPM</label>
-              <input
-                type="number"
-                min="0"
-                value={form.bpm}
-                onChange={e => setForm({ ...form, bpm: Number(e.target.value) })}
-                className={inputClass}
-              />
-            </div>
+
+            {/* BPM — hidden for transiciones (they have bpmStart/bpmEnd), read-only for collaborators */}
+            {!needsTransitionBpm && (
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">BPM {isCollaborator ? '(auto)' : ''}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.bpm}
+                  onChange={e => !isCollaborator && setForm({ ...form, bpm: Number(e.target.value) })}
+                  className={isCollaborator ? readOnlyClass : inputClass}
+                  readOnly={isCollaborator}
+                />
+              </div>
+            )}
+
+            {/* BPM inicio / fin for transiciones */}
+            {needsTransitionBpm && (
+              <>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">BPM inicio</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={bpmStart}
+                    onChange={e => setBpmStart(Number(e.target.value))}
+                    placeholder="128"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">BPM fin</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={bpmEnd}
+                    onChange={e => setBpmEnd(Number(e.target.value))}
+                    placeholder="130"
+                    className={inputClass}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Tonalidad</label>
+              <label className="block text-xs text-zinc-500 mb-1">Tonalidad {isCollaborator ? '(auto)' : ''}</label>
               <input
                 type="text"
                 value={form.key}
-                onChange={e => setForm({ ...form, key: e.target.value })}
-                placeholder="Am, C, F#m..."
-                className={inputClass}
+                onChange={e => !isCollaborator && setForm({ ...form, key: e.target.value })}
+                placeholder={isCollaborator ? 'Se detecta automaticamente' : 'Am, C, F#m...'}
+                className={isCollaborator ? readOnlyClass : inputClass}
+                readOnly={isCollaborator}
               />
+              {form.key && KEY_TO_CAMELOT[form.key] && (
+                <p className="text-[10px] text-yellow-400 mt-1 font-bold">Camelot: {KEY_TO_CAMELOT[form.key]}</p>
+              )}
+              {isCollaborator && !form.key && (
+                <p className="text-[10px] text-zinc-600 mt-1">Se detectara al subir el archivo</p>
+              )}
             </div>
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Duración (seg)</label>
+              <label className="block text-xs text-zinc-500 mb-1">Duracion (seg)</label>
               <input
                 type="number"
                 min="0"
                 value={form.duration}
-                onChange={e => setForm({ ...form, duration: Number(e.target.value) })}
-                className={inputClass}
+                className={readOnlyClass}
+                readOnly
               />
               {form.duration > 0 && (
                 <p className="text-[10px] text-yellow-400/60 mt-1">
@@ -743,19 +1016,19 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           </div>
         </div>
 
-        {/* === DESCRIPCIÓN === */}
+        {/* === DESCRIPCION === */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs text-zinc-500">Descripción</label>
+            <label className="block text-xs text-zinc-500">Descripcion</label>
             {!hideCollaboratorCheckbox && (
               <button
                 type="button"
                 onClick={generateDescription}
-                disabled={aiLoading || !form.title}
+                disabled={aiLoading || (!songName && !autoTitle)}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
                   aiLoading
                     ? 'bg-yellow-400/10 text-yellow-400/50 cursor-wait'
-                    : !form.title
+                    : (!songName && !autoTitle)
                       ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                       : 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 active:scale-95'
                 }`}
@@ -772,11 +1045,11 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           <textarea
             value={form.description}
             onChange={e => setForm({ ...form, description: e.target.value })}
-            placeholder={hideCollaboratorCheckbox ? 'Describe tu track...' : 'Escribe unas notas y la IA creará una descripción profesional, o escríbela tú directamente...'}
+            placeholder={hideCollaboratorCheckbox ? 'Describe tu track...' : 'Escribe unas notas y la IA creara una descripcion profesional, o escribela tu directamente...'}
             className={`${inputClass} h-28 resize-none`}
           />
           {!hideCollaboratorCheckbox && (
-            <p className="text-[10px] text-zinc-600 mt-1">Puedes escribir notas básicas y darle a "Generar con IA" para obtener una descripción profesional</p>
+            <p className="text-[10px] text-zinc-600 mt-1">Puedes escribir notas basicas y darle a "Generar con IA" para obtener una descripcion profesional</p>
           )}
         </div>
 
@@ -804,7 +1077,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           </button>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancel}
             className="px-6 py-3 rounded-2xl border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors"
           >
             Cancelar

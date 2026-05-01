@@ -231,6 +231,7 @@ export default function CollabProfileForm({ collaboratorId, collaboratorName, co
               {uploadingBanner ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Upload className="w-4 h-4 text-white" />}
             </div>
           </div>
+          <p className="text-[10px] text-zinc-600 mb-1">Resolucion minima recomendada: 1920 x 720 px. Imagenes mas pequenas se veran borrosas.</p>
           {(form.bannerUrl || localBannerPreview) && (
             <div className="flex flex-wrap gap-1.5">
               {originalBanner && (

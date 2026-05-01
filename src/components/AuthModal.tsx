@@ -55,7 +55,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
     }
   };
 
-  const inputClass = 'w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-yellow-400/50 text-sm';
+  const inputClass = 'w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-yellow-400/40 focus:ring-1 focus:ring-yellow-400/20 text-sm transition-all';
 
   return (
     <AnimatePresence>
@@ -64,18 +64,19 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 350 }}
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-sm bg-[#141414] rounded-2xl border border-zinc-800/50 overflow-hidden"
+            className="w-full max-w-sm bg-[#111111] rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/60"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-zinc-800/50">
+            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-white/[0.06]">
               <div>
                 <h3 className="text-lg font-bold text-white">
                   {mode === 'login' ? 'Iniciar sesion' : 'Crear cuenta'}
@@ -84,56 +85,61 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
                   {mode === 'login' ? 'Accede a tus drops' : 'Registrate para comprar drops'}
                 </p>
               </div>
-              <button onClick={onClose} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800">
+              <button onClick={onClose} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all" aria-label="Cerrar">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
               {error && (
-                <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+                <div className="px-4 py-3 rounded-xl bg-red-500/[0.08] border border-red-500/20 text-sm text-red-400 font-medium" role="alert">
                   {error}
                 </div>
               )}
 
-              {/* Name — only on register */}
+              {/* Name -- only on register */}
               {mode === 'register' && (
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Nombre</label>
+                  <label htmlFor="auth-name" className="block text-xs text-zinc-500 mb-1.5 font-medium">Nombre</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                     <input
+                      id="auth-name"
                       type="text"
                       value={name}
                       onChange={e => setName(e.target.value)}
                       placeholder="Tu nombre"
                       required
                       className={inputClass}
+                      autoComplete="name"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs text-zinc-500 mb-1.5">Email</label>
+                <label htmlFor="auth-email" className="block text-xs text-zinc-500 mb-1.5 font-medium">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    id="auth-email"
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="tu@email.com"
                     required
                     className={inputClass}
+                    autoComplete="email"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-500 mb-1.5">Contrasena</label>
+                <label htmlFor="auth-password" className="block text-xs text-zinc-500 mb-1.5 font-medium">Contrasena</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    id="auth-password"
                     type="password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
@@ -141,37 +147,39 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
                     required
                     minLength={6}
                     className={inputClass}
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   />
                 </div>
               </div>
 
-              {/* Confirm password — only on register */}
+              {/* Confirm password -- only on register */}
               {mode === 'register' && (
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Repetir contrasena</label>
+                  <label htmlFor="auth-password2" className="block text-xs text-zinc-500 mb-1.5 font-medium">Repetir contrasena</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                     <input
+                      id="auth-password2"
                       type="password"
                       value={password2}
                       onChange={e => setPassword2(e.target.value)}
                       placeholder="Repite tu contrasena"
                       required
                       minLength={6}
-                      className={`${inputClass} ${password2 && password !== password2 ? 'border-red-500/50' : ''}`}
+                      className={`${inputClass} ${password2 && password !== password2 ? 'border-red-500/50 focus:border-red-500/50' : ''}`}
+                      autoComplete="new-password"
                     />
                   </div>
                   {password2 && password !== password2 && (
-                    <p className="text-[11px] text-red-400 mt-1">Las contrasenas no coinciden</p>
+                    <p className="text-[11px] text-red-400 mt-1.5">Las contrasenas no coinciden</p>
                   )}
                 </div>
               )}
 
-
               <button
                 type="submit"
                 disabled={loading || (mode === 'register' && password !== password2)}
-                className="w-full py-3 rounded-xl gradient-bg text-black font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-50"
+                className="w-full py-3 rounded-xl gradient-bg text-black font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-50 shadow-lg shadow-yellow-400/15 mt-2"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -183,11 +191,11 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
                 {loading ? 'Cargando...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
               </button>
 
-              <div className="text-center">
+              <div className="text-center pt-1">
                 <button
                   type="button"
                   onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setPassword2(''); }}
-                  className="text-sm text-yellow-400 hover:text-yellow-300"
+                  className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors"
                 >
                   {mode === 'login' ? 'No tienes cuenta? Registrate' : 'Ya tienes cuenta? Inicia sesion'}
                 </button>

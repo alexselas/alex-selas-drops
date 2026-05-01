@@ -143,11 +143,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           </div>
           <div style="padding: 0 32px;"><div style="height: 1px; background: linear-gradient(to right, transparent, #1e1e1e, transparent);"></div></div>
           <div style="padding: 24px 32px; text-align: center;">
-            <p style="color: #71717a; font-size: 12px; margin: 0 0 8px;">Anade 3 o mas tracks al carrito y usa este codigo:</p>
+            <p style="color: #71717a; font-size: 12px; margin: 0 0 8px;">Usa este codigo para un 20% extra en tu primera compra de drops:</p>
             <div style="display: inline-block; background: rgba(250,204,21,0.08); border: 1px dashed rgba(250,204,21,0.3); border-radius: 8px; padding: 8px 24px;">
-              <span style="color: #facc15; font-size: 18px; font-weight: 800; letter-spacing: 3px;">DROPS20</span>
+              <span style="color: #facc15; font-size: 18px; font-weight: 800; letter-spacing: 3px;">WELCOME20</span>
             </div>
-            <p style="color: #52525b; font-size: 11px; margin: 8px 0 0;">20% de descuento en pedidos de 3+ tracks</p>
           </div>
           <div style="padding: 20px 32px 28px; text-align: center; background: #080808;">
             <p style="color: #3f3f46; font-size: 11px; margin: 0 0 6px;">Music Drop by 360DJAcademy &middot; <a href="https://musicdrop.es" style="color: #52525b; text-decoration: none;">musicdrop.es</a></p>

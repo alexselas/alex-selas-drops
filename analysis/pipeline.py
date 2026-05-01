@@ -52,7 +52,12 @@ def analyze_track(audio_url: str) -> dict:
     try:
         rhythm_extractor = es.RhythmExtractor2013(method="degara")
         bpm, beats, beats_confidence, _, beats_intervals = rhythm_extractor(audio_44k)
-        results["bpm"] = round(bpm)
+        detected_bpm = round(bpm)
+        # Halve BPM if over 162 (likely double-time detection)
+        if detected_bpm > 162:
+            detected_bpm = round(detected_bpm / 2)
+            print(f"BPM halved: {round(bpm)} → {detected_bpm}")
+        results["bpm"] = detected_bpm
         results["bpm_confidence"] = round(float(beats_confidence), 2)
         print(f"BPM: {results['bpm']}")
     except Exception as e:
@@ -60,17 +65,72 @@ def analyze_track(audio_url: str) -> dict:
         results["bpm"] = 0
         results["bpm_confidence"] = 0
 
-    # 2. Key Detection
+    # 2. Key Detection — multi-source for maximum accuracy
+    # First try reading key from ID3 metadata (most reliable if producer set it)
+    id3_key = ""
     try:
-        key_extractor = es.KeyExtractor()
-        key, scale, key_strength = key_extractor(audio_44k)
-        results["key"] = f"{key}{('m' if scale == 'minor' else '')}"
-        results["key_confidence"] = round(float(key_strength), 2)
-        print(f"Key: {results['key']}")
+        import subprocess
+        probe = subprocess.run(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", audio_path], capture_output=True, text=True, timeout=10)
+        import json as _json
+        meta = _json.loads(probe.stdout)
+        tags = meta.get("format", {}).get("tags", {})
+        # Try common key tag names
+        for tag_name in ["initialkey", "initial_key", "key", "TKEY"]:
+            val = tags.get(tag_name, "").strip()
+            if val and len(val) <= 4:
+                id3_key = val
+                print(f"ID3 key found: {id3_key}")
+                break
+    except:
+        pass
+
+    try:
+        # Algorithm 1: KeyExtractor (Temperley profile)
+        key_extractor = es.KeyExtractor(profileType='temperley')
+        key1, scale1, strength1 = key_extractor(audio_44k)
+        r1 = f"{key1}{('m' if scale1 == 'minor' else '')}"
+
+        # Algorithm 2: KeyExtractor with edma profile (better for electronic/DJ music)
+        key_extractor2 = es.KeyExtractor(profileType='edma')
+        key2, scale2, strength2 = key_extractor2(audio_44k)
+        r2 = f"{key2}{('m' if scale2 == 'minor' else '')}"
+
+        # Algorithm 3: KeyExtractor with bgate profile
+        key_extractor3 = es.KeyExtractor(profileType='bgate')
+        key3, scale3, strength3 = key_extractor3(audio_44k)
+        r3 = f"{key3}{('m' if scale3 == 'minor' else '')}"
+
+        # Voting: pick the key that appears most, weighted by confidence
+        from collections import Counter
+        votes = Counter()
+        votes[r1] += strength1
+        votes[r2] += strength2
+        votes[r3] += strength3
+        best_key = votes.most_common(1)[0][0]
+        best_confidence = max(strength1, strength2, strength3)
+
+        key = best_key[:-1] if best_key.endswith('m') else best_key
+        scale = 'minor' if best_key.endswith('m') else 'major'
+        key_strength = best_confidence
+
+        K2C = {'Ab':'4B','Abm':'1A','A':'11B','Am':'8A','Bb':'6B','Bbm':'3A','B':'1B','Bm':'10A','C':'8B','Cm':'5A','C#':'3B','C#m':'12A','Db':'3B','Dbm':'12A','D':'10B','Dm':'7A','Eb':'5B','Ebm':'2A','E':'12B','Em':'9A','F':'7B','Fm':'4A','F#':'2B','F#m':'11A','Gb':'2B','Gbm':'11A','G':'9B','Gm':'6A','G#':'4B','G#m':'1A'}
+        C2K = {v: k for k, v in K2C.items()}
+
+        # Always use 3-algorithm vote (most reliable for DJ music)
+        results["key"] = best_key
+        results["camelot"] = K2C.get(best_key, "")
+        results["key_confidence"] = round(float(best_confidence), 2)
+        results["key_votes"] = {r1: round(float(strength1), 2), r2: round(float(strength2), 2), r3: round(float(strength3), 2)}
+        results["key_source"] = "3-algorithm-vote"
+        if id3_key:
+            results["key_id3"] = id3_key  # kept for reference only
+        print(f"Key: {results['key']} → Camelot: {results['camelot']} (votes: {results['key_votes']})")
+        print(f"Camelot: {results['camelot']}")
     except Exception as e:
         print(f"Key error: {e}")
         results["key"] = ""
         results["key_confidence"] = 0
+        results["camelot"] = ""
 
     # 3. Loudness (EBU R128 — needs stereo, so we duplicate mono channel)
     try:

@@ -320,7 +320,7 @@ export async function analyzeAudio(file: File): Promise<AudioAnalysis> {
       detectKey(audioBuffer),
     ]);
 
-    return { bpm, duration, key };
+    return { bpm: bpm > 162 ? Math.round(bpm / 2) : bpm, duration, key };
   } finally {
     await audioContext.close();
   }

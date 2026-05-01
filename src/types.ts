@@ -1,4 +1,4 @@
-export type Category = 'sesiones' | 'remixes' | 'mashups' | 'livemashups' | 'hypeintros' | 'transiciones' | 'originales' | 'packs' | 'librerias';
+export type Category = 'extended' | 'mashups' | 'livemashups' | 'hypeintros' | 'transiciones' | 'remixes' | 'sesiones' | 'originales';
 
 export interface Track {
   id: string;
@@ -7,8 +7,10 @@ export interface Track {
   authors: string; // Artistas originales (ej: "Drake, Bad Bunny")
   category: Category;
   price: number;
+  credits?: number; // Coste en creditos (auto-calculado desde categoria)
   bpm: number;
   key?: string;
+  camelot?: string;
   genre: string;
   duration: number; // seconds
   releaseDate: string; // ISO date
@@ -20,8 +22,6 @@ export interface Track {
   tags: string[];
   collaborator?: boolean;
   collaboratorId?: string;
-  packId?: string;
-  packName?: string;
   analysis?: {
     intensity?: number;
     loudness_lufs?: number;
@@ -30,6 +30,47 @@ export interface Track {
     analyzed_at?: string;
   };
 }
+
+// Creditos por categoria
+export const CREDIT_COSTS: Record<Category, number> = {
+  extended: 1,
+  mashups: 2,
+  livemashups: 2,
+  hypeintros: 2,
+  transiciones: 2,
+  remixes: 3,
+  sesiones: 5,
+  originales: 0,
+};
+
+export const CATEGORY_LABELS: Record<Category, string> = {
+  extended: 'Extended',
+  mashups: 'Mashup',
+  livemashups: 'Live Mashup',
+  hypeintros: 'Hype Intro',
+  transiciones: 'Transicion',
+  remixes: 'Remix',
+  sesiones: 'Sesion',
+  originales: 'Original',
+};
+
+export const CATEGORY_COLORS: Record<Category, string> = {
+  extended: 'bg-amber-500 text-black',
+  mashups: 'bg-yellow-500 text-black',
+  livemashups: 'bg-fuchsia-600 text-white',
+  hypeintros: 'bg-pink-600 text-white',
+  transiciones: 'bg-cyan-600 text-white',
+  remixes: 'bg-violet-600 text-white',
+  sesiones: 'bg-emerald-600 text-white',
+  originales: 'bg-orange-500 text-white',
+};
+
+// Paquetes de drops
+export const CREDIT_PACKS = [
+  { id: 'pack-5', credits: 5, price: 3.99, label: '5 drops' },
+  { id: 'pack-10', credits: 10, price: 6.99, label: '10 drops', popular: true },
+  { id: 'pack-20', credits: 20, price: 11.99, label: '20 drops' },
+];
 
 export interface CollaboratorProfile {
   bio: string;
@@ -59,15 +100,6 @@ export interface CartItem {
   quantity: number;
 }
 
-export interface Order {
-  id: string;
-  items: CartItem[];
-  total: number;
-  date: string;
-  status: 'pending' | 'completed' | 'failed';
-  paymentMethod: 'stripe' | 'paypal';
-}
+export type SortOption = 'newest' | 'oldest' | 'credits-asc' | 'credits-desc' | 'title';
 
-export type SortOption = 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'title';
-
-export type Section = 'home' | 'catalog' | 'colabs' | 'colab-admin' | 'colab-page' | 'admin' | 'club360';
+export type Section = 'colabs' | 'colab-admin' | 'colab-page' | 'admin' | 'club360';
