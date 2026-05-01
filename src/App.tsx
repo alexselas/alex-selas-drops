@@ -8,69 +8,55 @@ import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useAdmin } from './hooks/useAdmin';
 import { useCollabAdmin } from './hooks/useCollabAdmin';
 import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import FeaturedTracks from './components/FeaturedTracks';
 import CategoryFilter from './components/CategoryFilter';
 import TrackCard from './components/TrackCard';
 import TrackDetail from './components/TrackDetail';
 import AudioPlayer from './components/AudioPlayer';
 import CartDrawer from './components/CartDrawer';
-import CheckoutPanel from './components/CheckoutPanel';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import CollabLogin from './components/CollabLogin';
 import CollabPanel from './components/CollabPanel';
 import CollabPage from './components/CollabPage';
 import Footer from './components/Footer';
-import { Search, ArrowUpDown, LayoutGrid, List, Music, ShoppingCart, Play, Pause, Check, Package, ChevronDown, ChevronUp, Clock, Sparkles, Headphones, Users, Zap, Star, Crown, ArrowRight } from 'lucide-react';
-import { formatPrice, formatDuration } from './lib/utils';
+import AuthModal from './components/AuthModal';
+import CreditShop from './components/CreditShop';
+import UserPanel from './components/UserPanel';
+import { Search, ArrowUpDown, Coins, Music, ShoppingCart, Play, Pause, Sparkles, Headphones, Users, Zap, Star, Crown, ArrowRight } from 'lucide-react';
+import { formatCredits, formatDuration } from './lib/utils';
+import { CREDIT_COSTS, CATEGORY_LABELS, CATEGORY_COLORS } from './types';
 
 /* Collab tracks catalog — same layout as Home */
 function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart, onDetail }: {
   tracks: Track[];
   collabProfiles: Record<string, any>;
-  player: { currentTrack: Track | null; isPlaying: boolean; play: (t: Track) => void };
+  player: { currentTrack: Track | null; isPlaying: boolean; progress: number; play: (t: Track) => void };
   cart: { isInCart: (id: string) => boolean; addItem: (t: Track) => void };
   onDetail: (t: Track) => void;
 }) {
-  const [catFilter, setCatFilter] = useState<Category | 'all' | 'packs'>('all');
+  const [catFilter, setCatFilter] = useState<Category | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
-  const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
   const [listPage, setListPage] = useState(1);
   const LIST_PER_PAGE = 20;
 
   const filtered = useMemo(() => {
     let r = [...colabTracks];
-    if (catFilter === 'packs') r = r.filter(t => !!t.packId);
-    else if (catFilter === 'all') r = r.filter(t => t.category !== 'originales');
+    if (catFilter === 'all') r = r.filter(t => t.category !== 'originales');
     else r = r.filter(t => t.category === catFilter);
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter(t => t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q) || t.tags.some(tag => tag.toLowerCase().includes(q))); }
     switch (sort) {
       case 'newest': r.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()); break;
       case 'oldest': r.sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime()); break;
-      case 'price-asc': r.sort((a, b) => a.price - b.price); break;
-      case 'price-desc': r.sort((a, b) => b.price - a.price); break;
+      case 'credits-asc': r.sort((a, b) => CREDIT_COSTS[a.category] - CREDIT_COSTS[b.category]); break;
+      case 'credits-desc': r.sort((a, b) => CREDIT_COSTS[b.category] - CREDIT_COSTS[a.category]); break;
       case 'title': r.sort((a, b) => a.title.localeCompare(b.title)); break;
     }
     return r;
   }, [colabTracks, catFilter, search, sort]);
 
   const displayItems = useMemo(() => {
-    type DI = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string; category: string };
-    const seen = new Set<string>();
-    const items: DI[] = [];
-    for (const t of filtered) {
-      if (t.packId) {
-        if (seen.has(t.packId)) continue;
-        seen.add(t.packId);
-        const pt = filtered.filter(x => x.packId === t.packId);
-        items.push({ type: 'pack', packId: t.packId, packName: t.packName || 'Pack', tracks: pt, coverUrl: t.coverUrl, price: pt.reduce((s, x) => s + x.price, 0), artist: t.artist, genre: t.genre, category: t.category });
-      } else {
-        items.push({ type: 'track', track: t });
-      }
-    }
-    return items;
+    return filtered.map(t => ({ type: 'track' as const, track: t }));
   }, [filtered]);
 
   const totalListPages = Math.max(1, Math.ceil(displayItems.length / LIST_PER_PAGE));
@@ -81,7 +67,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
 
   return (
     <>
-      <h2 className="text-2xl font-bold text-zinc-50 mb-6">Todos los tracks</h2>
+      <h2 id="todos-tracks" className="text-2xl font-bold text-zinc-50 mb-6">Todos los tracks</h2>
       <div className="space-y-3 mb-6">
         <CategoryFilter selected={catFilter} onSelect={v => setCatFilter(v)} showOriginales />
         <div className="flex items-center gap-3">
@@ -94,8 +80,8 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
             <select value={sort} onChange={e => setSort(e.target.value as SortOption)} className="pl-10 pr-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/50 transition-colors appearance-none cursor-pointer">
               <option value="newest">Más recientes</option>
               <option value="oldest">Más antiguos</option>
-              <option value="price-asc">Precio: menor</option>
-              <option value="price-desc">Precio: mayor</option>
+              <option value="credits-asc">Drops: menor</option>
+              <option value="credits-desc">Drops: mayor</option>
               <option value="title">A-Z</option>
             </select>
           </div>
@@ -103,67 +89,25 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
       </div>
       <div className="space-y-2">
         {paginatedItems.map(item => {
-          if (item.type === 'track') {
-            const track = item.track;
-            const isCurrent = player.currentTrack?.id === track.id;
-            const profKey = track.collaboratorId || 'alex-selas';
-            const prof = collabProfiles[profKey];
-            const collabName = prof?.artistName || track.collaboratorId || (track.artist || 'Alex Selas');
-            const trackColor = (prof as any)?.colorPrimary || '#FACC15';
-            return (
-              <div key={track.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer" onClick={() => onDetail(track)}>
-                <button onClick={e => { e.stopPropagation(); player.play(track); }} className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
-                  {isCurrent && player.isPlaying ? <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><p className="text-sm font-semibold text-zinc-100 truncate">{track.title}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${({remixes:'bg-violet-400/10 text-violet-400',mashups:'bg-yellow-400/10 text-yellow-400',livemashups:'bg-fuchsia-400/10 text-fuchsia-400',hypeintros:'bg-pink-400/10 text-pink-400',transiciones:'bg-cyan-400/10 text-cyan-400',sesiones:'bg-emerald-400/10 text-emerald-400',originales:'bg-orange-400/10 text-orange-400'} as Record<string,string>)[track.category] || 'bg-zinc-700/30 text-zinc-400'}`}>{({remixes:'REMIX',mashups:'MASHUP',livemashups:'LIVE MASHUP',hypeintros:'HYPE INTRO',transiciones:'TRANSICION',sesiones:'SESION',originales:'ORIGINAL'} as Record<string,string>)[track.category] || track.category.toUpperCase()}</span>{track.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(track.releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}</div>
-                  <p className="text-xs text-zinc-500 truncate"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.analysis?.intensity ? ` · Energía ${track.analysis.intensity}%` : ''}</p>
-                </div>
-                <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(track.price)}</span>
-                <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
-              </div>
-            );
-          }
-          // PACK
-          const isExp = expandedPackId === item.packId;
-          const packProfKey = item.tracks[0]?.collaboratorId || 'alex-selas';
-          const packProf = collabProfiles[packProfKey] as any;
-          const packColor = packProf?.colorPrimary || '#FACC15';
-          const packFirstTrack = item.tracks[0];
-          const packIsPlaying = packFirstTrack && player.currentTrack?.id === packFirstTrack.id && player.isPlaying;
+          const track = item.track;
+          const isCurrent = player.currentTrack?.id === track.id;
+          const profKey = track.collaboratorId || 'alex-selas';
+          const prof = collabProfiles[profKey];
+          const collabName = prof?.artistName || track.collaboratorId || (track.artist || 'Alex Selas');
+          const trackColor = (prof as any)?.colorPrimary || '#FACC15';
           return (
-            <div key={item.packId} className="rounded-xl overflow-hidden">
-              <div className={`flex items-center gap-3 p-3 bg-[#1a1a1a] border border-zinc-800/50 hover:border-yellow-400/20 transition-colors cursor-pointer ${isExp ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`} onClick={() => setExpandedPackId(isExp ? null : item.packId)}>
-                <button onClick={e => { e.stopPropagation(); if (packFirstTrack) player.play(packFirstTrack); }} className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
-                  {packIsPlaying ? <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><Package className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" /><p className="text-sm font-semibold text-zinc-100 truncate">{item.packName}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${({remixes:'bg-violet-400/10 text-violet-400',mashups:'bg-yellow-400/10 text-yellow-400',livemashups:'bg-fuchsia-400/10 text-fuchsia-400',hypeintros:'bg-pink-400/10 text-pink-400',transiciones:'bg-cyan-400/10 text-cyan-400',sesiones:'bg-emerald-400/10 text-emerald-400',originales:'bg-orange-400/10 text-orange-400'} as Record<string,string>)[item.category] || 'bg-zinc-700/30 text-zinc-400'}`}>{({remixes:'REMIX',mashups:'MASHUP',livemashups:'LIVE MASHUP',hypeintros:'HYPE INTRO',transiciones:'TRANSICION',sesiones:'SESION',originales:'ORIGINAL'} as Record<string,string>)[item.category] || item.category.toUpperCase()}</span><span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 font-bold flex-shrink-0">PACK · {item.tracks.length}</span>{item.tracks[0]?.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(item.tracks[0].releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}</div>
-                  <p className="text-xs text-zinc-500 truncate"><span style={{ color: packColor }} className="font-medium">{item.artist}</span> · {item.genre}</p>
-                </div>
-                {isExp ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
-                <span className="text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatPrice(item.price)}</span>
-                <button onClick={e => { e.stopPropagation(); item.tracks.forEach(t => cart.addItem(t)); }} disabled={item.tracks.every(t => cart.isInCart(t.id))} className={`flex-shrink-0 p-2 rounded-lg transition-all ${item.tracks.every(t => cart.isInCart(t.id)) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
+            <div key={track.id} className={`relative flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer overflow-hidden ${isCurrent ? 'bg-yellow-400/5 border-yellow-400/30' : 'bg-[#1a1a1a] border-zinc-800/50 hover:border-yellow-400/20'}`} onClick={() => player.play(track)}>
+              {/* Progress bar */}
+              {isCurrent && <div className="absolute left-0 top-0 bottom-0 bg-yellow-400/10 transition-all duration-200" style={{ width: `${player.progress}%` }} />}
+              <button className="relative flex-shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
+                {isCurrent && player.isPlaying ? <Pause className="w-4 h-4 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-4 h-4 text-zinc-400 group-hover/play:text-black ml-0.5" />}
+              </button>
+              <div className="relative flex-1 min-w-0">
+                <div className="flex items-center gap-2"><p className={`text-sm font-semibold truncate ${isCurrent ? 'text-yellow-400' : 'text-zinc-100'}`}>{track.title}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${CATEGORY_COLORS[track.category] || 'bg-zinc-600 text-white'}`}>{CATEGORY_LABELS[track.category] ? CATEGORY_LABELS[track.category].toUpperCase() : track.category.toUpperCase()}</span>{track.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0">{new Date(track.releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}</div>
+                <p className="text-xs text-zinc-500 truncate"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.camelot ? ` · ${track.camelot}` : (track.key ? ` · ${track.key}` : '')}{track.analysis?.intensity ? ` · Energía ${track.analysis.intensity}%` : ''}</p>
               </div>
-              {isExp && (
-                <div className="bg-[#111] border border-zinc-800/50 border-t-0 rounded-b-xl divide-y divide-zinc-800/30 max-h-[400px] overflow-y-auto">
-                  {item.tracks.map((track, idx) => {
-                    const isCurrent = player.currentTrack?.id === track.id;
-                    return (
-                      <div key={track.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800/30 transition-colors">
-                        <span className="text-[11px] text-zinc-600 font-bold w-5 text-center flex-shrink-0">{idx + 1}</span>
-                        <button onClick={() => player.play(track)} className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-800 hover:gradient-bg flex items-center justify-center transition-all group/play">
-                          {isCurrent && player.isPlaying ? <Pause className="w-3.5 h-3.5 text-yellow-400 group-hover/play:text-black" /> : <Play className="w-3.5 h-3.5 text-zinc-400 group-hover/play:text-black ml-0.5" />}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-zinc-200 truncate">{track.title}</p>
-                          <p className="text-[11px] text-zinc-600">{track.authors ? `${track.authors} · ` : ''}{track.bpm > 0 ? `${track.bpm} BPM` : ''}{track.key ? ` · ${track.key}` : ''}{track.duration > 0 ? ` · ${formatDuration(track.duration)}` : ''}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block">{formatCredits(CREDIT_COSTS[track.category])}</span>
+              <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}><ShoppingCart className="w-4 h-4" /></button>
             </div>
           );
         })}
@@ -175,13 +119,13 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
       {/* Pagination */}
       {totalListPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6 mb-16">
-          <button onClick={() => setListPage(p => Math.max(1, p - 1))} disabled={listPage <= 1} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Anterior</button>
+          <button onClick={() => { setListPage(p => Math.max(1, p - 1)); document.getElementById('todos-tracks')?.scrollIntoView(); }} disabled={listPage <= 1} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Anterior</button>
           <div className="flex items-center gap-1">
             {Array.from({ length: totalListPages }, (_, i) => i + 1).map(p => (
-              <button key={p} onClick={() => setListPage(p)} className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${listPage === p ? 'gradient-bg text-black' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'}`}>{p}</button>
+              <button key={p} onClick={() => { setListPage(p); document.getElementById('todos-tracks')?.scrollIntoView(); }} className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${listPage === p ? 'gradient-bg text-black' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'}`}>{p}</button>
             ))}
           </div>
-          <button onClick={() => setListPage(p => Math.min(totalListPages, p + 1))} disabled={listPage >= totalListPages} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Siguiente</button>
+          <button onClick={() => { setListPage(p => Math.min(totalListPages, p + 1)); document.getElementById('todos-tracks')?.scrollIntoView(); }} disabled={listPage >= totalListPages} className="px-3 py-1.5 rounded-lg text-sm bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Siguiente</button>
         </div>
       )}
       {displayItems.length > 0 && <p className="text-xs text-zinc-600 text-center mb-16">Pagina {listPage} de {totalListPages} · {displayItems.length} items</p>}
@@ -224,43 +168,93 @@ export default function App() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
-  const [showCheckout, setShowCheckout] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.has('payment');
-  });
   const [activeCollabId, setActiveCollabId] = useState(getInitialCollabPageId);
   const [collabProfiles, setCollabProfiles] = useState<Record<string, any>>({});
   const [collabProfilesLoaded, setCollabProfilesLoaded] = useState(false);
 
-  // 4 random tracks for colabs page — only recalculate when tracks change, not on re-renders
+  // 4 random featured tracks for colabs page — only recalculate when tracks change, not on re-renders
   const colabRandomFeatured = useMemo(() => {
     const featured = tracks.filter(t => t.featured);
-    type FeatItem = { type: 'track'; track: Track } | { type: 'pack'; packId: string; packName: string; tracks: Track[]; coverUrl: string; price: number; artist: string; genre: string; category: string };
-    const seenPacks = new Set<string>();
-    const items: FeatItem[] = [];
-    for (const t of featured) {
-      if (t.packId) {
-        if (seenPacks.has(t.packId)) continue;
-        seenPacks.add(t.packId);
-        const pt = tracks.filter(x => x.packId === t.packId);
-        items.push({ type: 'pack', packId: t.packId, packName: t.packName || 'Pack', tracks: pt, coverUrl: t.coverUrl, price: pt.reduce((s, x) => s + x.price, 0), artist: t.artist, genre: t.genre, category: t.category });
-      } else {
-        items.push({ type: 'track', track: t });
-      }
-    }
-    return items.sort(() => Math.random() - 0.5).slice(0, 4);
+    return featured.sort(() => Math.random() - 0.5).slice(0, 4);
   }, [tracks]);
 
   // Catalog filters
-  const [categoryFilter, setCategoryFilter] = useState<Category | 'all' | 'packs'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [discount, setDiscount] = useState(0);
-  const [discountCode, setDiscountCode] = useState<string | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
-  const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
   const TRACKS_PER_PAGE = 10;
+
+  // User auth state
+  const [userToken, setUserToken] = useState<string | null>(() => localStorage.getItem('musicdrop-token'));
+  const [showUserPanel, setShowUserPanel] = useState(false);
+  const [showCreditShop, setShowCreditShop] = useState(false);
+  const [userInfo, setUserInfo] = useState<{ id: string; email: string; name: string; credits: number } | null>(() => {
+    try { const s = localStorage.getItem('musicdrop-user'); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
+  const [showAuth, setShowAuth] = useState(false);
+
+  const handleUserAuth = (token: string, user: { id: string; email: string; name: string; credits: number }) => {
+    setUserToken(token);
+    setUserInfo(user);
+  };
+
+  const handleUserLogout = () => {
+    setUserToken(null);
+    setUserInfo(null);
+    localStorage.removeItem('musicdrop-token');
+    localStorage.removeItem('musicdrop-user');
+  };
+
+  // Refresh user balance
+  const refreshBalance = useCallback(async () => {
+    if (!userToken) return;
+    try {
+      const res = await fetch('/api/user-balance', {
+        headers: { 'Authorization': `Bearer ${userToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserInfo(prev => prev ? { ...prev, credits: data.credits, name: data.name || prev.name } : null);
+        const stored = localStorage.getItem('musicdrop-user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          u.credits = data.credits;
+          localStorage.setItem('musicdrop-user', JSON.stringify(u));
+        }
+      } else if (res.status === 401) {
+        handleUserLogout();
+      }
+    } catch {}
+  }, [userToken]);
+
+  // Refresh balance on mount and verify credit purchase on return from Stripe
+  useEffect(() => {
+    if (userToken) refreshBalance();
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    if (params.has('credits_success') && sessionId && userToken) {
+      // Verify the payment and add credits
+      fetch('/api/verify-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userToken}` },
+        body: JSON.stringify({ sessionId }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            setUserInfo(prev => prev ? { ...prev, credits: data.credits } : null);
+            const stored = localStorage.getItem('musicdrop-user');
+            if (stored) { const u = JSON.parse(stored); u.credits = data.credits; localStorage.setItem('musicdrop-user', JSON.stringify(u)); }
+            const bonusMsg = data.bonus > 0 ? ` (incluye ${data.bonus} bonus WELCOME20!)` : '';
+            alert(`${data.alreadyProcessed ? '' : `+${data.added} drops anadidos${bonusMsg}. `}Tu saldo: ${data.credits} drops`);
+          }
+        })
+        .catch(() => {});
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [userToken]);
 
   // Hooks
   const cart = useCart();
@@ -293,7 +287,7 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { loadTracks(); }, [loadTracks]);
+  useEffect(() => { loadTracks(); window.scrollTo(0, 0); }, [loadTracks]);
 
   // Fetch collaborator profiles
   useEffect(() => {
@@ -348,7 +342,6 @@ export default function App() {
   // Navigate — always update URL
   const navigate = useCallback((s: Section, collabId?: string) => {
     setSection(s);
-    setShowCheckout(false);
     if (s === 'colab-page' && collabId) {
       setActiveCollabId(collabId);
     }
@@ -356,7 +349,7 @@ export default function App() {
     if (window.location.pathname !== newPath) {
       window.history.pushState({ section: s, collabId }, '', newPath);
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }, []);
 
   // Handle browser back/forward
@@ -365,7 +358,6 @@ export default function App() {
       const path = window.location.pathname;
       const s = pathToSection(path);
       setSection(s);
-      setShowCheckout(false);
       if (s === 'colab-page') {
         const match = path.match(/^\/collab\/([a-z0-9-]+)$/);
         if (match) setActiveCollabId(match[1]);
@@ -380,9 +372,7 @@ export default function App() {
     let result = tracks.filter(t => !t.collaboratorId);
 
     // Category
-    if (categoryFilter === 'packs') {
-      result = result.filter(t => !!t.packId);
-    } else if (categoryFilter !== 'all') {
+    if (categoryFilter !== 'all') {
       result = result.filter(t => t.category === categoryFilter);
     }
 
@@ -405,11 +395,11 @@ export default function App() {
       case 'oldest':
         result.sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime());
         break;
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
+      case 'credits-asc':
+        result.sort((a, b) => CREDIT_COSTS[a.category] - CREDIT_COSTS[b.category]);
         break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
+      case 'credits-desc':
+        result.sort((a, b) => CREDIT_COSTS[b.category] - CREDIT_COSTS[a.category]);
         break;
       case 'title':
         result.sort((a, b) => a.title.localeCompare(b.title));
@@ -490,7 +480,7 @@ export default function App() {
   const handleUpdateTrack = useCallback(async (data: Omit<Track, 'id'> & { id?: string }) => {
     if (!data.id) return;
     try {
-      await fetch('/api/tracks', {
+      const res = await fetch('/api/tracks', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -498,7 +488,15 @@ export default function App() {
         },
         body: JSON.stringify(data),
       });
-    } catch {}
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(`Error al guardar: ${err.error || res.status}`);
+        return;
+      }
+    } catch (e) {
+      alert('Error de conexion al guardar');
+      return;
+    }
     setTracks(prev => prev.map(t => (t.id === data.id ? { ...t, ...data } as Track : t)));
   }, []);
 
@@ -514,23 +512,6 @@ export default function App() {
         return;
       }
       setTracks(prev => prev.filter(t => t.id !== id));
-    } catch (e) {
-      alert('Error de conexion al eliminar. Intenta de nuevo.');
-    }
-  }, []);
-
-  const handleDeletePack = useCallback(async (packId: string) => {
-    try {
-      const res = await fetch(`/api/tracks?packId=${encodeURIComponent(packId)}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${getActiveToken()}` },
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(`Error al eliminar pack: ${data.error || res.status}`);
-        return;
-      }
-      setTracks(prev => prev.filter(t => t.packId !== packId));
     } catch (e) {
       alert('Error de conexion al eliminar. Intenta de nuevo.');
     }
@@ -556,60 +537,111 @@ export default function App() {
       <Navbar
         currentSection={section}
         onNavigate={navigate}
+        collabArtistName={section === 'colab-page' && activeCollabId ? (activeCollabId === 'alex-selas' ? 'Alex Selas' : (collabProfiles[activeCollabId]?.artistName || activeCollabId)) : undefined}
+        userName={userInfo?.name}
+        userCredits={userInfo?.credits}
+        onLoginClick={() => setShowAuth(true)}
+        onLogout={handleUserLogout}
+        onBuyCredits={() => setShowCreditShop(true)}
+        onMyAccount={() => setShowUserPanel(true)}
         cartCount={cart.count}
         onCartOpen={() => cart.setIsOpen(true)}
-        collabArtistName={section === 'colab-page' && activeCollabId ? (activeCollabId === 'alex-selas' ? 'Alex Selas' : (collabProfiles[activeCollabId]?.artistName || activeCollabId)) : undefined}
       />
+
+      {/* Auth Modal */}
+      <AuthModal
+        open={showAuth}
+        onClose={() => setShowAuth(false)}
+        onAuth={handleUserAuth}
+      />
+
+      {/* User Panel overlay */}
+      {showUserPanel && userToken && userInfo && (
+        <div className="fixed inset-0 z-[55] bg-[#0a0a0a] overflow-y-auto pt-16">
+          <UserPanel
+            userToken={userToken}
+            userName={userInfo.name}
+            userCredits={userInfo.credits}
+            onBack={() => setShowUserPanel(false)}
+            onBuyCredits={() => { setShowUserPanel(false); setShowCreditShop(true); }}
+            onRefreshBalance={refreshBalance}
+          />
+        </div>
+      )}
+
+      {/* Credit Shop overlay */}
+      {showCreditShop && (
+        <div className="fixed inset-0 z-[55] bg-[#0a0a0a] overflow-y-auto pt-16">
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <button
+              onClick={() => setShowCreditShop(false)}
+              className="flex items-center gap-2 text-zinc-400 hover:text-white mb-4 text-sm"
+            >
+              <span>&larr; Volver</span>
+            </button>
+          </div>
+          <CreditShop
+            userToken={userToken}
+            userCredits={userInfo?.credits ?? 0}
+            onLoginRequired={() => { setShowCreditShop(false); setShowAuth(true); }}
+            onCreditsUpdated={(c) => setUserInfo(prev => prev ? { ...prev, credits: c } : null)}
+          />
+        </div>
+      )}
 
       {/* Main content */}
       <main className="pt-16">
         {/* (Home section removed — Music Drop is now the landing page) */}
 
         {/* ============ MUSIC DROP (landing page) ============ */}
-        {section === 'colabs' && !showCheckout && (() => {
+        {section === 'colabs' && (() => {
           // All tracks for catalog (Alex Selas's + collaborators')
           const allCatalogTracks = tracks;
-          // Build dynamic collaborator list from API profiles (exclude alex-selas, he's hardcoded first)
+          // Build collaborator list: Music Drop first, then Alex Selas, then rest alphabetically
           const alexProf = collabProfiles['alex-selas'] as any;
+          const mdProf = collabProfiles['music-drop'] as any;
           const dynamicCollabs = Object.entries(collabProfiles)
-            .filter(([id]) => id !== 'alex-selas')
+            .filter(([id]) => id !== 'alex-selas' && id !== 'music-drop')
             .map(([id, prof]: [string, any]) => ({
               id,
               name: prof.artistName || id,
               photoUrl: prof.photoUrl || '',
             }))
             .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-          // Alex Selas as first producer — use saved profile if available
           const alexTrackCount = tracks.filter(t => !t.collaboratorId).length;
           const allProducers = [
+            { id: 'music-drop', name: mdProf?.artistName || 'Music Drop', photoUrl: mdProf?.photoUrl || '/logo.png' },
             { id: 'alex-selas', name: alexProf?.artistName || 'Alex Selas', photoUrl: alexProf?.photoUrl || '/logo.png' },
             ...dynamicCollabs,
           ];
           return (
             <>
-            {/* MUSIC DROP Hero Banner */}
+            {/* MUSIC DROP Hero Banner — Video */}
             <section className="relative min-h-[42vh] sm:min-h-[48vh] flex items-center justify-center overflow-hidden">
-              <div className="absolute inset-0">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-yellow-400/6 rounded-full blur-[200px]" />
-                <div className="absolute top-1/3 right-1/3 w-[400px] h-[400px] bg-violet-500/8 rounded-full blur-[160px]" />
-                <div className="absolute bottom-1/3 left-1/4 w-[350px] h-[350px] bg-amber-500/8 rounded-full blur-[140px]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0a0a0a_75%)]" />
-              </div>
-              <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(250,204,21,.2) 1px, transparent 1px), linear-gradient(90deg, rgba(250,204,21,.2) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+                src="/banner-loop.mp4"
+              />
+              <div className="absolute inset-0 bg-black/55" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-[#0a0a0a]/60" />
               <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 w-full max-w-3xl mx-auto py-16 sm:py-20">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="mb-6">
-                  <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full border border-yellow-400/25 bg-yellow-400/5">
+                  <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full border border-yellow-400/25 bg-black/40 backdrop-blur-sm">
                     <Music className="w-4 h-4 text-yellow-400" />
                     <span className="text-sm text-yellow-400 font-semibold tracking-wide">La comunidad de los DJs</span>
                   </div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="flex flex-col items-center mb-5">
-                  <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] text-white leading-[0.9]">MUSIC</h1>
-                  <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.25em] gradient-text leading-[0.9] mt-1">DROP</h2>
-                  <p className="text-xs sm:text-sm text-zinc-500 font-medium tracking-widest mt-2">by 360DJAcademy</p>
+                  <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] text-white leading-[0.9] drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">MUSIC</h1>
+                  <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.25em] gradient-text leading-[0.9] mt-1 drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">DROP</h2>
+                  <p className="text-xs sm:text-sm text-zinc-300 font-medium tracking-widest mt-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">by 360DJAcademy</p>
                 </motion.div>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7, delay: 0.25 }}>
-                  <p className="text-sm sm:text-base text-zinc-400 font-medium tracking-[0.25em] uppercase">
+                  <p className="text-sm sm:text-base text-zinc-300 font-medium tracking-[0.25em] uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
                     Remixes &middot; Mashups &middot; Hype Intros &middot; Sesiones
                   </p>
                 </motion.div>
@@ -659,8 +691,8 @@ export default function App() {
                 <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
                 <div className="relative px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
                   <div className="text-center sm:text-left">
-                    <p className="text-black/90 font-bold text-lg sm:text-xl">Descuento en tu primera compra</p>
-                    <p className="text-black/60 text-sm mt-0.5">Introduce este código en el carrito</p>
+                    <p className="text-black/90 font-bold text-lg sm:text-xl">20% extra en tu primera compra de drops</p>
+                    <p className="text-black/60 text-sm mt-0.5">Introduce el codigo al comprar tus drops</p>
                   </div>
                   <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg">WELCOME20</span>
                 </div>
@@ -674,59 +706,21 @@ export default function App() {
                     <h2 className="text-2xl font-bold text-zinc-50">Destacados</h2>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {colabRandomFeatured.map(item => {
-                      if (item.type === 'track') {
-                        return (
-                          <TrackCard
-                            key={item.track.id}
-                            track={item.track}
-                            isPlaying={player.isPlaying}
-                            isCurrentTrack={player.currentTrack?.id === item.track.id}
-                            isInCart={cart.isInCart(item.track.id)}
-                            onPlay={() => player.play(item.track)}
-                            onAddToCart={() => cart.addItem(item.track)}
-                            onDetail={() => {
-                              setSelectedTrack(item.track);
-                              window.history.pushState({}, '', `/track/${item.track.id}`);
-                            }}
-                          />
-                        );
-                      }
-                      return (
-                        <motion.div
-                          key={item.packId}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="group relative bg-[#1a1a1a] rounded-2xl border border-zinc-800/50 overflow-hidden card-hover hover:border-blue-400/20 flex flex-col cursor-pointer"
-                          onClick={() => { if (item.tracks[0]) { setSelectedTrack(item.tracks[0]); window.history.pushState({}, '', `/track/${item.tracks[0].id}`); } }}
-                        >
-                          <div className="relative aspect-square bg-[#111] overflow-hidden flex-shrink-0">
-                            {item.coverUrl ? (
-                              <img src={item.coverUrl} alt={item.packName} className="w-full h-full object-contain" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1e1e1e] to-[#141414]">
-                                <Package className="w-12 h-12 text-zinc-800" />
-                              </div>
-                            )}
-                            <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold backdrop-blur-sm bg-blue-400/20 text-blue-400">PACK</span>
-                          </div>
-                          <div className="p-3 flex flex-col flex-1">
-                            <h3 className="font-semibold text-sm text-zinc-50 truncate group-hover:text-blue-400 transition-colors">{item.packName}</h3>
-                            <p className="text-xs text-zinc-500 mt-0.5 truncate">{item.artist} · {item.tracks.length} tracks</p>
-                            <div className="flex items-center justify-between mt-auto pt-2.5">
-                              <span className="text-base font-bold gradient-text">{formatPrice(item.price)}</span>
-                              <button
-                                onClick={e => { e.stopPropagation(); item.tracks.forEach(t => cart.addItem(t)); }}
-                                disabled={item.tracks.every(t => cart.isInCart(t.id))}
-                                className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all ${item.tracks.every(t => cart.isInCart(t.id)) ? 'bg-green-500/20 text-green-400 cursor-default' : 'bg-zinc-800 text-zinc-300 hover:gradient-bg hover:text-black active:scale-95'}`}
-                              >
-                                {item.tracks.every(t => cart.isInCart(t.id)) ? (<><Check className="w-3 h-3" /> Agregado</>) : (<><ShoppingCart className="w-3 h-3" /> Anadir</>)}
-                              </button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+                    {colabRandomFeatured.map(track => (
+                      <TrackCard
+                        key={track.id}
+                        track={track}
+                        isPlaying={player.isPlaying}
+                        isCurrentTrack={player.currentTrack?.id === track.id}
+                        isInCart={cart.isInCart(track.id)}
+                        onPlay={() => player.play(track)}
+                        onAddToCart={() => cart.addItem(track)}
+                        onDetail={() => {
+                          setSelectedTrack(track);
+                          window.history.pushState({}, '', `/track/${track.id}`);
+                        }}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
@@ -754,6 +748,14 @@ export default function App() {
                 <p className="text-yellow-400 font-semibold text-lg select-all">soporte@club360.es</p>
               </div>
 
+              {/* Credit Shop */}
+              <CreditShop
+                userToken={userToken}
+                userCredits={userInfo?.credits ?? 0}
+                onLoginRequired={() => setShowAuth(true)}
+                onCreditsUpdated={(c) => setUserInfo(prev => prev ? { ...prev, credits: c } : null)}
+              />
+
               <div className="mt-16">
                 <Footer onAdmin={() => navigate('admin')} />
               </div>
@@ -763,7 +765,7 @@ export default function App() {
         })()}
 
         {/* ============ CLUB360 ============ */}
-        {section === 'club360' && !showCheckout && (
+        {section === 'club360' && (
           <div className="min-h-screen">
             {/* Hero */}
             <section className="relative min-h-[50vh] sm:min-h-[55vh] flex items-center justify-center overflow-hidden">
@@ -863,7 +865,7 @@ export default function App() {
         )}
 
         {/* ============ COLAB ADMIN ============ */}
-        {section === 'colab-admin' && !showCheckout && (
+        {section === 'colab-admin' && (
           <>
             {!collabAdmin.isAuthenticated ? (
               <CollabLogin
@@ -886,7 +888,6 @@ export default function App() {
                 onAddTracksBatch={handleAddTracksBatch}
                 onUpdateTrack={handleUpdateTrack}
                 onDeleteTrack={handleDeleteTrack}
-                onDeletePack={handleDeletePack}
                 onReorderTracks={handleReorderTracks}
                 onLogout={collabAdmin.logout}
                 collabToken={collabAdmin.getToken()}
@@ -896,7 +897,7 @@ export default function App() {
         )}
 
         {/* ============ COLAB PAGE (personal) ============ */}
-        {section === 'colab-page' && !showCheckout && activeCollabId && (() => {
+        {section === 'colab-page' && activeCollabId && (() => {
           const prof = collabProfiles[activeCollabId];
           const collabDisplayName = activeCollabId === 'alex-selas' ? 'Alex Selas' : (prof?.artistName || activeCollabId);
           return (
@@ -906,6 +907,7 @@ export default function App() {
               tracks={tracks}
               currentTrackId={player.currentTrack?.id || null}
               isPlaying={player.isPlaying}
+              progress={player.progress}
               isInCart={cart.isInCart}
               onPlay={track => player.play(track)}
               onAddToCart={track => cart.addItem(track)}
@@ -918,26 +920,8 @@ export default function App() {
           );
         })()}
 
-        {/* ============ CHECKOUT ============ */}
-        {showCheckout && (
-          <CheckoutPanel
-            items={cart.items}
-            total={cart.total}
-            discount={discount}
-            discountCode={discountCode}
-            onBack={() => setShowCheckout(false)}
-            onClearCart={cart.clearCart}
-            onComplete={() => {
-              setDiscount(0);
-              setDiscountCode(undefined);
-              setShowCheckout(false);
-              navigate('colabs');
-            }}
-          />
-        )}
-
         {/* ============ ADMIN ============ */}
-        {section === 'admin' && !showCheckout && (
+        {section === 'admin' && (
           <>
             {!admin.isAuthenticated ? (
               <AdminLogin onLogin={admin.login} />
@@ -945,10 +929,8 @@ export default function App() {
               <AdminPanel
                 tracks={tracks}
                 onAddTrack={handleAddTrack}
-                onAddTracksBatch={handleAddTracksBatch}
                 onUpdateTrack={handleUpdateTrack}
                 onDeleteTrack={handleDeleteTrack}
-                onDeletePack={handleDeletePack}
                 onReorderTracks={handleReorderTracks}
                 onLogout={admin.logout}
                 adminToken={admin.getToken()}
@@ -958,15 +940,28 @@ export default function App() {
         )}
       </main>
 
+      {/* Cart Drawer */}
+      <CartDrawer
+        items={cart.items}
+        isOpen={cart.isOpen}
+        onClose={() => cart.setIsOpen(false)}
+        onRemoveItem={cart.removeItem}
+        onClearCart={cart.clearCart}
+        userToken={userToken}
+        userCredits={userInfo?.credits ?? 0}
+        onLoginRequired={() => { cart.setIsOpen(false); setShowAuth(true); }}
+        onBuyCredits={() => { cart.setIsOpen(false); setShowCreditShop(true); }}
+        onCreditsUpdated={(c) => { setUserInfo(prev => prev ? { ...prev, credits: c } : null); const s = localStorage.getItem('musicdrop-user'); if (s) { const u = JSON.parse(s); u.credits = c; localStorage.setItem('musicdrop-user', JSON.stringify(u)); } }}
+      />
+
       {/* Track Detail Modal */}
       <AnimatePresence>
         {selectedTrack && (
           <TrackDetail
             track={selectedTrack}
-            packTotalPrice={selectedTrack.packId ? tracks.filter(t => t.packId === selectedTrack.packId).reduce((s, t) => s + t.price, 0) : undefined}
             isPlaying={player.isPlaying}
             isCurrentTrack={player.currentTrack?.id === selectedTrack.id}
-            isInCart={selectedTrack.packId ? tracks.filter(t => t.packId === selectedTrack.packId).some(t => cart.isInCart(t.id)) : cart.isInCart(selectedTrack.id)}
+            isInCart={cart.isInCart(selectedTrack.id)}
             onClose={() => {
               setSelectedTrack(null);
               if (window.location.pathname.startsWith('/track/')) {
@@ -979,31 +974,15 @@ export default function App() {
               }
             }}
             onPlay={() => player.play(selectedTrack)}
-            onAddToCart={() => {
-              if (selectedTrack.packId) {
-                tracks.filter(t => t.packId === selectedTrack.packId).forEach(t => cart.addItem(t));
-              } else {
-                cart.addItem(selectedTrack);
-              }
-            }}
+            onAddToCart={() => cart.addItem(selectedTrack)}
+            userToken={userToken}
+            userCredits={userInfo?.credits ?? 0}
+            onLoginRequired={() => setShowAuth(true)}
+            onBuyCredits={() => setShowCreditShop(true)}
+            onCreditsUpdated={(c) => { setUserInfo(prev => prev ? { ...prev, credits: c } : null); const s = localStorage.getItem('musicdrop-user'); if (s) { const u = JSON.parse(s); u.credits = c; localStorage.setItem('musicdrop-user', JSON.stringify(u)); } }}
           />
         )}
       </AnimatePresence>
-
-      {/* Cart Drawer */}
-      <CartDrawer
-        isOpen={cart.isOpen}
-        items={cart.items}
-        total={cart.total}
-        onClose={() => cart.setIsOpen(false)}
-        onRemove={cart.removeItem}
-        onCheckout={(d, code) => {
-          setDiscount(d);
-          setDiscountCode(code);
-          cart.setIsOpen(false);
-          setShowCheckout(true);
-        }}
-      />
 
       {/* Global Audio Player — hidden on admin panels */}
       {section !== 'admin' && section !== 'colab-admin' && (
