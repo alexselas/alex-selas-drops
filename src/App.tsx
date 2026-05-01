@@ -205,7 +205,22 @@ export default function App() {
     setUserInfo(null);
     localStorage.removeItem('musicdrop-token');
     localStorage.removeItem('musicdrop-user');
+    localStorage.removeItem('musicdrop-login-ts');
   };
+
+  // Auto-expire session after 3 hours
+  useEffect(() => {
+    const SESSION_MAX_MS = 3 * 60 * 60 * 1000;
+    const checkExpiry = () => {
+      const ts = localStorage.getItem('musicdrop-login-ts');
+      if (ts && Date.now() - Number(ts) > SESSION_MAX_MS) {
+        handleUserLogout();
+      }
+    };
+    checkExpiry();
+    const interval = setInterval(checkExpiry, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Refresh user balance
   const refreshBalance = useCallback(async () => {
