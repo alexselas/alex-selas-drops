@@ -93,11 +93,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return /^#[0-9a-fA-F]{6}$/.test(c) ? c : fallback;
       }
 
+      // Normalize Unicode to NFC to preserve ñ, accents, etc.
+      const safeBio = String(bio || '').normalize('NFC').substring(0, 300);
+      const safeArtistName = String(artistName || '').normalize('NFC').substring(0, 50);
+
       const profileData = {
-        bio: (bio || '').substring(0, 300),
+        bio: safeBio,
         photoUrl: validateImageUrl(photoUrl),
         bannerUrl: validateImageUrl(bannerUrl),
-        artistName: (artistName || '').substring(0, 50),
+        artistName: safeArtistName,
         socialLinks: safeSocialLinks,
         colorPrimary: validateColor(colorPrimary, '#FACC15'),
         colorSecondary: validateColor(colorSecondary, '#EAB308'),

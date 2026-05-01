@@ -102,7 +102,7 @@ export default function CollabProfileForm({ collaboratorId, collaboratorName, co
     setSaved(false);
     try {
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'Authorization': `Bearer ${collabToken}`,
       };
       if (adminEditCollabId) {

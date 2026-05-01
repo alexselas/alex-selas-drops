@@ -163,6 +163,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
+      // Normalize Unicode (NFC) on text fields to preserve ñ, accents, etc.
+      for (const item of items) {
+        if (typeof item.title === 'string') item.title = item.title.normalize('NFC');
+        if (typeof item.artist === 'string') item.artist = item.artist.normalize('NFC');
+        if (typeof item.authors === 'string') item.authors = item.authors.normalize('NFC');
+        if (typeof item.description === 'string') item.description = item.description.normalize('NFC');
+        if (typeof item.genre === 'string') item.genre = item.genre.normalize('NFC');
+      }
+
       const existingIds = new Set(tracks.map((t: any) => t.id));
       const newTracks: any[] = [];
       for (const data of items) {
@@ -227,6 +236,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (collab.valid && !isAdmin && tracks[idx].collaboratorId !== collab.collaboratorId) {
         return res.status(403).json({ error: 'No puedes editar este track' });
       }
+      // Normalize Unicode (NFC) on text fields to preserve ñ, accents, etc.
+      if (typeof data.title === 'string') data.title = data.title.normalize('NFC');
+      if (typeof data.artist === 'string') data.artist = data.artist.normalize('NFC');
+      if (typeof data.authors === 'string') data.authors = data.authors.normalize('NFC');
+      if (typeof data.description === 'string') data.description = data.description.normalize('NFC');
+      if (typeof data.genre === 'string') data.genre = data.genre.normalize('NFC');
+
       const updated = { ...tracks[idx], ...data };
       enforceFeaturedLimit(tracks, updated);
       tracks[idx] = updated;
