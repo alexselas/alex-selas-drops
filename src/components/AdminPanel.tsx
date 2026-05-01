@@ -219,20 +219,20 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
                   <label className="text-xs text-zinc-500 font-medium">Publicar como:</label>
                   <select value={adminArtist} onChange={e => setAdminArtist(e.target.value as any)} className="px-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm">
                     <option value="alex-selas">Alex Selas</option>
-                    <option value="music-drop">Music Drop</option>
+                    <option value="music-drop">MusicDrop</option>
                   </select>
                 </div>
               )}
               <AdminTrackForm
                 track={editingTrack}
                 adminToken={adminToken}
-                defaultArtist={adminArtist === 'music-drop' ? 'Music Drop' : 'Alex Selas'}
+                defaultArtist={adminArtist === 'music-drop' ? 'MusicDrop' : 'Alex Selas'}
                 onSave={(data) => {
                   // If publishing as Music Drop, mark as collaborator
                   if (adminArtist === 'music-drop' && !editingTrack) {
                     data.collaborator = true;
                     data.collaboratorId = 'music-drop';
-                    data.artist = 'Music Drop';
+                    data.artist = 'MusicDrop';
                   }
                   if (editingTrack) {
                     onUpdateTrack(data);
@@ -1411,7 +1411,7 @@ function PirateriaPanel({ adminToken }: { adminToken?: string }) {
               {!result.stripeName && !result.stripeEmail && !result.stripeCountry && (
                 <div className="pt-3 border-t border-red-500/10">
                   <p className="text-[9px] text-zinc-600 uppercase tracking-widest mb-1">Datos de pago (Stripe)</p>
-                  <p className="text-xs text-zinc-600">Este usuario no ha comprado drops con tarjeta (sus drops fueron anadidos manualmente)</p>
+                  <p className="text-xs text-zinc-600">Este usuario no ha comprado drops con tarjeta (sus drops fueron a\u00f1adidos manualmente)</p>
                 </div>
               )}
             </div>
@@ -1514,14 +1514,14 @@ function AdminProfilesPanel({ adminToken }: { adminToken: string }) {
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeProfile === 'music-drop' ? 'gradient-bg text-black shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}
         >
           <Music className="w-4 h-4" />
-          Music Drop
+          MusicDrop
         </button>
       </div>
 
       <CollabProfileForm
         key={activeProfile}
         collaboratorId={activeProfile}
-        collaboratorName={activeProfile === 'alex-selas' ? 'Alex Selas' : 'Music Drop'}
+        collaboratorName={activeProfile === 'alex-selas' ? 'Alex Selas' : 'MusicDrop'}
         collabToken={adminToken}
         adminEditCollabId={activeProfile}
       />

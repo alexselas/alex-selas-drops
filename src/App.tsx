@@ -78,8 +78,8 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           <div className="relative flex-shrink-0">
             <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
             <select value={sort} onChange={e => setSort(e.target.value as SortOption)} className="pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/40 transition-all appearance-none cursor-pointer" aria-label="Ordenar por">
-              <option value="newest">Mas recientes</option>
-              <option value="oldest">Mas antiguos</option>
+              <option value="newest">M\u00e1s recientes</option>
+              <option value="oldest">M\u00e1s antiguos</option>
               <option value="credits-asc">Drops: menor</option>
               <option value="credits-desc">Drops: mayor</option>
               <option value="title">A-Z</option>
@@ -104,10 +104,10 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
               </button>
               <div className="relative flex-1 min-w-0">
                 <div className="flex items-center gap-2"><p className={`text-sm font-semibold truncate ${isCurrent ? 'text-yellow-400' : 'text-zinc-100'}`}>{track.title}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${CATEGORY_COLORS[track.category] || 'bg-zinc-600 text-white'}`}>{CATEGORY_LABELS[track.category] ? CATEGORY_LABELS[track.category].toUpperCase() : track.category.toUpperCase()}</span>{track.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0 hidden sm:inline">{new Date(track.releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}</div>
-                <p className="text-xs text-zinc-500 truncate mt-0.5"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.camelot ? ` · ${track.camelot}` : (track.key ? ` · ${track.key}` : '')}{track.analysis?.intensity ? ` · Energia ${track.analysis.intensity}%` : ''}</p>
+                <p className="text-xs text-zinc-500 truncate mt-0.5"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.camelot ? ` · ${track.camelot}` : (track.key ? ` · ${track.key}` : '')}{track.analysis?.intensity ? ` · Energ\u00eda ${track.analysis.intensity}%` : ''}</p>
               </div>
               <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block tabular-nums">{formatCredits(CREDIT_COSTS[track.category])}</span>
-              <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`} aria-label={cart.isInCart(track.id) ? 'Ya en el carrito' : 'Anadir al carrito'}><ShoppingCart className="w-4 h-4" /></button>
+              <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`} aria-label={cart.isInCart(track.id) ? 'En el carrito' : 'A\u00f1adir al carrito'}><ShoppingCart className="w-4 h-4" /></button>
             </div>
           );
         })}
@@ -128,7 +128,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           <button onClick={() => { setListPage(p => Math.min(totalListPages, p + 1)); document.getElementById('todos-tracks')?.scrollIntoView(); }} disabled={listPage >= totalListPages} className="px-3.5 py-2 rounded-lg text-sm bg-white/[0.04] border border-white/[0.06] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition-all">Siguiente</button>
         </div>
       )}
-      {displayItems.length > 0 && <p className="text-xs text-zinc-600 text-center mb-16">Pagina {listPage} de {totalListPages} · {displayItems.length} items</p>}
+      {displayItems.length > 0 && <p className="text-xs text-zinc-600 text-center mb-16">P\u00e1gina {listPage} de {totalListPages} &middot; {displayItems.length} tracks</p>}
     </>
   );
 }
@@ -265,7 +265,7 @@ export default function App() {
             const stored = localStorage.getItem('musicdrop-user');
             if (stored) { const u = JSON.parse(stored); u.credits = data.credits; localStorage.setItem('musicdrop-user', JSON.stringify(u)); }
             const bonusMsg = data.bonus > 0 ? ` (incluye ${data.bonus} bonus WELCOME20!)` : '';
-            alert(`${data.alreadyProcessed ? '' : `+${data.added} drops anadidos${bonusMsg}. `}Tu saldo: ${data.credits} drops`);
+            alert(`${data.alreadyProcessed ? '' : `+${data.added} drops a\u00f1adidos${bonusMsg}. `}Tu saldo: ${data.credits} drops`);
           }
         })
         .catch(() => {});
@@ -341,18 +341,16 @@ export default function App() {
     if (section === 'colab-page' && activeCollabId) {
       const prof = collabProfiles[activeCollabId];
       const name = activeCollabId === 'alex-selas' ? 'Alex Selas' : (prof?.artistName || activeCollabId);
-      document.title = `${name} — MusicDrop By 360DJAcademy`;
+      document.title = `${name} -- MusicDrop by 360DJAcademy`;
     } else {
-      const titles: Record<Section, string> = {
-        home: 'MusicDrop By 360DJAcademy',
-        catalog: 'MusicDrop By 360DJAcademy',
-        colabs: 'MusicDrop By 360DJAcademy',
-        'colab-page': 'MusicDrop By 360DJAcademy',
-        'colab-admin': 'MusicDrop By 360DJAcademy',
-        club360: 'Club360 By 360DJAcademy',
-        admin: 'MusicDrop By 360DJAcademy — Admin',
+      const titles: Record<string, string> = {
+        colabs: 'MusicDrop by 360DJAcademy -- Drops exclusivos para DJs',
+        'colab-page': 'MusicDrop by 360DJAcademy -- Drops exclusivos para DJs',
+        'colab-admin': 'MusicDrop -- Panel de colaborador',
+        club360: 'Club 360 -- Herramientas IA para DJs',
+        admin: 'MusicDrop -- Admin',
       };
-      document.title = titles[section] || 'MusicDrop By 360DJAcademy';
+      document.title = titles[section] || 'MusicDrop by 360DJAcademy -- Drops exclusivos para DJs';
     }
   }, [section, activeCollabId, collabProfiles]);
 
@@ -511,7 +509,7 @@ export default function App() {
         return;
       }
     } catch (e) {
-      alert('Error de conexion al guardar');
+      alert('Error de conexi\u00f3n al guardar');
       return;
     }
     setTracks(prev => prev.map(t => (t.id === data.id ? { ...t, ...data } as Track : t)));
@@ -530,7 +528,7 @@ export default function App() {
       }
       setTracks(prev => prev.filter(t => t.id !== id));
     } catch (e) {
-      alert('Error de conexion al eliminar. Intenta de nuevo.');
+      alert('Error de conexi\u00f3n al eliminar. Int\u00e9ntalo de nuevo.');
     }
   }, []);
 
@@ -627,7 +625,7 @@ export default function App() {
             .sort((a, b) => a.name.localeCompare(b.name, 'es'));
           const alexTrackCount = tracks.filter(t => !t.collaboratorId).length;
           const allProducers = [
-            { id: 'music-drop', name: mdProf?.artistName || 'Music Drop', photoUrl: mdProf?.photoUrl || '/logo.png' },
+            { id: 'music-drop', name: mdProf?.artistName || 'MusicDrop', photoUrl: mdProf?.photoUrl || '/logo.png' },
             { id: 'alex-selas', name: alexProf?.artistName || 'Alex Selas', photoUrl: alexProf?.photoUrl || '/logo.png' },
             ...dynamicCollabs,
           ];
@@ -649,7 +647,7 @@ export default function App() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }} className="mb-6">
                   <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full border border-yellow-400/20 bg-black/40 backdrop-blur-md">
                     <Music className="w-4 h-4 text-yellow-400" />
-                    <span className="text-sm text-yellow-400 font-semibold tracking-wide">La comunidad de los DJs</span>
+                    <span className="text-sm text-yellow-400 font-semibold tracking-wide">Drops exclusivos para DJs profesionales</span>
                   </div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }} className="flex flex-col items-center mb-5">
@@ -658,15 +656,15 @@ export default function App() {
                   <p className="text-xs sm:text-sm text-zinc-300/80 font-medium tracking-widest mt-3" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>by 360DJAcademy</p>
                 </motion.div>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.25 }}>
-                  <p className="text-sm sm:text-base text-zinc-300/70 font-medium tracking-[0.25em] uppercase" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
-                    Remixes &middot; Mashups &middot; Hype Intros &middot; Sesiones
+                  <p className="text-sm sm:text-base text-zinc-300/70 font-medium tracking-wide max-w-lg" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
+                    Contenido curado y exclusivo en MP3 320kbps. Listo para sonar en tu set.
                   </p>
                 </motion.div>
               </div>
             </section>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-              <h3 className="text-xl font-bold text-zinc-50 mb-6">Nuestros productores</h3>
+              <h3 className="text-xl font-bold text-zinc-50 mb-6">Artistas y productores</h3>
               {/* Producer avatars -- Alex Selas first, then collaborators -- wait for profiles to load */}
               {collabProfilesLoaded && <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mb-10">
                 {allProducers.map(collab => {
@@ -709,7 +707,7 @@ export default function App() {
                 <div className="relative px-6 py-5 sm:py-7 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
                   <div className="text-center sm:text-left">
                     <p className="text-black/90 font-bold text-lg sm:text-xl">20% extra en tu primera compra de drops</p>
-                    <p className="text-black/55 text-sm mt-0.5">Introduce el codigo al comprar tus drops</p>
+                    <p className="text-black/55 text-sm mt-0.5">Introduce el c\u00f3digo al comprar tus drops</p>
                   </div>
                   <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg shadow-black/20">WELCOME20</span>
                 </div>
@@ -758,11 +756,11 @@ export default function App() {
 
               {/* Contact CTA */}
               <div className="bg-[#111111] rounded-[22px] border border-white/[0.06] p-8 sm:p-12 text-center">
-                <h2 className="text-2xl font-bold text-zinc-50 mb-3">Quieres colaborar?</h2>
+                <h2 className="text-2xl font-bold text-zinc-50 mb-3">Publica tus tracks en MusicDrop</h2>
                 <p className="text-zinc-500 mb-6 max-w-md mx-auto leading-relaxed">
-                  Si eres DJ o productor y quieres vender tus tracks en MusicDrop, escribenos con tu propuesta.
+                  Si eres DJ o productor y quieres distribuir tu contenido a una comunidad de DJs profesionales, contacta con nosotros.
                 </p>
-                <p className="text-yellow-400 font-semibold text-lg select-all hover:text-yellow-300 transition-colors">soporte@club360.es</p>
+                <a href="mailto:soporte@club360.es" className="text-yellow-400 font-semibold text-lg select-all hover:text-yellow-300 transition-colors">soporte@club360.es</a>
               </div>
 
               {/* Credit Shop */}

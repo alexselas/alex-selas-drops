@@ -44,7 +44,7 @@ export default function AudioPlayer({
             className="h-1 bg-zinc-800/80 cursor-pointer group relative"
             onClick={handleProgressClick}
             role="slider"
-            aria-label="Progreso de reproduccion"
+            aria-label="Progreso de reproducci\u00f3n"
             aria-valuenow={Math.round(progress)}
             aria-valuemin={0}
             aria-valuemax={100}
@@ -102,7 +102,7 @@ export default function AudioPlayer({
             {/* Volume hint */}
             <div className="hidden md:flex items-center gap-2 flex-1 justify-end">
               <Volume2 className="w-4 h-4 text-zinc-600" />
-              <span className="text-xs text-zinc-600">Preview con marca de agua</span>
+              <span className="text-xs text-zinc-600">Preview &middot; Calidad completa tras la compra</span>
             </div>
           </div>
         </motion.div>

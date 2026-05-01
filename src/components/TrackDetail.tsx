@@ -257,7 +257,7 @@ export default function TrackDetail({
                   {isInCart ? (
                     <><Check className="w-5 h-5" />En el carrito</>
                   ) : (
-                    <><ShoppingCart className="w-5 h-5" />Anadir al carrito — {formatCredits(trackCredits)}</>
+                    <><ShoppingCart className="w-5 h-5" />A\u00f1adir al carrito — {formatCredits(trackCredits)}</>
                   )}
                 </button>
                 <button onClick={handleShare}
@@ -271,7 +271,7 @@ export default function TrackDetail({
 
               <button onClick={() => setShowStoryEditor(true)}
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border border-white/[0.08] text-zinc-300 font-medium hover:border-yellow-400/30 hover:text-white hover:bg-white/[0.03] transition-all">
-                <Instagram className="w-5 h-5" /> Crea tu Historia para Instagram
+                <Instagram className="w-5 h-5" /> Crear historia para Instagram
               </button>
 
               <button onClick={onPlay}
@@ -308,7 +308,7 @@ export default function TrackDetail({
                 {/* Energy curve */}
                 {track.analysis.energy_curve && track.analysis.energy_curve.length > 0 && (
                   <div className="space-y-1.5">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Energia</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Energ\u00eda</p>
                     <div className="flex items-end gap-[2px] h-10">
                       {track.analysis.energy_curve.map((v: number, i: number) => (
                         <div key={i} className="flex-1 rounded-sm bg-gradient-to-t from-yellow-400/40 to-yellow-400 transition-all duration-300" style={{ height: `${v}%` }} />
@@ -320,7 +320,7 @@ export default function TrackDetail({
             )}
 
             <p className="mt-5 text-xs text-zinc-600 text-center">
-              MP3 320kbps &middot; Descarga inmediata tras el pago &middot; Preview con marca de agua
+              MP3 320kbps &middot; Descarga instant\u00e1nea &middot; Calidad profesional
             </p>
           </div>
         </motion.div>
@@ -360,14 +360,14 @@ export default function TrackDetail({
                   <Loader2 className="w-10 h-10 text-yellow-400 animate-spin mx-auto mb-3" />
                   <h3 className="text-lg font-bold text-zinc-100">Generando tu historia</h3>
                   <p className="text-sm text-zinc-500 mt-1">
-                    {storyProgress < 25 ? 'Cargando motor de video...' : storyProgress < 90 ? 'Codificando video...' : 'Finalizando...'}
+                    {storyProgress < 25 ? 'Cargando motor de v\u00eddeo...' : storyProgress < 90 ? 'Codificando v\u00eddeo...' : 'Finalizando...'}
                   </p>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-10 h-10 text-green-400 mx-auto mb-3" />
                   <h3 className="text-lg font-bold text-zinc-100">Historia generada</h3>
-                  <p className="text-sm text-zinc-500 mt-1">El video se ha descargado automaticamente</p>
+                  <p className="text-sm text-zinc-500 mt-1">El v\u00eddeo se ha descargado autom\u00e1ticamente</p>
                 </>
               )}
             </div>

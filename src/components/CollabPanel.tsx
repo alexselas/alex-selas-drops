@@ -313,7 +313,7 @@ function CollabEarnings({ collabToken, collaboratorId }: { collabToken: string; 
     })
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
-      .catch(() => { setData({ error: 'Error de conexion' }); setLoading(false); });
+      .catch(() => { setData({ error: 'Error de conexi\u00f3n' }); setLoading(false); });
   }, [month, collabToken]);
 
   const formatEur = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);

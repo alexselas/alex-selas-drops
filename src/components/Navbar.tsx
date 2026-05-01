@@ -60,13 +60,13 @@ export default function Navbar({ currentSection, onNavigate, collabArtistName, u
                 >
                   <Coins className="w-4 h-4 text-yellow-400" />
                   <span className="text-sm font-bold gradient-text">{userCredits ?? 0}</span>
-                  <span className="text-[10px] text-yellow-400/60 font-semibold">+ Drops</span>
+                  <span className="text-[10px] text-yellow-400/60 font-semibold">drops</span>
                 </button>
                 <button
                   onClick={onLogout}
                   className="p-2 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                  title="Cerrar sesion"
-                  aria-label="Cerrar sesion"
+                  title="Cerrar sesi\u00f3n"
+                  aria-label="Cerrar sesi\u00f3n"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -152,7 +152,7 @@ export default function Navbar({ currentSection, onNavigate, collabArtistName, u
                 onClick={() => { onNavigate('colabs'); setMobileOpen(false); }}
                 className="block w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:bg-white/[0.04] transition-colors"
               >
-                Catalogo
+                Cat\u00e1logo
               </button>
             </div>
           </motion.div>

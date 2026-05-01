@@ -771,9 +771,9 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
               <option value="mashups">Mashup ({CREDIT_COSTS.mashups} dr)</option>
               <option value="livemashups">Live Mashup ({CREDIT_COSTS.livemashups} dr)</option>
               <option value="hypeintros">Hype Intro ({CREDIT_COSTS.hypeintros} dr)</option>
-              <option value="transiciones">Transicion ({CREDIT_COSTS.transiciones} dr)</option>
+              <option value="transiciones">Transici\u00f3n ({CREDIT_COSTS.transiciones} dr)</option>
               <option value="remixes">Remix ({CREDIT_COSTS.remixes} dr)</option>
-              <option value="sesiones">Sesion ({CREDIT_COSTS.sesiones} dr)</option>
+              <option value="sesiones">Sesi\u00f3n ({CREDIT_COSTS.sesiones} dr)</option>
               <option value="originales">Original ({CREDIT_COSTS.originales} dr)</option>
             </select>
           </div>
@@ -784,12 +784,12 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
             <div>
               <label className="block text-xs text-zinc-500 mb-1">
                 {form.category === 'mashups' || form.category === 'transiciones'
-                  ? 'Cancion A *'
+                  ? 'Canci\u00f3n A *'
                   : form.category === 'sesiones'
-                    ? 'Nombre sesion *'
+                    ? 'Nombre sesi\u00f3n *'
                     : form.category === 'originales'
-                      ? 'Titulo *'
-                      : 'Nombre cancion *'}
+                      ? 'T\u00edtulo *'
+                      : 'Nombre canci\u00f3n *'}
               </label>
               <input
                 type="text"
@@ -858,7 +858,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           {/* Title preview — auto-generated, read-only highlighted box */}
           {autoTitle && (
             <div className="mb-4">
-              <label className="block text-xs text-zinc-500 mb-1">Titulo final (auto-generado)</label>
+              <label className="block text-xs text-zinc-500 mb-1">T\u00edtulo final (auto-generado)</label>
               <div
                 className="w-full px-4 py-3 rounded-xl border-2 border-yellow-400/60 bg-zinc-900/80"
                 style={{ minHeight: '44px' }}
@@ -956,7 +956,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
                 type="text"
                 value={form.key}
                 onChange={e => !isCollaborator && setForm({ ...form, key: e.target.value })}
-                placeholder={isCollaborator ? 'Se detecta automaticamente' : 'Am, C, F#m...'}
+                placeholder={isCollaborator ? 'Se detecta autom\u00e1ticamente' : 'Am, C, F#m...'}
                 className={isCollaborator ? readOnlyClass : inputClass}
                 readOnly={isCollaborator}
               />
@@ -968,7 +968,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
               )}
             </div>
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Duracion (seg)</label>
+              <label className="block text-xs text-zinc-500 mb-1">Duraci\u00f3n (seg)</label>
               <input
                 type="number"
                 min="0"
@@ -1045,11 +1045,11 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
           <textarea
             value={form.description}
             onChange={e => setForm({ ...form, description: e.target.value })}
-            placeholder={hideCollaboratorCheckbox ? 'Describe tu track...' : 'Escribe unas notas y la IA creara una descripcion profesional, o escribela tu directamente...'}
+            placeholder={hideCollaboratorCheckbox ? 'Describe tu track...' : 'Escribe unas notas y la IA crear\u00e1 una descripci\u00f3n profesional, o escr\u00edbela t\u00fa directamente...'}
             className={`${inputClass} h-28 resize-none`}
           />
           {!hideCollaboratorCheckbox && (
-            <p className="text-[10px] text-zinc-600 mt-1">Puedes escribir notas basicas y darle a "Generar con IA" para obtener una descripcion profesional</p>
+            <p className="text-[10px] text-zinc-600 mt-1">Puedes escribir notas b\u00e1sicas y darle a "Generar con IA" para obtener una descripci\u00f3n profesional</p>
           )}
         </div>
 

@@ -7,7 +7,7 @@ interface CategoryFilterProps {
 }
 
 const categories: { value: Category | 'all'; label: string; dot: string; activeBg: string; onlyCollab?: boolean }[] = [
-  { value: 'all', label: 'Todos', dot: 'bg-zinc-400', activeBg: 'gradient-bg text-black' },
+  { value: 'all', label: 'Todo', dot: 'bg-zinc-400', activeBg: 'gradient-bg text-black' },
   { value: 'extended', label: 'Extended', dot: 'bg-amber-400', activeBg: 'bg-amber-400/20 text-amber-400 border-amber-400/40' },
   { value: 'remixes', label: 'Remixes', dot: 'bg-violet-400', activeBg: 'bg-violet-400/20 text-violet-400 border-violet-400/40' },
   { value: 'mashups', label: 'Mashups', dot: 'bg-yellow-400', activeBg: 'bg-yellow-400/20 text-yellow-400 border-yellow-400/40' },
@@ -20,7 +20,7 @@ const categories: { value: Category | 'all'; label: string; dot: string; activeB
 
 export default function CategoryFilter({ selected, onSelect, showOriginales }: CategoryFilterProps) {
   return (
-    <div className="relative" role="group" aria-label="Filtrar por categoria">
+    <div className="relative" role="group" aria-label="Filtrar por categor\u00eda">
       <div
         className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}

@@ -39,7 +39,7 @@ export default function CreditShop({ userToken, userCredits, onLoginRequired, on
         alert(data.error || 'Error al procesar el pago');
       }
     } catch {
-      alert('Error de conexion');
+      alert('Error de conexi\u00f3n');
     } finally {
       setLoading(null);
     }
@@ -56,9 +56,9 @@ export default function CreditShop({ userToken, userCredits, onLoginRequired, on
             <Coins className="w-4 h-4 text-yellow-400" />
             <span className="text-sm text-yellow-400 font-medium">Sistema de drops</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">Comprar drops</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">Consigue tus drops</h2>
           <p className="text-zinc-400 text-sm sm:text-base max-w-md mx-auto leading-relaxed">
-            Compra drops y descarga los tracks que quieras. Cuantos mas drops compres, mas barato te sale cada uno.
+            Los drops son tu moneda en MusicDrop. Cuantos m\u00e1s compres, menor es el coste por track.
           </p>
           {userToken && (
             <div className="mt-5 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-yellow-400/[0.08] border border-yellow-400/20">
@@ -88,7 +88,7 @@ export default function CreditShop({ userToken, userCredits, onLoginRequired, on
               >
                 {isPopular && (
                   <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-[10px] font-extrabold text-center py-1.5 tracking-widest uppercase">
-                    MAS POPULAR
+                    M\u00c1S POPULAR
                   </div>
                 )}
 
@@ -134,7 +134,7 @@ export default function CreditShop({ userToken, userCredits, onLoginRequired, on
           <div className="bg-[#141414] rounded-2xl border border-white/[0.06] p-5 sm:p-6 mb-5">
             <div className="flex items-center gap-3">
               <div className="flex-1">
-                <label htmlFor="promo-code" className="block text-xs text-zinc-500 mb-2 font-medium">Codigo promocional</label>
+                <label htmlFor="promo-code" className="block text-xs text-zinc-500 mb-2 font-medium">C\u00f3digo promocional</label>
                 <input
                   id="promo-code"
                   type="text"
@@ -150,7 +150,7 @@ export default function CreditShop({ userToken, userCredits, onLoginRequired, on
                 </div>
               )}
             </div>
-            <p className="text-[10px] text-zinc-600 mt-2.5">Introduce tu codigo antes de comprar. Se aplicara automaticamente.</p>
+            <p className="text-[10px] text-zinc-600 mt-2.5">Introduce tu c\u00f3digo antes de comprar. Se aplicar\u00e1 autom\u00e1ticamente.</p>
           </div>
         )}
 
@@ -158,14 +158,14 @@ export default function CreditShop({ userToken, userCredits, onLoginRequired, on
         <div className="bg-[#141414] rounded-2xl border border-white/[0.06] p-6">
           <div className="flex items-center gap-2 mb-5">
             <Sparkles className="w-5 h-5 text-yellow-400" />
-            <h3 className="text-sm font-bold text-white">Cuantos drops cuesta cada tipo de track?</h3>
+            <h3 className="text-sm font-bold text-white">\u00bfCu\u00e1ntos drops cuesta cada tipo de track?</h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {Object.entries(CREDIT_COSTS).map(([cat, credits]) => {
               const labels: Record<string, string> = {
                 extended: 'Extended', mashups: 'Mashup', livemashups: 'Live Mashup',
-                hypeintros: 'Hype Intro', transiciones: 'Transicion', remixes: 'Remix',
-                sesiones: 'Sesion', originales: 'Original',
+                hypeintros: 'Hype Intro', transiciones: 'Transici\u00f3n', remixes: 'Remix',
+                sesiones: 'Sesi\u00f3n', originales: 'Original',
               };
               return (
                 <div key={cat} className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.04]">
@@ -184,7 +184,7 @@ export default function CreditShop({ userToken, userCredits, onLoginRequired, on
               onClick={onLoginRequired}
               className="px-8 py-3.5 rounded-xl gradient-bg text-black font-bold text-sm hover:scale-[1.02] active:scale-95 transition-transform shadow-lg shadow-yellow-400/15"
             >
-              Crea tu cuenta para empezar
+              Crea tu cuenta gratis para empezar
             </button>
           </div>
         )}

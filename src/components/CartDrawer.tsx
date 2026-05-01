@@ -76,7 +76,7 @@ export default function CartDrawer({
           results.push({ trackId: item.track.id, title: item.track.title, artist: item.track.artist, authors: '', coverUrl: '', genre: '', bpm: 0, success: false, error: data.error });
         }
       } catch {
-        results.push({ trackId: item.track.id, title: item.track.title, artist: item.track.artist, authors: '', coverUrl: '', genre: '', bpm: 0, success: false, error: 'Error de conexion' });
+        results.push({ trackId: item.track.id, title: item.track.title, artist: item.track.artist, authors: '', coverUrl: '', genre: '', bpm: 0, success: false, error: 'Error de conexi\u00f3n' });
       }
     }
 
@@ -208,8 +208,8 @@ export default function CartDrawer({
                   <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-green-500/[0.08] border border-green-500/20 mb-4">
                     <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-green-400 font-semibold">Tracks comprados correctamente</p>
-                      <p className="text-xs text-green-400/60 mt-0.5">Puedes descargarlos ahora o desde tu perfil</p>
+                      <p className="text-sm text-green-400 font-semibold">Compra completada con \u00e9xito</p>
+                      <p className="text-xs text-green-400/60 mt-0.5">Descarga ahora o accede m\u00e1s tarde desde tu perfil</p>
                     </div>
                   </div>
 
@@ -248,7 +248,7 @@ export default function CartDrawer({
                   )}
 
                   <p className="text-xs text-zinc-500 text-center mt-4">
-                    Estos tracks estan guardados en tu perfil. Puedes volver a descargarlos cuando quieras.
+                    Tus tracks quedan guardados en tu perfil. Puedes descargarlos siempre que quieras.
                   </p>
                 </div>
               ) : items.length === 0 ? (
@@ -256,8 +256,8 @@ export default function CartDrawer({
                   <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-5">
                     <ShoppingCart className="w-9 h-9 text-zinc-700" />
                   </div>
-                  <p className="text-zinc-400 font-semibold">Tu carrito esta vacio</p>
-                  <p className="text-xs text-zinc-600 mt-1.5 max-w-[200px]">Explora el catalogo y anade tracks para empezar</p>
+                  <p className="text-zinc-400 font-semibold">Tu carrito est\u00e1 vac\u00edo</p>
+                  <p className="text-xs text-zinc-600 mt-1.5 max-w-[220px]">Explora el cat\u00e1logo y a\u00f1ade los tracks que quieras</p>
                 </div>
               ) : (
                 /* Cart items */
@@ -275,7 +275,7 @@ export default function CartDrawer({
                         <button
                           onClick={() => onRemoveItem(item.track.id)}
                           className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
-                          aria-label={`Eliminar ${item.track.title} del carrito`}
+                          aria-label={`Quitar ${item.track.title} del carrito`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -310,7 +310,7 @@ export default function CartDrawer({
                 {!canAfford && (
                   <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.08] border border-red-500/20">
                     <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                    <p className="text-xs text-red-400 font-medium">Te faltan {formatCredits(Math.abs(remaining))} drops</p>
+                    <p className="text-xs text-red-400 font-medium">Necesitas {formatCredits(Math.abs(remaining))} drops m\u00e1s</p>
                   </div>
                 )}
 
@@ -322,11 +322,11 @@ export default function CartDrawer({
                   {purchasing ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />Procesando...</>
                   ) : !userToken ? (
-                    <>Inicia sesion para comprar</>
+                    <>Inicia sesi\u00f3n para comprar</>
                   ) : !canAfford ? (
-                    <><Coins className="w-4 h-4" />Comprar drops</>
+                    <><Coins className="w-4 h-4" />Conseguir m\u00e1s drops</>
                   ) : (
-                    <><Coins className="w-4 h-4" />Comprar — {formatCredits(totalCredits)}</>
+                    <><Coins className="w-4 h-4" />Confirmar compra &mdash; {formatCredits(totalCredits)}</>
                   )}
                 </button>
               </div>
