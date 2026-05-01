@@ -212,8 +212,10 @@ export default function App() {
   useEffect(() => {
     const SESSION_MAX_MS = 3 * 60 * 60 * 1000;
     const checkExpiry = () => {
+      const token = localStorage.getItem('musicdrop-token');
+      if (!token) return;
       const ts = localStorage.getItem('musicdrop-login-ts');
-      if (ts && Date.now() - Number(ts) > SESSION_MAX_MS) {
+      if (!ts || Date.now() - Number(ts) > SESSION_MAX_MS) {
         handleUserLogout();
       }
     };
