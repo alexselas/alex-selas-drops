@@ -65,8 +65,8 @@ export default function Navbar({ currentSection, onNavigate, collabArtistName, u
                 <button
                   onClick={onLogout}
                   className="p-2 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                  title="Cerrar sesi\u00f3n"
-                  aria-label="Cerrar sesi\u00f3n"
+                  title="Cerrar sesión"
+                  aria-label="Cerrar sesión"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -152,7 +152,7 @@ export default function Navbar({ currentSection, onNavigate, collabArtistName, u
                 onClick={() => { onNavigate('colabs'); setMobileOpen(false); }}
                 className="block w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:bg-white/[0.04] transition-colors"
               >
-                Cat\u00e1logo
+                Catálogo
               </button>
             </div>
           </motion.div>

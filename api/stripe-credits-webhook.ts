@@ -30,14 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let event: Stripe.Event;
 
     if (!WEBHOOK_SECRET) {
-      // Fallback: verify the session exists in Stripe directly
-      const body = req.body;
-      if (body?.type === 'checkout.session.completed' && body?.data?.object?.id) {
-        const session = await stripe.checkout.sessions.retrieve(body.data.object.id);
-        event = { type: 'checkout.session.completed', data: { object: session } } as any;
-      } else {
-        return res.status(400).json({ error: 'Webhook secret not configured' });
-      }
+      console.error('STRIPE_CREDITS_WEBHOOK_SECRET is not configured — rejecting webhook');
+      return res.status(500).json({ error: 'Webhook not configured' });
     } else {
       const rawBody = await getRawBody(req);
       const sig = req.headers['stripe-signature'] as string;

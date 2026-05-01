@@ -48,9 +48,9 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   mashups: 'Mashup',
   livemashups: 'Live Mashup',
   hypeintros: 'Hype Intro',
-  transiciones: 'Transici\u00f3n',
+  transiciones: 'Transición',
   remixes: 'Remix',
-  sesiones: 'Sesi\u00f3n',
+  sesiones: 'Sesión',
   originales: 'Original',
 };
 

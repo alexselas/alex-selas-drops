@@ -28,7 +28,8 @@ function hashPassword(password: string, salt: string): string {
 }
 
 function generateToken(collaboratorId: string): string {
-  const secret = process.env.ADMIN_SECRET || 'dev-secret';
+  const secret = process.env.ADMIN_SECRET || '';
+  if (!secret) throw new Error('ADMIN_SECRET not configured');
   const timestamp = Date.now().toString();
   const payload = `collab.${collaboratorId}.${timestamp}`;
   const hmac = crypto.createHmac('sha256', secret).update(payload).digest('hex');

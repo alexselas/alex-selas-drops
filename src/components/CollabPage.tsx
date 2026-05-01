@@ -123,7 +123,7 @@ export default function CollabPage({
         <button
           onClick={() => onNavigate('colabs')}
           className="fixed top-20 left-5 z-20 flex items-center gap-2 text-sm text-white/80 hover:text-white transition-all bg-black/40 backdrop-blur-xl px-4 py-2.5 rounded-xl border border-white/[0.08] hover:border-white/[0.15] hover:bg-black/50"
-          aria-label="Volver al cat\u00e1logo"
+          aria-label="Volver al catálogo"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver
@@ -264,8 +264,8 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
           <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-5">
             <Music className="w-8 h-8 text-zinc-700" />
           </div>
-          <p className="text-zinc-400 text-lg font-medium">Pr\u00f3ximamente</p>
-          <p className="text-zinc-600 text-sm mt-1.5">Este artista a\u00fan no ha publicado tracks</p>
+          <p className="text-zinc-400 text-lg font-medium">Próximamente</p>
+          <p className="text-zinc-600 text-sm mt-1.5">Este artista aún no ha publicado tracks</p>
         </div>
       </div>
     );
@@ -309,7 +309,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
           <div className="relative px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
             <div className="text-center sm:text-left">
               <p className="text-black/90 font-bold text-lg sm:text-xl">20% extra en tu primera compra de drops</p>
-              <p className="text-black/55 text-sm mt-0.5">Introduce el c\u00f3digo al comprar tus drops</p>
+              <p className="text-black/55 text-sm mt-0.5">Introduce el código al comprar tus drops</p>
             </div>
             <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg shadow-black/20">WELCOME20</span>
           </div>
@@ -340,8 +340,8 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
                 className="pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/40 transition-all appearance-none cursor-pointer"
                 aria-label="Ordenar por"
               >
-                <option value="newest">M\u00e1s recientes</option>
-                <option value="oldest">M\u00e1s antiguos</option>
+                <option value="newest">Más recientes</option>
+                <option value="oldest">Más antiguos</option>
                 <option value="credits-asc">Drops: menor</option>
                 <option value="credits-desc">Drops: mayor</option>
                 <option value="title">A-Z</option>
@@ -382,7 +382,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
                   onClick={e => { e.stopPropagation(); onAddToCart(track); }}
                   disabled={isInCart(track.id)}
                   className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`}
-                  aria-label={isInCart(track.id) ? 'En el carrito' : 'A\u00f1adir al carrito'}
+                  aria-label={isInCart(track.id) ? 'En el carrito' : 'Añadir al carrito'}
                 >
                   <ShoppingCart className="w-4 h-4" />
                 </button>
@@ -423,7 +423,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
             </button>
           </div>
         )}
-        {filteredTracks.length > 0 && <p className="text-xs text-zinc-600 text-center mt-3 tabular-nums">P\u00e1gina {listPage} de {totalListPages} &middot; {filteredTracks.length} tracks</p>}
+        {filteredTracks.length > 0 && <p className="text-xs text-zinc-600 text-center mt-3 tabular-nums">Página {listPage} de {totalListPages} &middot; {filteredTracks.length} tracks</p>}
       </div>
       </div>
     </>

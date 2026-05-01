@@ -84,11 +84,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ContentType: ct,
     });
 
+    // Presigned URL expires in 10 minutes; R2 bucket policies should enforce max file size
     const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 600 });
 
     return res.status(200).json({ uploadUrl, publicUrl: `${R2_PUBLIC_BASE}/${key}` });
   } catch (error: any) {
-    console.error('Presign error:', error);
+    console.error('Presign error:', error?.message);
     return res.status(500).json({ error: 'Error generando URL de subida' });
   }
 }

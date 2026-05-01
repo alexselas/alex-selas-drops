@@ -33,7 +33,7 @@ const FONTS = [
 ];
 const LABELS: Record<string, string> = {
   brand: 'MUSICDROP', sub: 'by 360DJAcademy', cover: 'Portada',
-  authors: 'Artistas originales', title: 'T\u00edtulo', meta: 'BPM / Duraci\u00f3n',
+  authors: 'Artistas originales', title: 'Título', meta: 'BPM / Duración',
   quality: 'Calidad audio', link: 'Enlace', web: 'Web',
 };
 
@@ -69,7 +69,7 @@ function makeDefaults(track: Track): StoryEl[] {
     { id: 'title', type: 'text', x: 90, y: 1090, w: 900, h: 80, content: track.title, fontSize: 50, color: '#ffffff', fontWeight: '400', fontFamily: 'Impact, sans-serif' },
     { id: 'meta', type: 'text', x: 290, y: 1185, w: 500, h: 40, content: meta.join('  ·  '), fontSize: 24, color: '#a1a1aa', fontWeight: '400', fontFamily: 'Inter, sans-serif' },
     { id: 'quality', type: 'text', x: 190, y: 1235, w: 700, h: 35, content: 'Preview \u00b7 Calidad completa en musicdrop.es', fontSize: 18, color: '#71717a', fontWeight: '400', fontFamily: 'Inter, sans-serif' },
-    { id: 'link', type: 'text', x: 240, y: 1480, w: 600, h: 50, content: 'Pega aqu\u00ed tu enlace', fontSize: 22, color: '#a1a1aa', fontWeight: '400', fontFamily: 'Inter, sans-serif' },
+    { id: 'link', type: 'text', x: 240, y: 1480, w: 600, h: 50, content: 'Pega aquí tu enlace', fontSize: 22, color: '#a1a1aa', fontWeight: '400', fontFamily: 'Inter, sans-serif' },
     { id: 'web', type: 'text', x: 240, y: 1800, w: 600, h: 40, content: 'www.musicdrop.es', fontSize: 26, color: '#d4d4d8', fontWeight: '500', fontFamily: 'Inter, sans-serif' },
   ];
 }

@@ -15,7 +15,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { watermark } = req.query as { watermark: string };
-    if (!watermark) return res.status(400).json({ error: 'Pega el codigo de 12 caracteres del campo Comentario del MP3' });
+    if (!watermark || typeof watermark !== 'string') return res.status(400).json({ error: 'Pega el codigo de 12 caracteres del campo Comentario del MP3' });
+    // Validate watermark format: exactly 12 hex characters
+    if (!/^[a-f0-9]{12}$/.test(watermark)) return res.status(400).json({ error: 'Formato de watermark invalido (12 caracteres hex)' });
 
     const wmData = await redis.get(`watermark:${watermark}`) as any;
     if (!wmData) return res.status(404).json({ error: 'Watermark no encontrado. Puede haber expirado (1 ano) o el codigo es incorrecto.' });

@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { trackId } = req.body;
-    if (!trackId || typeof trackId !== 'string') return res.status(400).json({ error: 'Track ID requerido' });
+    if (!trackId || typeof trackId !== 'string' || trackId.length > 100) return res.status(400).json({ error: 'Track ID requerido' });
 
     // Use a lock key to prevent race conditions
     const lockKey = `lock:purchase:${auth.userId}`;

@@ -212,7 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ ok: true, sent, errors, totalEmails: emailList.length, newTracks: items.length });
   } catch (error: any) {
-    console.error('Newsletter error:', error);
-    return res.status(500).json({ error: error.message || 'Error al enviar newsletter' });
+    console.error('Newsletter error:', error?.message);
+    return res.status(500).json({ error: 'Error al enviar newsletter' });
   }
 }

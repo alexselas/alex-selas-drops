@@ -78,8 +78,8 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           <div className="relative flex-shrink-0">
             <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
             <select value={sort} onChange={e => setSort(e.target.value as SortOption)} className="pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-zinc-200 text-sm focus:outline-none focus:border-yellow-400/40 transition-all appearance-none cursor-pointer" aria-label="Ordenar por">
-              <option value="newest">M\u00e1s recientes</option>
-              <option value="oldest">M\u00e1s antiguos</option>
+              <option value="newest">Más recientes</option>
+              <option value="oldest">Más antiguos</option>
               <option value="credits-asc">Drops: menor</option>
               <option value="credits-desc">Drops: mayor</option>
               <option value="title">A-Z</option>
@@ -104,10 +104,10 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
               </button>
               <div className="relative flex-1 min-w-0">
                 <div className="flex items-center gap-2"><p className={`text-sm font-semibold truncate ${isCurrent ? 'text-yellow-400' : 'text-zinc-100'}`}>{track.title}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${CATEGORY_COLORS[track.category] || 'bg-zinc-600 text-white'}`}>{CATEGORY_LABELS[track.category] ? CATEGORY_LABELS[track.category].toUpperCase() : track.category.toUpperCase()}</span>{track.releaseDate && <span className="text-[10px] text-zinc-600 flex-shrink-0 hidden sm:inline">{new Date(track.releaseDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}</div>
-                <p className="text-xs text-zinc-500 truncate mt-0.5"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.camelot ? ` · ${track.camelot}` : (track.key ? ` · ${track.key}` : '')}{track.analysis?.intensity ? ` · Energ\u00eda ${track.analysis.intensity}%` : ''}</p>
+                <p className="text-xs text-zinc-500 truncate mt-0.5"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.camelot ? ` · ${track.camelot}` : (track.key ? ` · ${track.key}` : '')}{track.analysis?.intensity ? ` · Energía ${track.analysis.intensity}%` : ''}</p>
               </div>
               <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block tabular-nums">{formatCredits(CREDIT_COSTS[track.category])}</span>
-              <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`} aria-label={cart.isInCart(track.id) ? 'En el carrito' : 'A\u00f1adir al carrito'}><ShoppingCart className="w-4 h-4" /></button>
+              <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`} aria-label={cart.isInCart(track.id) ? 'En el carrito' : 'Añadir al carrito'}><ShoppingCart className="w-4 h-4" /></button>
             </div>
           );
         })}
@@ -128,7 +128,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
           <button onClick={() => { setListPage(p => Math.min(totalListPages, p + 1)); document.getElementById('todos-tracks')?.scrollIntoView(); }} disabled={listPage >= totalListPages} className="px-3.5 py-2 rounded-lg text-sm bg-white/[0.04] border border-white/[0.06] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition-all">Siguiente</button>
         </div>
       )}
-      {displayItems.length > 0 && <p className="text-xs text-zinc-600 text-center mb-16">P\u00e1gina {listPage} de {totalListPages} &middot; {displayItems.length} tracks</p>}
+      {displayItems.length > 0 && <p className="text-xs text-zinc-600 text-center mb-16">Página {listPage} de {totalListPages} &middot; {displayItems.length} tracks</p>}
     </>
   );
 }
@@ -265,7 +265,7 @@ export default function App() {
             const stored = localStorage.getItem('musicdrop-user');
             if (stored) { const u = JSON.parse(stored); u.credits = data.credits; localStorage.setItem('musicdrop-user', JSON.stringify(u)); }
             const bonusMsg = data.bonus > 0 ? ` (incluye ${data.bonus} bonus WELCOME20!)` : '';
-            alert(`${data.alreadyProcessed ? '' : `+${data.added} drops a\u00f1adidos${bonusMsg}. `}Tu saldo: ${data.credits} drops`);
+            alert(`${data.alreadyProcessed ? '' : `+${data.added} drops añadidos${bonusMsg}. `}Tu saldo: ${data.credits} drops`);
           }
         })
         .catch(() => {});
@@ -509,7 +509,7 @@ export default function App() {
         return;
       }
     } catch (e) {
-      alert('Error de conexi\u00f3n al guardar');
+      alert('Error de conexión al guardar');
       return;
     }
     setTracks(prev => prev.map(t => (t.id === data.id ? { ...t, ...data } as Track : t)));
@@ -528,7 +528,7 @@ export default function App() {
       }
       setTracks(prev => prev.filter(t => t.id !== id));
     } catch (e) {
-      alert('Error de conexi\u00f3n al eliminar. Int\u00e9ntalo de nuevo.');
+      alert('Error de conexión al eliminar. Inténtalo de nuevo.');
     }
   }, []);
 
@@ -707,7 +707,7 @@ export default function App() {
                 <div className="relative px-6 py-5 sm:py-7 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
                   <div className="text-center sm:text-left">
                     <p className="text-black/90 font-bold text-lg sm:text-xl">20% extra en tu primera compra de drops</p>
-                    <p className="text-black/55 text-sm mt-0.5">Introduce el c\u00f3digo al comprar tus drops</p>
+                    <p className="text-black/55 text-sm mt-0.5">Introduce el código al comprar tus drops</p>
                   </div>
                   <span className="px-5 py-2.5 bg-black text-yellow-400 font-black text-xl sm:text-2xl tracking-widest rounded-xl shadow-lg shadow-black/20">WELCOME20</span>
                 </div>

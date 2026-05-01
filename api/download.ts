@@ -110,7 +110,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(403).json({ error: 'Track no incluido en esta compra' });
           }
         } catch (e: any) {
-          return res.status(403).json({ error: `Sesion no valida: ${e.message || 'error'}` });
+          console.error('Stripe session verify error:', e?.message);
+          return res.status(403).json({ error: 'Sesion de pago no valida' });
         }
       }
 
@@ -203,7 +204,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const fileName = authors ? `${authors} - ${title || 'track'}` : (title || 'track');
-    const ext = fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
+    const rawExt = fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
+    const ext = rawExt.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) || 'mp3';
 
     res.setHeader('Content-Type', isMP3 ? 'audio/mpeg' : 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}.${ext}"`);
@@ -213,7 +215,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.send(buffer);
   } catch (error: any) {
-    console.error('Download error:', error);
+    console.error('Download error:', error?.message);
     return res.status(500).json({ error: 'Error al descargar archivo' });
   }
 }

@@ -23,7 +23,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
 
     if (mode === 'register') {
       if (!name.trim()) { setError('Escribe tu nombre'); return; }
-      if (password !== password2) { setError('Las contrase\u00f1as no coinciden'); return; }
+      if (password !== password2) { setError('Las contraseñas no coinciden'); return; }
     }
 
     setLoading(true);
@@ -49,7 +49,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
         onClose();
       }
     } catch {
-      setError('Error de conexi\u00f3n. Int\u00e9ntalo de nuevo.');
+      setError('Error de conexión. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -79,10 +79,10 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
             <div className="flex items-center justify-between p-5 sm:p-6 border-b border-white/[0.06]">
               <div>
                 <h3 className="text-lg font-bold text-white">
-                  {mode === 'login' ? 'Iniciar sesi\u00f3n' : 'Crear cuenta'}
+                  {mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
                 </h3>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  {mode === 'login' ? 'Accede a tu cuenta de MusicDrop' : 'Reg\u00edstrate gratis y empieza a descargar'}
+                  {mode === 'login' ? 'Accede a tu cuenta de MusicDrop' : 'Regístrate gratis y empieza a descargar'}
                 </p>
               </div>
               <button onClick={onClose} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all" aria-label="Cerrar">
@@ -135,7 +135,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
               </div>
 
               <div>
-                <label htmlFor="auth-password" className="block text-xs text-zinc-500 mb-1.5 font-medium">Contrase\u00f1a</label>
+                <label htmlFor="auth-password" className="block text-xs text-zinc-500 mb-1.5 font-medium">Contraseña</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
@@ -143,7 +143,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
                     type="password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder={mode === 'register' ? 'M\u00ednimo 6 caracteres' : 'Tu contrase\u00f1a'}
+                    placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : 'Tu contraseña'}
                     required
                     minLength={6}
                     className={inputClass}
@@ -155,7 +155,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
               {/* Confirm password -- only on register */}
               {mode === 'register' && (
                 <div>
-                  <label htmlFor="auth-password2" className="block text-xs text-zinc-500 mb-1.5 font-medium">Repetir contrase\u00f1a</label>
+                  <label htmlFor="auth-password2" className="block text-xs text-zinc-500 mb-1.5 font-medium">Repetir contraseña</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                     <input
@@ -163,7 +163,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
                       type="password"
                       value={password2}
                       onChange={e => setPassword2(e.target.value)}
-                      placeholder="Repite tu contrase\u00f1a"
+                      placeholder="Repite tu contraseña"
                       required
                       minLength={6}
                       className={`${inputClass} ${password2 && password !== password2 ? 'border-red-500/50 focus:border-red-500/50' : ''}`}
@@ -171,7 +171,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
                     />
                   </div>
                   {password2 && password !== password2 && (
-                    <p className="text-[11px] text-red-400 mt-1.5">Las contrase\u00f1as no coinciden</p>
+                    <p className="text-[11px] text-red-400 mt-1.5">Las contraseñas no coinciden</p>
                   )}
                 </div>
               )}
@@ -197,7 +197,7 @@ export default function AuthModal({ open, onClose, onAuth }: AuthModalProps) {
                   onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setPassword2(''); }}
                   className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors"
                 >
-                  {mode === 'login' ? '\u00bfNo tienes cuenta? Reg\u00edstrate gratis' : '\u00bfYa tienes cuenta? Inicia sesi\u00f3n'}
+                  {mode === 'login' ? '¿No tienes cuenta? Regístrate gratis' : '¿Ya tienes cuenta? Inicia sesión'}
                 </button>
               </div>
             </form>

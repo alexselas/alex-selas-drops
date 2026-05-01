@@ -1411,7 +1411,7 @@ function PirateriaPanel({ adminToken }: { adminToken?: string }) {
               {!result.stripeName && !result.stripeEmail && !result.stripeCountry && (
                 <div className="pt-3 border-t border-red-500/10">
                   <p className="text-[9px] text-zinc-600 uppercase tracking-widest mb-1">Datos de pago (Stripe)</p>
-                  <p className="text-xs text-zinc-600">Este usuario no ha comprado drops con tarjeta (sus drops fueron a\u00f1adidos manualmente)</p>
+                  <p className="text-xs text-zinc-600">Este usuario no ha comprado drops con tarjeta (sus drops fueron añadidos manualmente)</p>
                 </div>
               )}
             </div>

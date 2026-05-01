@@ -1,9 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
+import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
 import crypto from 'crypto';
 const U_TOKEN_MAX_AGE=30*24*60*60*1000;function verifyUserToken(h:string|undefined):{valid:boolean;userId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('user.'))return{valid:false};const p=t.split('.');if(p.length!==4)return{valid:false};const[,uid,ts,hm]=p;if(!uid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>U_TOKEN_MAX_AGE||a<0)return{valid:false};const s=process.env.ADMIN_SECRET||'';const py=`user.${uid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,userId:uid};}catch{return{valid:false};}}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+const buyRedis = new Redis({ url: process.env.KV_REST_API_URL || '', token: process.env.KV_REST_API_TOKEN || '' });
+const buyLimit = new Ratelimit({ redis: buyRedis, limiter: Ratelimit.slidingWindow(5, '5 m'), prefix: 'rl:buy-credits' });
 
 const CREDIT_PACKS: Record<string, { credits: number; priceEur: number; name: string }> = {
   'pack-5': { credits: 5, priceEur: 3.99, name: '5 Creditos MusicDrop' },
@@ -21,6 +25,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const auth = verifyUserToken(req.headers.authorization);
   if (!auth.valid || !auth.userId) return res.status(401).json({ error: 'Inicia sesion para comprar creditos' });
+
+  // Rate limit per user
+  const { success: rlOk } = await buyLimit.limit(auth.userId);
+  if (!rlOk) return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
 
   try {
     const { packId, promoCode } = req.body;

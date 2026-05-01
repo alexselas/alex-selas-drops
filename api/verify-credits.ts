@@ -1,11 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
 import Stripe from 'stripe';
 import crypto from 'crypto';
 const U_TOKEN_MAX_AGE=30*24*60*60*1000;function verifyUserToken(h:string|undefined):{valid:boolean;userId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('user.'))return{valid:false};const p=t.split('.');if(p.length!==4)return{valid:false};const[,uid,ts,hm]=p;if(!uid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>U_TOKEN_MAX_AGE||a<0)return{valid:false};const s=process.env.ADMIN_SECRET||'';const py=`user.${uid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,userId:uid};}catch{return{valid:false};}}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 const redis = new Redis({ url: process.env.KV_REST_API_URL || '', token: process.env.KV_REST_API_TOKEN || '' });
+const verifyLimit = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '5 m'), prefix: 'rl:verify-credits' });
 
 function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
@@ -18,9 +20,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = verifyUserToken(req.headers.authorization);
   if (!auth.valid || !auth.userId) return res.status(401).json({ error: 'No autorizado' });
 
+  // Rate limit per user
+  const { success: rlOk } = await verifyLimit.limit(auth.userId);
+  if (!rlOk) return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
+
   try {
     const { sessionId } = req.body;
-    if (!sessionId || typeof sessionId !== 'string') return res.status(400).json({ error: 'Session ID requerido' });
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 200) return res.status(400).json({ error: 'Session ID requerido' });
 
     // Verify the session with Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);

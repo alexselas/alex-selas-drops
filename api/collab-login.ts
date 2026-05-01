@@ -28,7 +28,8 @@ function hashPassword(password: string, salt: string): string {
 }
 
 function generateToken(collaboratorId: string): string {
-  const secret = process.env.ADMIN_SECRET || 'dev-secret';
+  const secret = process.env.ADMIN_SECRET || '';
+  if (!secret) throw new Error('ADMIN_SECRET not configured');
   const timestamp = Date.now().toString();
   const payload = `collab.${collaboratorId}.${timestamp}`;
   const hmac = crypto.createHmac('sha256', secret).update(payload).digest('hex');
@@ -65,7 +66,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const hash = hashPassword(password, account.salt);
-    if (hash !== account.passwordHash) {
+    const h1 = Buffer.from(hash, 'hex');
+    const h2 = Buffer.from(account.passwordHash, 'hex');
+    if (h1.length !== h2.length || !crypto.timingSafeEqual(h1, h2)) {
       return res.status(401).json({ error: 'Email o contraseña incorrectos' });
     }
 

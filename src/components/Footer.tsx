@@ -15,7 +15,7 @@ export default function Footer({ onAdmin }: FooterProps) {
               <span className="text-[9px] font-semibold text-zinc-600 tracking-wide ml-1.5">by 360DJAcademy</span>
             </div>
             <p className="text-[11px] text-zinc-600 max-w-[260px] text-center md:text-left leading-relaxed">
-              Drops exclusivos para DJs profesionales. Remixes, mashups y m\u00e1s en MP3 320kbps.
+              Drops exclusivos para DJs profesionales. Remixes, mashups y más en MP3 320kbps.
             </p>
           </div>
 

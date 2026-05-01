@@ -27,7 +27,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!isAdmin && !collab.valid) return res.status(401).json({ error: 'No autorizado' });
 
   try {
-    const month = (req.query.month as string) || new Date().toISOString().slice(0, 7);
+    const rawMonth = (req.query.month as string) || new Date().toISOString().slice(0, 7);
+    // Validate month format (YYYY-MM) to prevent Redis key injection
+    const month = /^\d{4}-\d{2}$/.test(rawMonth) ? rawMonth : new Date().toISOString().slice(0, 7);
 
     // Get revenue ledger for this month
     const ledger = (await redis.get(`revenue:${month}`) as any[]) || [];

@@ -160,9 +160,9 @@ export default function TrackCard({
                   ? 'bg-green-500/15 text-green-400 cursor-default border border-green-500/20'
                   : 'bg-white/[0.06] text-zinc-300 border border-white/[0.06] hover:gradient-bg hover:text-black hover:border-transparent hover:shadow-md hover:shadow-yellow-400/10 active:scale-95'
               }`}
-              aria-label={isInCart ? 'En el carrito' : `A\u00f1adir ${track.title} al carrito`}
+              aria-label={isInCart ? 'En el carrito' : `Añadir ${track.title} al carrito`}
             >
-              {isInCart ? (<><Check className="w-3 h-3" />A\u00f1adido</>) : (<><ShoppingCart className="w-3 h-3" />A\u00f1adir</>)}
+              {isInCart ? (<><Check className="w-3 h-3" />Añadido</>) : (<><ShoppingCart className="w-3 h-3" />Añadir</>)}
             </button>
           )}
         </div>

@@ -64,7 +64,7 @@ Reglas:
 
     return res.status(200).json({ description: text.trim() });
   } catch (error: any) {
-    console.error('Generate error:', error);
-    return res.status(500).json({ error: 'Error al generar descripción' });
+    console.error('Generate error:', error?.message);
+    return res.status(500).json({ error: 'Error al generar descripcion' });
   }
 }

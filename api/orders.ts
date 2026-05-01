@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 import crypto from 'crypto';
+import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
 
 const TOKEN_MAX_AGE = 24 * 60 * 60 * 1000;
 function verifyAdminToken(authHeader: string | undefined): boolean {
@@ -49,13 +51,12 @@ function corsHeaders(req: { headers: { origin?: string } }) {
   return headers;
 }
 
-import { Redis } from '@upstash/redis';
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',
   token: process.env.KV_REST_API_TOKEN || '',
 });
+const freeOrderLimit = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 h'), prefix: 'rl:free-order' });
 const FREE_ORDERS_KEY = 'free-orders';
 
 function getStartTimestamp(period: string): number {
@@ -88,19 +89,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // POST — register free order (no auth needed, it's from the client)
   if (req.method === 'POST') {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown';
+    const { success: rlOk } = await freeOrderLimit.limit(ip);
+    if (!rlOk) return res.status(429).json({ error: 'Demasiados pedidos. Intenta mas tarde.' });
     try {
       const { tracks, trackIds, email } = req.body;
       if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
         return res.status(400).json({ error: 'No tracks provided' });
+      }
+      // Validate and sanitize email
+      const safeEmail = (typeof email === 'string') ? email.trim().toLowerCase().slice(0, 254) : '';
+      if (safeEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeEmail)) {
+        return res.status(400).json({ error: 'Email no valido' });
+      }
+      // Limit tracks array size
+      if (tracks.length > 50) {
+        return res.status(400).json({ error: 'Demasiados tracks en el pedido' });
       }
       const rawFreeOrders = await redis.get(FREE_ORDERS_KEY);
       const freeOrders = Array.isArray(rawFreeOrders) ? rawFreeOrders : [];
       const now = new Date();
       freeOrders.push({
         id: `FREE-${Date.now().toString(36).toUpperCase()}`,
-        tracks: tracks || [],
-        trackIds: trackIds || [],
-        email: email || '',
+        tracks: tracks.slice(0, 50).map((t: any) => typeof t === 'string' ? t.slice(0, 200) : String(t).slice(0, 200)),
+        trackIds: Array.isArray(trackIds) ? trackIds.slice(0, 50).map((id: any) => String(id).slice(0, 100)) : [],
+        email: safeEmail,
         amount: 0,
         date: now.toISOString().split('T')[0],
         createdAt: now.toISOString(),
@@ -246,7 +259,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       revenue: totalRevenue,
     });
   } catch (error: any) {
-    console.error('Orders API error:', error);
+    console.error('Orders API error:', error?.message);
     return res.status(500).json({ error: 'Error al obtener pedidos' });
   }
 }

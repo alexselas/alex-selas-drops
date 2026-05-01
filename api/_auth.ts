@@ -7,7 +7,8 @@ export function verifyCollabToken(authHeader: string | undefined): { valid: bool
     if (!authHeader?.startsWith('Bearer ')) return { valid: false };
     const token = authHeader.slice(7);
     if (!token.startsWith('collab.')) return { valid: false };
-    const secret = process.env.ADMIN_SECRET || 'dev-secret';
+    const secret = process.env.ADMIN_SECRET || '';
+    if (!secret) return { valid: false };
 
     const parts = token.split('.');
     if (parts.length !== 4) return { valid: false };

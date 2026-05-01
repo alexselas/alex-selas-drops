@@ -78,7 +78,7 @@ export default function UserPanel({ userToken, userName, userCredits, onBack, on
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      alert('Error de conexi\u00f3n');
+      alert('Error de conexión');
     }
     setDownloadingId(null);
   };
@@ -153,8 +153,8 @@ export default function UserPanel({ userToken, userName, userCredits, onBack, on
         ) : downloads.length === 0 ? (
           <div className="text-center py-16">
             <Music className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
-            <p className="text-zinc-500 text-sm">A\u00fan no has descargado ning\u00fan track</p>
-            <p className="text-zinc-600 text-xs mt-1">Explora el cat\u00e1logo y usa tus drops</p>
+            <p className="text-zinc-500 text-sm">Aún no has descargado ningún track</p>
+            <p className="text-zinc-600 text-xs mt-1">Explora el catálogo y usa tus drops</p>
           </div>
         ) : filteredDownloads.length === 0 ? (
           <div className="text-center py-12">

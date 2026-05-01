@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
-const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}function verifyCollabToken(h:string|undefined):{valid:boolean;collaboratorId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('collab.'))return{valid:false};const s=process.env.ADMIN_SECRET||'dev-secret';const p=t.split('.');if(p.length!==4)return{valid:false};const[,cid,ts,hm]=p;if(!cid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return{valid:false};const py=`collab.${cid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,collaboratorId:cid};}catch{return{valid:false};}}function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Admin-Edit-Collab'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
+const TOKEN_MAX_AGE=24*60*60*1000;function verifyAdminToken(h:string|undefined):boolean{try{if(!h?.startsWith('Bearer '))return false;const t=h.slice(7),s=process.env.ADMIN_SECRET||'';if(!s)return false;const p=t.split('.');if(p.length!==2)return false;const[ts,hm]=p;if(!ts||!hm)return false;const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return false;const e=crypto.createHmac('sha256',s).update(ts).digest('hex');if(hm.length!==e.length)return false;return crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex'));}catch{return false;}}function verifyCollabToken(h:string|undefined):{valid:boolean;collaboratorId?:string}{try{if(!h?.startsWith('Bearer '))return{valid:false};const t=h.slice(7);if(!t.startsWith('collab.'))return{valid:false};const s=process.env.ADMIN_SECRET||'';const p=t.split('.');if(p.length!==4)return{valid:false};const[,cid,ts,hm]=p;if(!cid||!ts||!hm)return{valid:false};const a=Date.now()-Number(ts);if(isNaN(a)||a>TOKEN_MAX_AGE||a<0)return{valid:false};const py=`collab.${cid}.${ts}`;const e=crypto.createHmac('sha256',s).update(py).digest('hex');if(hm.length!==e.length)return{valid:false};if(!crypto.timingSafeEqual(Buffer.from(hm,'hex'),Buffer.from(e,'hex')))return{valid:false};return{valid:true,collaboratorId:cid};}catch{return{valid:false};}}function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'GET, POST, PUT, PATCH, DELETE, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Admin-Edit-Collab'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || '',
@@ -72,14 +72,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
+      // Validate image URLs: only allow R2 or Vercel storage URLs
+      function validateImageUrl(url: string): string {
+        if (!url || typeof url !== 'string') return '';
+        const trimmed = url.trim().substring(0, 2000);
+        if (!trimmed) return '';
+        try {
+          const parsed = new URL(trimmed);
+          const hostname = parsed.hostname;
+          if (hostname.endsWith('.r2.dev') || hostname.endsWith('.r2.cloudflarestorage.com') || hostname.endsWith('.vercel-storage.com') || hostname.endsWith('.public.blob.vercel-storage.com')) {
+            return trimmed;
+          }
+        } catch {}
+        return '';
+      }
+
+      // Validate color format
+      function validateColor(c: string, fallback: string): string {
+        if (!c || typeof c !== 'string') return fallback;
+        return /^#[0-9a-fA-F]{6}$/.test(c) ? c : fallback;
+      }
+
       const profileData = {
         bio: (bio || '').substring(0, 300),
-        photoUrl: photoUrl || '',
-        bannerUrl: bannerUrl || '',
+        photoUrl: validateImageUrl(photoUrl),
+        bannerUrl: validateImageUrl(bannerUrl),
         artistName: (artistName || '').substring(0, 50),
         socialLinks: safeSocialLinks,
-        colorPrimary: colorPrimary || '#FACC15',
-        colorSecondary: colorSecondary || '#EAB308',
+        colorPrimary: validateColor(colorPrimary, '#FACC15'),
+        colorSecondary: validateColor(colorSecondary, '#EAB308'),
       };
 
       // Save profile (collaboratorId never changes — fixed at registration)

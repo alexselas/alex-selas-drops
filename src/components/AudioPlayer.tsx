@@ -44,7 +44,7 @@ export default function AudioPlayer({
             className="h-1 bg-zinc-800/80 cursor-pointer group relative"
             onClick={handleProgressClick}
             role="slider"
-            aria-label="Progreso de reproducci\u00f3n"
+            aria-label="Progreso de reproducción"
             aria-valuenow={Math.round(progress)}
             aria-valuemin={0}
             aria-valuemax={100}

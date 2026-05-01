@@ -20,7 +20,7 @@ const categories: { value: Category | 'all'; label: string; dot: string; activeB
 
 export default function CategoryFilter({ selected, onSelect, showOriginales }: CategoryFilterProps) {
   return (
-    <div className="relative" role="group" aria-label="Filtrar por categor\u00eda">
+    <div className="relative" role="group" aria-label="Filtrar por categoría">
       <div
         className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}

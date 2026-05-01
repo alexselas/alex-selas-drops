@@ -75,6 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       alreadyAnalyzed: tracks.length - toAnalyze.length,
     });
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    console.error('Analyze-all error:', error?.message);
+    return res.status(500).json({ error: 'Error interno al analizar' });
   }
 }

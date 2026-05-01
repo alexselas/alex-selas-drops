@@ -1,11 +1,9 @@
 node_modules
 dist
-.env
-.env.local
-
 .vercel
-.env*.local
-
-.env.production
-.env.r2
 __pycache__/
+
+# Environment files — NEVER commit secrets
+.env
+.env.*
+!.env.example
