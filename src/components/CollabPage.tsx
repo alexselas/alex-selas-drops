@@ -93,8 +93,8 @@ export default function CollabPage({
     <div className="min-h-screen bg-[#0a0a0b]">
       {/* ====== HERO — video / image with smooth fade ====== */}
       <div className="relative overflow-hidden">
-        {/* Background — video for owner, image for collabs, gradient fallback */}
-        {isOwner ? (
+        {/* Background — video for music-drop profile, image for others, gradient fallback */}
+        {collaboratorId === 'music-drop' ? (
           <>
             <video
               autoPlay
@@ -115,7 +115,7 @@ export default function CollabPage({
         )}
 
         {/* Gradient fade — smooth into content */}
-        {(isOwner || profile?.bannerUrl) && (
+        {(collaboratorId === 'music-drop' || profile?.bannerUrl) && (
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(10,10,11,0) 0%, rgba(10,10,11,0) 40%, rgba(10,10,11,0.3) 60%, rgba(10,10,11,0.7) 80%, rgba(10,10,11,1) 100%)' }} />
         )}
 
