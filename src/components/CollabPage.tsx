@@ -17,6 +17,7 @@ interface CollabPageProps {
   isInCart: (id: string) => boolean;
   onPlay: (track: Track) => void;
   onAddToCart: (track: Track) => void;
+  onRemoveFromCart: (track: Track) => void;
   onDetail: (track: Track) => void;
   onNavigate: (section: Section) => void;
 }
@@ -39,6 +40,7 @@ export default function CollabPage({
   isInCart,
   onPlay,
   onAddToCart,
+  onRemoveFromCart,
   onDetail,
   onNavigate,
 }: CollabPageProps) {
@@ -207,6 +209,7 @@ export default function CollabPage({
           isInCart={isInCart}
           onPlay={onPlay}
           onAddToCart={onAddToCart}
+          onRemoveFromCart={onRemoveFromCart}
           onDetail={onDetail}
         />
       </div>
@@ -215,7 +218,7 @@ export default function CollabPage({
 }
 
 /* ====== CONTENT SECTION -- replicates Home layout ====== */
-function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, progress, isInCart, onPlay, onAddToCart, onDetail }: {
+function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, progress, isInCart, onPlay, onAddToCart, onRemoveFromCart, onDetail }: {
   myTracks: Track[];
   featuredTracks: Track[];
   currentTrackId: string | null;
@@ -224,6 +227,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
   isInCart: (id: string) => boolean;
   onPlay: (track: Track) => void;
   onAddToCart: (track: Track) => void;
+  onRemoveFromCart: (track: Track) => void;
   onDetail: (track: Track) => void;
 }) {
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
@@ -291,6 +295,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
                   isInCart={isInCart(track.id)}
                   onPlay={() => onPlay(track)}
                   onAddToCart={() => onAddToCart(track)}
+                  onRemoveFromCart={() => onRemoveFromCart(track)}
                   onDetail={() => onDetail(track)}
                 />
               ))}
@@ -379,10 +384,9 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
                 </div>
                 <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block tabular-nums">{formatCredits(CREDIT_COSTS[track.category])}</span>
                 <button
-                  onClick={e => { e.stopPropagation(); onAddToCart(track); }}
-                  disabled={isInCart(track.id)}
-                  className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`}
-                  aria-label={isInCart(track.id) ? 'En el carrito' : 'Añadir al carrito'}
+                  onClick={e => { e.stopPropagation(); isInCart(track.id) ? onRemoveFromCart(track) : onAddToCart(track); }}
+                  className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${isInCart(track.id) ? 'text-green-400 hover:text-red-400 hover:bg-red-400/[0.08]' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`}
+                  aria-label={isInCart(track.id) ? 'Quitar del carrito' : 'Añadir al carrito'}
                 >
                   <ShoppingCart className="w-4 h-4" />
                 </button>

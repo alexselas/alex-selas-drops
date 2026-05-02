@@ -8,7 +8,7 @@ const redis = new Redis({ url: process.env.KV_REST_API_URL || '', token: process
 const CREDIT_COSTS:Record<string,number>={extended:1,mashups:2,livemashups:2,hypeintros:2,transiciones:2,remixes:3,sesiones:5,originales:0};
 
 // Rate limit: max 20 purchases per 5 minutes per user
-const purchaseLimit = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '5 m'), prefix: 'rl:purchase' });
+const purchaseLimit = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(50, '5 m'), prefix: 'rl:purchase' });
 
 function corsHeaders(r:{headers:{origin?:string}}){const o=['https://alex-selas-drops.vercel.app','https://musicdrop.es','https://www.musicdrop.es'],g=r.headers.origin||'',h:Record<string,string>={'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization'};if(o.includes(g))h['Access-Control-Allow-Origin']=g;return h;}
 

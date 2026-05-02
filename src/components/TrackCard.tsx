@@ -12,6 +12,7 @@ interface TrackCardProps {
   isInCart?: boolean;
   onPlay: () => void;
   onAddToCart?: () => void;
+  onRemoveFromCart?: () => void;
   onDetail: () => void;
 }
 
@@ -22,6 +23,7 @@ export default function TrackCard({
   isInCart,
   onPlay,
   onAddToCart,
+  onRemoveFromCart,
   onDetail,
 }: TrackCardProps) {
   const credits = CREDIT_COSTS[track.category] || 1;
@@ -153,14 +155,13 @@ export default function TrackCard({
           </span>
           {onAddToCart && (
             <button
-              onClick={onAddToCart}
-              disabled={isInCart}
+              onClick={isInCart ? onRemoveFromCart : onAddToCart}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 isInCart
-                  ? 'bg-green-500/15 text-green-400 cursor-default border border-green-500/20'
+                  ? 'bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/20'
                   : 'bg-white/[0.06] text-zinc-300 border border-white/[0.06] hover:gradient-bg hover:text-black hover:border-transparent hover:shadow-md hover:shadow-yellow-400/10 active:scale-95'
               }`}
-              aria-label={isInCart ? 'En el carrito' : `Añadir ${track.title} al carrito`}
+              aria-label={isInCart ? `Quitar ${track.title} del carrito` : `Añadir ${track.title} al carrito`}
             >
               {isInCart ? (<><Check className="w-3 h-3" />Añadido</>) : (<><ShoppingCart className="w-3 h-3" />Añadir</>)}
             </button>

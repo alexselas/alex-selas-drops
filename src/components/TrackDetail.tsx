@@ -16,6 +16,7 @@ interface TrackDetailProps {
   onClose: () => void;
   onPlay: () => void;
   onAddToCart?: () => void;
+  onRemoveFromCart?: () => void;
   userToken?: string | null;
   userCredits?: number;
   onLoginRequired?: () => void;
@@ -24,7 +25,7 @@ interface TrackDetailProps {
 }
 
 export default function TrackDetail({
-  track, isPlaying, isCurrentTrack, isInCart, onClose, onPlay, onAddToCart,
+  track, isPlaying, isCurrentTrack, isInCart, onClose, onPlay, onAddToCart, onRemoveFromCart,
   userToken, userCredits = 0, onLoginRequired, onBuyCredits, onCreditsUpdated,
 }: TrackDetailProps) {
   const [copied, setCopied] = useState(false);
@@ -246,11 +247,10 @@ export default function TrackDetail({
             <div className="flex flex-col gap-3 mt-8">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={onAddToCart}
-                  disabled={isInCart}
+                  onClick={isInCart ? onRemoveFromCart : onAddToCart}
                   className={`flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-semibold transition-all ${
                     isInCart
-                      ? 'bg-green-500/15 text-green-400 border border-green-500/20 cursor-default'
+                      ? 'bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/20'
                       : 'gradient-bg text-black shadow-lg shadow-yellow-400/20 hover:shadow-yellow-400/30 hover:scale-[1.02] active:scale-95'
                   }`}
                 >

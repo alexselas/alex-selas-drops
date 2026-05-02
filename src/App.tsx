@@ -107,7 +107,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
                 <p className="text-xs text-zinc-500 truncate mt-0.5"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.camelot ? ` · ${track.camelot}` : (track.key ? ` · ${track.key}` : '')}{track.analysis?.intensity ? ` · Energía ${track.analysis.intensity}%` : ''}</p>
               </div>
               <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block tabular-nums">{formatCredits(CREDIT_COSTS[track.category])}</span>
-              <button onClick={e => { e.stopPropagation(); cart.addItem(track); }} disabled={cart.isInCart(track.id)} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`} aria-label={cart.isInCart(track.id) ? 'En el carrito' : 'Añadir al carrito'}><ShoppingCart className="w-4 h-4" /></button>
+              <button onClick={e => { e.stopPropagation(); cart.isInCart(track.id) ? cart.removeItem(track.id) : cart.addItem(track); }} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400 hover:text-red-400 hover:bg-red-400/[0.08]' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`} aria-label={cart.isInCart(track.id) ? 'Quitar del carrito' : 'Añadir al carrito'}><ShoppingCart className="w-4 h-4" /></button>
             </div>
           );
         })}
@@ -730,6 +730,7 @@ export default function App() {
                         isInCart={cart.isInCart(track.id)}
                         onPlay={() => player.play(track)}
                         onAddToCart={() => cart.addItem(track)}
+                        onRemoveFromCart={() => cart.removeItem(track.id)}
                         onDetail={() => {
                           setSelectedTrack(track);
                           window.history.pushState({}, '', `/track/${track.id}`);
@@ -926,6 +927,7 @@ export default function App() {
               isInCart={cart.isInCart}
               onPlay={track => player.play(track)}
               onAddToCart={track => cart.addItem(track)}
+              onRemoveFromCart={track => cart.removeItem(track.id)}
               onDetail={track => {
                 setSelectedTrack(track);
                 window.history.pushState({}, '', `/track/${track.id}`);
@@ -990,6 +992,7 @@ export default function App() {
             }}
             onPlay={() => player.play(selectedTrack)}
             onAddToCart={() => cart.addItem(selectedTrack)}
+            onRemoveFromCart={() => cart.removeItem(selectedTrack.id)}
             userToken={userToken}
             userCredits={userInfo?.credits ?? 0}
             onLoginRequired={() => setShowAuth(true)}
