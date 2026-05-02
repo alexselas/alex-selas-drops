@@ -31,7 +31,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
   tracks: Track[];
   collabProfiles: Record<string, any>;
   player: { currentTrack: Track | null; isPlaying: boolean; progress: number; play: (t: Track) => void };
-  cart: { isInCart: (id: string) => boolean; addItem: (t: Track) => void };
+  cart: { isInCart: (id: string) => boolean; addItem: (t: Track) => void; removeItem: (id: string) => void };
   onDetail: (t: Track) => void;
 }) {
   const [catFilter, setCatFilter] = useState<Category | 'all'>('all');
