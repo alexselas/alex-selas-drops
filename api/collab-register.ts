@@ -21,6 +21,7 @@ interface CollabAccount {
   passwordHash: string;
   salt: string;
   collaboratorId: string;
+  linkedUserId?: string;
 }
 
 function hashPassword(password: string, salt: string): string {
@@ -94,6 +95,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       salt,
       collaboratorId,
     };
+
+    // === Create linked user account with 200 internal drops ===
+    const existingUserId = await redis.get(`user-email:${email.toLowerCase()}`) as string | null;
+
+    if (existingUserId) {
+      // Email already registered as user — link and mark as internal
+      newAccount.linkedUserId = existingUserId;
+      const existingUser = await redis.get(`user:${existingUserId}`) as any;
+      if (existingUser) {
+        existingUser.internal = true;
+        existingUser.collaboratorId = collaboratorId;
+        if ((existingUser.credits || 0) < 200) existingUser.credits = 200;
+        await redis.set(`user:${existingUserId}`, existingUser);
+      }
+    } else {
+      // Create new internal user account with same email/password
+      const userId = crypto.randomBytes(8).toString('hex');
+      const userSalt = crypto.randomBytes(16).toString('hex');
+      const userPasswordHash = crypto.scryptSync(password, userSalt, 64).toString('hex');
+
+      const userAccount = {
+        id: userId,
+        email: email.toLowerCase(),
+        name: (profile?.artistName || collaboratorId).substring(0, 50),
+        passwordHash: userPasswordHash,
+        salt: userSalt,
+        credits: 200,
+        internal: true,
+        collaboratorId,
+        createdAt: new Date().toISOString(),
+      };
+
+      await redis.set(`user:${userId}`, userAccount);
+      await redis.set(`user-email:${email.toLowerCase()}`, userId);
+      newAccount.linkedUserId = userId;
+    }
 
     accounts.push(newAccount);
     await redis.set(COLLAB_ACCOUNTS_KEY, accounts);

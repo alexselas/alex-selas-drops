@@ -31,7 +31,8 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [adminArtist, setAdminArtist] = useState<'alex-selas' | 'music-drop'>('alex-selas');
+  const [adminArtist, setAdminArtist] = useState('alex-selas');
+  const [publishAsOptions, setPublishAsOptions] = useState<{ id: string; name: string }[]>([]);
   const [trackSearch, setTrackSearch] = useState('');
   const [trackFilter, setTrackFilter] = useState<Category | 'all'>('all');
   const [showAllTracks, setShowAllTracks] = useState(false);
@@ -39,6 +40,23 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const getAdminToken = () => sessionStorage.getItem('alex-selas-drops-token') || '';
+
+  // Load collaborator accounts for "Publicar como" selector
+  useEffect(() => {
+    fetch('/api/collab-accounts-list', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.accounts && data.accounts.length > 0) {
+          setPublishAsOptions(data.accounts.map((a: any) => ({
+            id: a.collaboratorId,
+            name: a.artistName || a.collaboratorId,
+          })));
+        }
+      })
+      .catch(() => {});
+  }, [adminToken]);
 
   // Stats (only own tracks, not collaborator uploads)
   const myTracks = tracks.filter(t => !t.collaboratorId);
@@ -77,13 +95,34 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
   });
 
   // Newsletter state
-  const newsletterEmails: { email: string; lastOrder: string; type: string }[] = [];
+  const [newsletterEmails, setNewsletterEmails] = useState<{ email: string; lastOrder: string; type: string }[]>([]);
   const [emailsCopied, setEmailsCopied] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  const [newsletterLoaded, setNewsletterLoaded] = useState(false);
   const [sendingNewsletter, setSendingNewsletter] = useState(false);
   const [newsletterResult, setNewsletterResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [selectedTracks, setSelectedTracks] = useState<Set<string>>(new Set());
   const [showNewsletterPreview, setShowNewsletterPreview] = useState(false);
+
+  // Load newsletter emails when tab is newsletter
+  useEffect(() => {
+    if (tab !== 'newsletter' || newsletterLoaded) return;
+    fetch('/api/newsletter-emails', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.emails) {
+          setNewsletterEmails(data.emails.map((e: any) => ({
+            email: e.email,
+            lastOrder: e.date || '-',
+            type: e.source || 'Desconocido',
+          })));
+          setNewsletterLoaded(true);
+        }
+      })
+      .catch(() => {});
+  }, [tab, newsletterLoaded, adminToken]);
 
   const tabs: { id: AdminTab; label: string; icon: typeof Music }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -215,24 +254,36 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
             <>
               {/* Artist selector — only for new tracks */}
               {isAdding && !editingTrack && (
-                <div className="mb-4 flex items-center gap-3">
-                  <label className="text-xs text-zinc-500 font-medium">Publicar como:</label>
-                  <select value={adminArtist} onChange={e => setAdminArtist(e.target.value as any)} className="px-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-sm">
-                    <option value="alex-selas">Alex Selas</option>
-                    <option value="music-drop">MusicDrop</option>
-                  </select>
+                <div className="mb-4 p-3 rounded-xl bg-yellow-400/5 border border-yellow-400/20">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-yellow-400 font-semibold">Publicar como:</label>
+                    <select value={adminArtist} onChange={e => setAdminArtist(e.target.value)} className="px-4 py-2 rounded-xl bg-zinc-800/80 border border-yellow-400/30 text-zinc-200 text-sm font-medium">
+                      <option value="alex-selas">Alex Selas</option>
+                      <option value="music-drop">MusicDrop</option>
+                      {publishAsOptions.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
               <AdminTrackForm
                 track={editingTrack}
                 adminToken={adminToken}
-                defaultArtist={adminArtist === 'music-drop' ? 'MusicDrop' : 'Alex Selas'}
+                defaultArtist={
+                  adminArtist === 'alex-selas' ? 'Alex Selas'
+                    : adminArtist === 'music-drop' ? 'MusicDrop'
+                    : publishAsOptions.find(c => c.id === adminArtist)?.name || adminArtist
+                }
                 onSave={(data) => {
-                  // If publishing as Music Drop, mark as collaborator
-                  if (adminArtist === 'music-drop' && !editingTrack) {
+                  // If publishing as someone other than Alex Selas, mark as collaborator
+                  if (adminArtist !== 'alex-selas' && !editingTrack) {
+                    const collabName = adminArtist === 'music-drop'
+                      ? 'MusicDrop'
+                      : publishAsOptions.find(c => c.id === adminArtist)?.name || adminArtist;
                     data.collaborator = true;
-                    data.collaboratorId = 'music-drop';
-                    data.artist = 'MusicDrop';
+                    data.collaboratorId = adminArtist;
+                    data.artist = collabName;
                   }
                   if (editingTrack) {
                     onUpdateTrack(data);
@@ -545,52 +596,84 @@ export default function AdminPanel({ tracks, onAddTrack, onUpdateTrack, onDelete
         </motion.div>
       )}
 
-      {/* Newsletter Preview Modal */}
-      {showNewsletterPreview && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 overflow-y-auto py-8" onClick={() => setShowNewsletterPreview(false)}>
-          <div className="w-full max-w-xl bg-[#0a0a0a] rounded-2xl border border-zinc-800 overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-              <h3 className="text-sm font-semibold text-zinc-300">Preview Newsletter</h3>
-              <button onClick={() => setShowNewsletterPreview(false)} className="text-zinc-500 hover:text-white">✕</button>
-            </div>
-            <div className="p-6 space-y-4" style={{ background: 'linear-gradient(135deg, #1a1400 0%, #0a0a0a 30%)' }}>
-              <div className="text-center">
-                <img src="https://zuct57sgk5d1hhzr.public.blob.vercel-storage.com/logo/360djacademy-logo-HHE18DFGmGmD6hSP9jtuyiSUTarGeE.png" alt="" className="w-24 mx-auto mb-3" />
-                <h2 className="text-xl font-bold text-white">MUSIC <span className="gradient-text">DROP</span></h2>
+      {/* Newsletter Preview Modal — exact replica of the real email */}
+      {showNewsletterPreview && (() => {
+        const catLabels: Record<string, string> = { remixes: 'Remix', mashups: 'Mashup', livemashups: 'Live Mashup', hypeintros: 'Hype Intro', transiciones: 'Transicion', sesiones: 'Sesion', originales: 'Original', extended: 'Extended' };
+        const catColors: Record<string, string> = { remixes: '#a855f7', mashups: '#facc15', hypeintros: '#f472b6', transiciones: '#22d3ee', sesiones: '#34d399', originales: '#fb923c', extended: '#f59e0b', livemashups: '#e879f9' };
+        const previewTracks = tracks.filter(t => selectedTracks.has(t.id));
+        const logoUrl = 'https://zuct57sgk5d1hhzr.public.blob.vercel-storage.com/logo/360djacademy-logo-HHE18DFGmGmD6hSP9jtuyiSUTarGeE.png';
+        const emailHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<div style="max-width:560px;margin:0 auto;padding:40px 20px;">
+<div style="background-color:#0a0a0a;border-radius:20px;overflow:hidden;border:1px solid #1a1a1a;">
+<div style="background:linear-gradient(135deg,#1a1400 0%,#0a0a0a 50%,#0a0a0a 100%);padding:40px 32px 24px;text-align:center;">
+<img src="${logoUrl}" alt="360 DJ Academy" style="width:120px;height:auto;margin:0 auto 12px;display:block;" />
+<h1 style="color:#fafafa;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:1px;">MUSIC <span style="color:#facc15;">DROP</span></h1>
+</div>
+<div style="padding:32px 32px 24px;text-align:center;">
+<h2 style="color:#fafafa;font-size:26px;margin:0 0 10px;font-weight:700;line-height:1.2;">Nuevos Drops Disponibles</h2>
+<p style="color:#a1a1aa;font-size:15px;margin:0;line-height:1.5;">Hemos subido ${previewTracks.length} ${previewTracks.length === 1 ? 'novedad' : 'novedades'} a la tienda. Echa un vistazo.</p>
+</div>
+<div style="padding:0 32px;"><div style="height:1px;background:linear-gradient(to right,transparent,#2a2a2a,transparent);"></div></div>
+<div style="padding:24px 32px;">
+<p style="color:#71717a;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 16px;font-weight:600;">Lo nuevo</p>
+${previewTracks.map(t => {
+  const color = catColors[t.category] || '#facc15';
+  const label = catLabels[t.category] || t.category;
+  const bpmStr = t.bpm > 0 ? ` &middot; ${t.bpm} BPM` : '';
+  const cost = CREDIT_COSTS[t.category] || 1;
+  const coverHtml = t.coverUrl
+    ? `<img src="${t.coverUrl}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0;" />`
+    : `<div style="width:48px;height:48px;background:linear-gradient(135deg,${color},${color}88);border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="font-size:22px;">&#9835;</span></div>`;
+  return `<div style="display:flex;align-items:center;background:#141414;border:1px solid #1e1e1e;border-radius:12px;padding:14px 16px;margin-bottom:10px;">
+${coverHtml}
+<div style="margin-left:14px;flex:1;">
+<p style="color:#e4e4e7;font-size:14px;font-weight:600;margin:0 0 3px;">${t.title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</p>
+<p style="color:#71717a;font-size:12px;margin:0;">${label}${bpmStr}</p>
+</div>
+<div style="flex-shrink:0;margin-left:12px;"><span style="background:rgba(250,204,21,0.1);color:#facc15;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;">NEW</span></div>
+</div>`;
+}).join('')}
+</div>
+<div style="padding:8px 32px 32px;text-align:center;">
+<a href="https://musicdrop.es" style="display:inline-block;padding:16px 48px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;font-weight:800;text-decoration:none;border-radius:14px;font-size:15px;letter-spacing:0.5px;">Ver novedades en la tienda</a>
+</div>
+<div style="padding:0 32px;"><div style="height:1px;background:linear-gradient(to right,transparent,#1e1e1e,transparent);"></div></div>
+<div style="padding:24px 32px;text-align:center;">
+<p style="color:#71717a;font-size:12px;margin:0 0 8px;">Usa este codigo para un 20% extra en tu primera compra de drops:</p>
+<div style="display:inline-block;background:rgba(250,204,21,0.08);border:1px dashed rgba(250,204,21,0.3);border-radius:8px;padding:8px 24px;">
+<span style="color:#facc15;font-size:18px;font-weight:800;letter-spacing:3px;">WELCOME20</span>
+</div>
+</div>
+<div style="padding:20px 32px 28px;text-align:center;background:#080808;">
+<p style="color:#3f3f46;font-size:11px;margin:0 0 6px;">Music Drop by 360DJAcademy &middot; <a href="https://musicdrop.es" style="color:#52525b;text-decoration:none;">musicdrop.es</a></p>
+<p style="color:#27272a;font-size:10px;margin:0;">Recibes este email porque descargaste o compraste en Music Drop.</p>
+</div>
+</div>
+</div>
+</body></html>`;
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 overflow-y-auto py-8" onClick={() => setShowNewsletterPreview(false)}>
+            <div className="w-full max-w-[620px] bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+                <h3 className="text-sm font-semibold text-zinc-300">Asi se vera el email ({selectedEmails.size} destinatarios)</h3>
+                <button onClick={() => setShowNewsletterPreview(false)} className="text-zinc-500 hover:text-white text-lg">✕</button>
               </div>
-              <div className="text-center">
-                <h3 className="text-lg font-bold text-white mb-1">Nuevos Drops Disponibles</h3>
-                <p className="text-sm text-zinc-400">{selectedTracks.size} novedades en la tienda</p>
+              <iframe
+                srcDoc={emailHtml}
+                className="w-full border-0"
+                style={{ height: `${Math.min(700, 400 + previewTracks.length * 80)}px`, background: '#0a0a0a' }}
+                sandbox="allow-same-origin"
+                title="Newsletter preview"
+              />
+              <div className="p-4 border-t border-zinc-800 text-center text-xs text-zinc-500">
+                Vista previa exacta del email que se enviara
               </div>
-              <div className="h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
-              <div className="space-y-2">
-                {tracks.filter(t => selectedTracks.has(t.id)).map(t => (
-                  <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/50">
-                    {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-zinc-800 flex-shrink-0" />}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-zinc-200 truncate">{t.title}</p>
-                      <p className="text-xs text-zinc-500">{t.genre}{t.bpm > 0 ? ` · ${t.bpm} BPM` : ''} · {formatCredits(CREDIT_COSTS[t.category] || 1)}</p>
-                    </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${(CREDIT_COSTS[t.category] || 1) > 0 ? 'bg-yellow-400/10 text-yellow-400' : 'bg-emerald-400/10 text-emerald-400'}`}>{(CREDIT_COSTS[t.category] || 1) > 0 ? 'NEW' : 'FREE'}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-center pt-2">
-                <span className="inline-block px-8 py-3 rounded-xl gradient-bg text-black font-bold text-sm">Ver novedades en la tienda</span>
-              </div>
-              <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
-              <div className="text-center">
-                <p className="text-xs text-zinc-500 mb-1">Codigo de bienvenida:</p>
-                <span className="text-yellow-400 font-bold text-lg tracking-widest">WELCOME20</span>
-                <p className="text-[10px] text-zinc-600 mt-1">20% extra en primera compra de drops</p>
-              </div>
-            </div>
-            <div className="p-4 border-t border-zinc-800 text-center text-xs text-zinc-600">
-              Se enviara a {selectedEmails.size} suscriptores
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ============ PERFIL ============ */}
       {tab === 'settings' && (

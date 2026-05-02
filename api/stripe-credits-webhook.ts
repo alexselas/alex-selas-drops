@@ -73,6 +73,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 date: new Date().toISOString(),
               });
               await redis.set(`user-purchases:${userId}`, purchases);
+
+              // Save email to newsletter list
+              const customerEmail = session.customer_details?.email?.toLowerCase().trim();
+              if (customerEmail) {
+                const nlKey = 'newsletter-emails';
+                const existing = (await redis.get(nlKey) || []) as any[];
+                if (!existing.some((e: any) => e.email === customerEmail)) {
+                  existing.push({ email: customerEmail, date: new Date().toISOString().split('T')[0], source: 'Compra' });
+                  await redis.set(nlKey, existing);
+                }
+              }
             }
           }
         }

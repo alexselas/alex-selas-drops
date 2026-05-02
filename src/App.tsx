@@ -664,9 +664,9 @@ export default function App() {
             </section>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-              <h3 className="text-xl font-bold text-zinc-50 mb-6">Artistas y productores</h3>
-              {/* Producer avatars -- Alex Selas first, then collaborators -- wait for profiles to load */}
-              {collabProfilesLoaded && <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mb-10">
+              <h3 className="text-xl font-bold text-zinc-50 mb-6">Nuestros editores</h3>
+              {/* Producer cards -- equal width, centered rows */}
+              {collabProfilesLoaded && <div className="flex flex-wrap justify-center gap-3 mb-10">
                 {allProducers.map(collab => {
                   const trackCount = collab.id === 'alex-selas'
                     ? alexTrackCount
@@ -677,21 +677,21 @@ export default function App() {
                     <button
                       key={collab.id}
                       onClick={() => navigate('colab-page', collab.id)}
-                      className="flex items-center gap-3 rounded-xl px-4 py-3.5 transition-all hover:translate-y-[-1px]"
+                      className="flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 hover:translate-y-[-2px] w-[calc(50%-6px)] sm:w-[185px] group"
                       style={{ backgroundColor: `${pc}0D`, border: `1px solid ${pc}22` }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${pc}60`; (e.currentTarget as HTMLElement).style.backgroundColor = `${pc}18`; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = `${pc}22`; (e.currentTarget as HTMLElement).style.backgroundColor = `${pc}0D`; }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${pc}55`; (e.currentTarget as HTMLElement).style.backgroundColor = `${pc}18`; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 15px -3px ${pc}25`; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = `${pc}22`; (e.currentTarget as HTMLElement).style.backgroundColor = `${pc}0D`; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
                     >
                       {collab.photoUrl ? (
-                        <img src={collab.photoUrl} alt={collab.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" style={{ border: `2px solid ${pc}66` }} />
+                        <img src={collab.photoUrl} alt={collab.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 transition-transform duration-200 group-hover:scale-105" style={{ border: `2px solid ${pc}55` }} />
                       ) : (
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ border: `2px solid ${pc}66`, backgroundColor: `${pc}1A` }}>
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105" style={{ border: `2px solid ${pc}55`, backgroundColor: `${pc}15` }}>
                           <span className="text-sm font-bold" style={{ color: pc }}>{collab.name.charAt(0)}</span>
                         </div>
                       )}
-                      <div className="text-left">
-                        <h3 className="text-sm font-bold leading-tight" style={{ color: pc }}>{collab.name}</h3>
-                        <p className="text-[11px]" style={{ color: `${pc}80` }}>
+                      <div className="text-left min-w-0">
+                        <h3 className="text-sm font-bold leading-tight truncate" style={{ color: pc }}>{collab.name}</h3>
+                        <p className="text-[10px] mt-0.5 text-zinc-500">
                           {trackCount > 0 ? `${trackCount} track${trackCount !== 1 ? 's' : ''}` : 'Próximamente'}
                         </p>
                       </div>

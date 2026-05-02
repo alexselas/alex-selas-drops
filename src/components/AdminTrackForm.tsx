@@ -484,6 +484,13 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
     }
   }, [track]);
 
+  // Update artist field when "Publicar como" changes (only for new tracks)
+  useEffect(() => {
+    if (!track && defaultArtist) {
+      setForm(prev => ({ ...prev, artist: defaultArtist }));
+    }
+  }, [defaultArtist, track]);
+
   const generateDescription = async () => {
     const titleForDesc = autoTitle || songName;
     if (!titleForDesc) return;
@@ -750,7 +757,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
 
           {/* Category selector — FIRST, everything depends on this */}
           <div className="mb-4">
-            <label className="block text-xs text-zinc-500 mb-1">Categoria</label>
+            <label className="block text-xs mb-1"><span className="text-yellow-400 font-semibold">Categoria *</span> <span className="text-yellow-400/70">(selecciona antes de rellenar)</span></label>
             <select
               value={form.category}
               onChange={e => {
@@ -784,12 +791,12 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
             <div>
               <label className="block text-xs text-zinc-500 mb-1">
                 {form.category === 'mashups' || form.category === 'transiciones'
-                  ? 'Canción A *'
+                  ? <><span>Canción A *</span> <span className="text-yellow-400">(solo nombre de la canción)</span></>
                   : form.category === 'sesiones'
-                    ? 'Nombre sesión *'
+                    ? <><span>Nombre sesión *</span> <span className="text-yellow-400">(solo el nombre)</span></>
                     : form.category === 'originales'
-                      ? 'Título *'
-                      : 'Nombre canción *'}
+                      ? <><span>Título *</span> <span className="text-yellow-400">(solo el título)</span></>
+                      : <><span>Nombre canción *</span> <span className="text-yellow-400">(solo nombre de la canción)</span></>}
               </label>
               <input
                 type="text"
@@ -810,7 +817,7 @@ export default function AdminTrackForm({ track, onSave, onCancel, adminToken, de
             {/* Song name B (only for mashup / transicion) */}
             {needsSongNameB && (
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">Cancion B *</label>
+                <label className="block text-xs text-zinc-500 mb-1">Cancion B * <span className="text-yellow-400">(solo nombre de la canción)</span></label>
                 <input
                   type="text"
                   value={songNameB}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Coins, Sparkles, Loader2, Star, Zap, Crown } from 'lucide-react';
-import { CREDIT_PACKS, CREDIT_COSTS } from '../types';
+import { Coins, Loader2, Star, Zap, Crown } from 'lucide-react';
+import { CREDIT_PACKS } from '../types';
 import { formatPrice } from '../lib/utils';
 
 interface CreditShopProps {
@@ -154,27 +154,13 @@ export default function CreditShop({ userToken, userCredits, onLoginRequired, on
           </div>
         )}
 
-        {/* Credit cost reference */}
-        <div className="bg-[#141414] rounded-2xl border border-white/[0.06] p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Sparkles className="w-5 h-5 text-yellow-400" />
-            <h3 className="text-sm font-bold text-white">¿Cuántos drops cuesta cada tipo de track?</h3>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {Object.entries(CREDIT_COSTS).map(([cat, credits]) => {
-              const labels: Record<string, string> = {
-                extended: 'Extended', mashups: 'Mashup', livemashups: 'Live Mashup',
-                hypeintros: 'Hype Intro', transiciones: 'Transición', remixes: 'Remix',
-                sesiones: 'Sesión', originales: 'Original',
-              };
-              return (
-                <div key={cat} className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.04]">
-                  <span className="text-xs text-zinc-400">{labels[cat]}</span>
-                  <span className="text-sm font-bold text-yellow-400 tabular-nums">{credits} dr</span>
-                </div>
-              );
-            })}
-          </div>
+        {/* Privacy policy notice */}
+        <div className="bg-[#141414] rounded-2xl border border-white/[0.06] p-5">
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            Al realizar una compra, aceptas nuestra{' '}
+            <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">Politica de Privacidad</a>{' '}
+            y consientes que tu email se guarde para recibir novedades y ofertas de MusicDrop. Puedes darte de baja en cualquier momento.
+          </p>
         </div>
 
         {/* Not logged in CTA */}
