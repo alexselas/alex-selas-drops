@@ -247,7 +247,7 @@ export default function TrackDetail({
             <div className="flex flex-col gap-3 mt-8">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={isInCart ? onRemoveFromCart : onAddToCart}
+                  onClick={() => { if (isInCart && onRemoveFromCart) { onRemoveFromCart(); } else if (onAddToCart) { onAddToCart(); } }}
                   className={`flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-semibold transition-all ${
                     isInCart
                       ? 'bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/20'

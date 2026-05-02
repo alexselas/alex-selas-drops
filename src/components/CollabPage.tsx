@@ -384,7 +384,7 @@ function CollabContent({ myTracks, featuredTracks, currentTrackId, isPlaying, pr
                 </div>
                 <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block tabular-nums">{formatCredits(CREDIT_COSTS[track.category])}</span>
                 <button
-                  onClick={e => { e.stopPropagation(); isInCart(track.id) ? onRemoveFromCart(track) : onAddToCart(track); }}
+                  onClick={e => { e.stopPropagation(); if (isInCart(track.id)) { onRemoveFromCart(track); } else { onAddToCart(track); } }}
                   className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${isInCart(track.id) ? 'text-green-400 hover:text-red-400 hover:bg-red-400/[0.08]' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`}
                   aria-label={isInCart(track.id) ? 'Quitar del carrito' : 'Añadir al carrito'}
                 >

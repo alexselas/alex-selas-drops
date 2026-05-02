@@ -155,7 +155,7 @@ export default function TrackCard({
           </span>
           {onAddToCart && (
             <button
-              onClick={isInCart ? onRemoveFromCart : onAddToCart}
+              onClick={() => { if (isInCart && onRemoveFromCart) { onRemoveFromCart(); } else if (onAddToCart) { onAddToCart(); } }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 isInCart
                   ? 'bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/20'

@@ -107,7 +107,7 @@ function CollabTracksSection({ tracks: colabTracks, collabProfiles, player, cart
                 <p className="text-xs text-zinc-500 truncate mt-0.5"><span style={{ color: trackColor }} className="font-medium">{collabName}</span>{track.authors ? ` · ${track.authors}` : ''} · {track.genre}{track.bpm > 0 ? ` · ${track.bpm} BPM` : ''}{track.camelot ? ` · ${track.camelot}` : (track.key ? ` · ${track.key}` : '')}{track.analysis?.intensity ? ` · Energía ${track.analysis.intensity}%` : ''}</p>
               </div>
               <span className="relative text-sm font-bold gradient-text flex-shrink-0 hidden sm:block tabular-nums">{formatCredits(CREDIT_COSTS[track.category])}</span>
-              <button onClick={e => { e.stopPropagation(); cart.isInCart(track.id) ? cart.removeItem(track.id) : cart.addItem(track); }} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400 hover:text-red-400 hover:bg-red-400/[0.08]' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`} aria-label={cart.isInCart(track.id) ? 'Quitar del carrito' : 'Añadir al carrito'}><ShoppingCart className="w-4 h-4" /></button>
+              <button onClick={e => { e.stopPropagation(); if (cart.isInCart(track.id)) { cart.removeItem(track.id); } else { cart.addItem(track); } }} className={`relative flex-shrink-0 p-2 rounded-lg transition-all ${cart.isInCart(track.id) ? 'text-green-400 hover:text-red-400 hover:bg-red-400/[0.08]' : 'text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/[0.08]'}`} aria-label={cart.isInCart(track.id) ? 'Quitar del carrito' : 'Añadir al carrito'}><ShoppingCart className="w-4 h-4" /></button>
             </div>
           );
         })}
